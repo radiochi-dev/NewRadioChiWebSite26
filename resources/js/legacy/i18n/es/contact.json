@@ -1,0 +1,20 @@
+{
+  "title": "Contacto",
+  "subtitle": "Serás llamado para ceder varón, así que las luces<br>Estrellas abundantemente, es de ellos.",
+  "email_label": "Email:",
+  "phone_label": "Teléfono:",
+  "get_direction": "Obtener dirección",
+  "form.title": "Siempre estoy buscando grandes colaboradores. ¡Envíame un mensaje y hagamos <span class=\"has-first-color\">algo juntos!</span>",
+  "form.name_label": "Tu nombre (requerido)",
+  "form.name_placeholder": "Tu Nombre",
+  "form.email_label": "Tu email (requerido)",
+  "form.email_placeholder": "Tu Email",
+  "form.category_label": "Categoría (opcional)",
+  "form.category_placeholder": "Categoría",
+  "form.budget_label": "Elige un Presupuesto (USD)",
+  "form.message_label": "Tu Mensaje",
+  "form.message_placeholder": "Mensaje",
+  "form.success_message": "Tu mensaje ha sido enviado con éxito...",
+  "form.error_message": "Lo sentimos, ¡algo salió mal!",
+  "form.submit_button": "Contactarme"
+}

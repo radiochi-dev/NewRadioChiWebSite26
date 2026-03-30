@@ -1,0 +1,20 @@
+{
+  "title": "Contact",
+  "subtitle": "Vous serez appelé pour céder mâle, ainsi les lumières<br>Étoiles abondamment, est leur.",
+  "email_label": "E-mail:",
+  "phone_label": "Téléphone:",
+  "get_direction": "Obtenir l'itinéraire",
+  "form.title": "Je suis toujours à la recherche de grands collaborateurs. Envoyez-moi un message et faisons <span class=\"has-first-color\">quelque chose ensemble!</span>",
+  "form.name_label": "Votre nom (obligatoire)",
+  "form.name_placeholder": "Votre Nom",
+  "form.email_label": "Votre e-mail (obligatoire)",
+  "form.email_placeholder": "Votre E-mail",
+  "form.category_label": "Catégorie (optionnel)",
+  "form.category_placeholder": "Catégorie",
+  "form.budget_label": "Choisissez un Budget (USD)",
+  "form.message_label": "Votre Message",
+  "form.message_placeholder": "Message",
+  "form.success_message": "Votre message a été envoyé avec succès...",
+  "form.error_message": "Désolé, quelque chose s'est mal passé!",
+  "form.submit_button": "Contactez-moi"
+}

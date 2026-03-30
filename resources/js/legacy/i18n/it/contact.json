@@ -1,0 +1,20 @@
+{
+  "title": "Contatto",
+  "subtitle": "Sarai chiamato per cedere maschio, così le luci<br>Stelle abbondantemente, è loro.",
+  "email_label": "Email:",
+  "phone_label": "Telefono:",
+  "get_direction": "Ottieni indicazioni",
+  "form.title": "Sono sempre alla ricerca di grandi collaboratori. Inviami un messaggio e facciamo <span class=\"has-first-color\">qualcosa insieme!</span>",
+  "form.name_label": "Il tuo nome (obbligatorio)",
+  "form.name_placeholder": "Il tuo Nome",
+  "form.email_label": "La tua email (obbligatoria)",
+  "form.email_placeholder": "La tua Email",
+  "form.category_label": "Categoria (opzionale)",
+  "form.category_placeholder": "Categoria",
+  "form.budget_label": "Scegli un Budget (USD)",
+  "form.message_label": "Il tuo Messaggio",
+  "form.message_placeholder": "Messaggio",
+  "form.success_message": "Il tuo messaggio è stato inviato con successo...",
+  "form.error_message": "Spiacenti, qualcosa è andato storto!",
+  "form.submit_button": "Contattami"
+}

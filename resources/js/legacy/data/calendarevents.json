@@ -1,0 +1,110 @@
+{
+  "translations": {
+    "es": {
+      "title": "PRÓXIMOS EVENTOS",
+      "buyTickets": "Comprar Entradas",
+      "viewAllEvents": "Ver todos los eventos",
+      "noEvents": "¡Lista de eventos próximamente!",
+      "datesComingSoon": "Fechas próximamente",
+      "moreDatesComingSoon": "Más fechas próximamente",
+      "country": {
+        "Spain": "España",
+        "USA": "Estados Unidos"
+      }
+    },
+    "en": {
+      "title": "UPCOMING EVENTS",
+      "buyTickets": "Buy Tickets",
+      "viewAllEvents": "View All Events",
+      "noEvents": "List Events coming soon!!",
+      "datesComingSoon": "Dates coming soon",
+      "moreDatesComingSoon": "More dates coming soon",
+      "country": {
+        "Spain": "Spain",
+        "USA": "USA"
+      }
+    },
+    "ca": {
+      "title": "PROPERS ESDEVENIMENTS",
+      "buyTickets": "Comprar Entrades",
+      "viewAllEvents": "Veure tots els esdeveniments",
+      "noEvents": "Llista d'esdeveniments properament!",
+      "datesComingSoon": "Dates properament",
+      "moreDatesComingSoon": "Més dates properament",
+      "country": {
+        "Spain": "Espanya",
+        "USA": "Estats Units"
+      }
+    },
+    "fr": {
+      "title": "ÉVÉNEMENTS À VENIR",
+      "buyTickets": "Acheter des Billets",
+      "viewAllEvents": "Voir tous les événements",
+      "noEvents": "Liste des événements à venir bientôt!",
+      "datesComingSoon": "Dates à venir",
+      "moreDatesComingSoon": "Plus de dates à venir",
+      "country": {
+        "Spain": "Espagne",
+        "USA": "États-Unis"
+      }
+    },
+    "it": {
+      "title": "PROSSIMI EVENTI",
+      "buyTickets": "Acquista Biglietti",
+      "viewAllEvents": "Visualizza tutti gli eventi",
+      "noEvents": "Elenco eventi in arrivo presto!",
+      "datesComingSoon": "Date in arrivo",
+      "moreDatesComingSoon": "Altre date in arrivo",
+      "country": {
+        "Spain": "Spagna",
+        "USA": "Stati Uniti"
+      }
+    },
+    "de": {
+      "title": "KOMMENDE VERANSTALTUNGEN",
+      "buyTickets": "Tickets kaufen",
+      "viewAllEvents": "Alle Veranstaltungen anzeigen",
+      "noEvents": "Veranstaltungsliste kommt bald!",
+      "datesComingSoon": "Termine in Kürze",
+      "moreDatesComingSoon": "Weitere Termine in Kürze",
+      "country": {
+        "Spain": "Spanien",
+        "USA": "USA"
+      }
+    }
+  },
+  "events": [
+    
+    {
+      "id": 1,
+      "title": "International Bear Convergence",
+      "dateStart": "19-02-26",
+      "dateEnd": "23-02-26",
+      "location": "Palm Springs",
+      "country": "USA",
+      "logo": "/assets/img/logos/ibc+blue+logo+mk.webp",
+      "linkEvent": "https://www.ibcpalmsprings.com/"
+    },
+    {
+      "id": 2,
+      "title": "Sitges Pride 2026",
+      "dateStart": " ",
+      "dateEnd": " ",
+      "location": "Sitges",
+      "country": "Spain",
+      "logo": "/assets/img/logos/sitgesPrideLogo-transparent.png",
+      "linkEvent": "https://sitgespride.com/"
+    },
+    {
+      "id": 3,
+      "title": "Sitges Bears Week Sept 2026",
+      "dateStart": " ",
+      "dateEnd": " ",
+      "location": "Sitges",
+      "country": "Spain",
+      "logo": "/assets/img/logos/LOGO-BEARS-WEEK-mini.png",
+      "linkEvent": "https://bearssitges.org/bears-sitges-week/"
+    }
+    
+  ]
+}

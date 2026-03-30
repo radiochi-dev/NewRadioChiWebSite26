@@ -1,0 +1,20 @@
+{
+  "title": "Contacte",
+  "subtitle": "Seràs cridat per cedir mascle, així que les llums<br>Estrelles abundantment, és d'ells.",
+  "email_label": "Correu electrònic:",
+  "phone_label": "Telèfon:",
+  "get_direction": "Obtenir direcció",
+  "form.title": "Sempre estic buscant grans col·laboradors. Envia'm un missatge i fem <span class=\"has-first-color\">alguna cosa junts!</span>",
+  "form.name_label": "El teu nom (obligatori)",
+  "form.name_placeholder": "El teu Nom",
+  "form.email_label": "El teu correu electrònic (obligatori)",
+  "form.email_placeholder": "El teu Correu electrònic",
+  "form.category_label": "Categoria (opcional)",
+  "form.category_placeholder": "Categoria",
+  "form.budget_label": "Tria un Pressupost (USD)",
+  "form.message_label": "El teu Missatge",
+  "form.message_placeholder": "Missatge",
+  "form.success_message": "El teu missatge s'ha enviat amb èxit...",
+  "form.error_message": "Ho sentim, alguna cosa ha anat malament!",
+  "form.submit_button": "Contacta'm"
+}

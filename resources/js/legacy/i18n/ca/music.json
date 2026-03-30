@@ -1,0 +1,92 @@
+{
+  "title": "ABSTRACT ART",
+  "subtitle": "Explora la meva col·lecció de remixos i produccions musicals",
+  "description": "Una selecció dels meus millors treballs en música electrònica, des de bootlegs fins a remixos oficials. Cada track representa una exploració única en el món del so.",
+  "contact": {
+    "birth": "Data de naixement: 03/08/1994",
+    "email": "abstractcolor@example.com",
+    "education": "Educació: Julliard, NY(EUA)",
+    "phone": "+(123) 323 4467",
+    "location": "Basat a: New York, New York",
+    "download": "Descarregar Currículum"
+  },
+  "player": {
+    "currentTrack": "BODYBANGERS vs HAYLEY PARSONS !!!!",
+    "artist": "Sunglasses at Night (RadioChi Remix 2017)",
+    "duration": "00:00"
+  },
+  "tracks": [
+    {
+      "id": 1,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_1.svg",
+      "title": "BODYBANGERS vs HAYLEY PARSONS",
+      "heroTitle": "Ritmes Nocturns Electrònics",
+      "subtitle": "Sunglasses at Night (RadioChi Remix)",
+      "description": "Un remix energètic que combina elements de dance i electro house, transformant el clàssic dels 80 en una experiència moderna de pista de ball.",
+      "image": "/assets/img/SoundCloundSongs/song1.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/319714972&color=%23b4a4a4&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2017",
+      "genre": "Dance & EDM"
+    },
+    {
+      "id": 2,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_2.svg",
+      "title": "John NEWMAN",
+      "heroTitle": "Somnis Perduts a l'Alba",
+      "subtitle": "Losing Sleep (Mr.Chi Private Bootleg)",
+      "description": "Un bootleg privat que reimagina el hit de John Newman amb elements de house progressiu i sintetitzadors analògics.",
+      "image": "/assets/img/SoundCloundSongs/song2.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/166335624&color=%23a498ac&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2014",
+      "genre": "House"
+    },
+    {
+      "id": 3,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_3.svg",
+      "title": "Ride Gypsy White Hourse",
+      "heroTitle": "Cavalls Blancs de l'Alba",
+      "subtitle": "Mr.Chi Bootleg Private Track",
+      "description": "Una fusió experimental que combina elements ètnics amb beats electrònics moderns, creant una atmosfera única i envoltant.",
+      "image": "/assets/img/SoundCloundSongs/song3.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/176285886&color=%23846c8c&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2014",
+      "genre": "Electronic"
+    },
+    {
+      "id": 4,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_4.svg",
+      "title": "Wonderland Avenue Vs Stefano Noferini",
+      "heroTitle": "Avinguda de les Meravelles",
+      "subtitle": "Clamy White Hourse (Mr.Chi Bootleg)",
+      "description": "Un mashup innovador que fusiona dos mons musicals diferents, creant una experiència sonora completament nova i emocionant.",
+      "image": "/assets/img/SoundCloundSongs/song4.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/176259335&color=%23a498ac&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2014",
+      "genre": "Tech House"
+    },
+    {
+      "id": 5,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_5.svg",
+      "title": "FM AUDIO",
+      "heroTitle": "Freqüències Assassines",
+      "subtitle": "Killer (MR.CHI EDIT)",
+      "description": "Una reinterpretació del clàssic de FM Audio amb elements d'electro house i sintetitzadors potents que eleven l'energia original.",
+      "image": "/assets/img/SoundCloundSongs/song5.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/21455125&color=%23ac848c&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2011",
+      "genre": "Electro House"
+    },
+    {
+      "id": 6,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_6.svg",
+      "title": "ANOUK",
+      "heroTitle": "Nova Alba Musical",
+      "subtitle": "NEW DAY (RadioChi Teaser Remix)",
+      "description": "Un teaser remix que transforma la balada emotiva d'Anouk en una experiència de pista de ball plena d'energia i emoció.",
+      "image": "/assets/img/SoundCloundSongs/song6.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/318289089&color=%23b27868&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2016",
+      "genre": "House"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "name": "RadioChi",
+  "title": "DJ Professionnel",
+  "satisfied_customers": "Clients<br>satisfaits",
+  "ToSitgesPrideEvent": "pour commencer édition 2026",
+  "ToBeaarsWeekEvent": "pour commencer édition 2026",
+  "watch_resume": "Voir CV",
+  "linkSitgesPrideWeb": "https://sitgespride.com/",
+  "sitgesPride2026": "3-06-2026",
+  "linkBearsWeekWeb": "https://bearssitges.org/",
+  "bearsWeekSept2025": "08-09-2026",
+
+  "slides": [
+    {
+      "logo": "/assets/img/logos/RC_Logo_negative_rainbow.png",
+      "logoPosition": "left",
+      "title": "Bienvenue à RadioChi",
+      "subtitle": "Votre station de radio préférée",
+      "description": "Découvrez la meilleure musique et des programmes en direct 24 heures sur 24.",
+      "personImage": "/assets/img/RadioChi_IMG_0059_invert.webp",
+      "elipseImage": "/assets/img/elipse-home-slide-white.png",
+      "buttonText": "SoundClound",
+      "link": "https://soundcloud.com/mrchi1?utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing",
+      "event": ""
+    },
+    {
+      "logo": "/assets/img/logos/ibc+blue+logo+mk.webp",
+      "logoPosition": "left",
+      "title": "International Bear Convergence",
+      "subtitle": "DJ Invité",
+      "description": "C'est le principal événement Bear d'hiver à Palm Springs, Californie.",
+      "personImage": "/assets/img/RadioChi_IMG_029.webp",
+      "elipseImage": "/assets/img/elipse-home-slide-white.png",
+      "buttonText": "Pour commencer édition 2026",
+      "link": "https://www.ibc-ps.com/",
+      "event": "19-02-2026"
+    },
+    {
+      "logo": "/assets/img/logos/sitgesPrideLogo-transparent.png",
+      "logoPosition": "left",
+      "title": "Sitges Pride",
+      "subtitle": "DJ résident depuis 2009",
+      "description": "Rejoignez notre communauté Sitges Pride.",
+      "personImage": "/assets/img/RadioChi_IMG_0119.webp",
+      "elipseImage": "/assets/img/elipse-home-slide-white.png",
+      "buttonText": "Pour commencer l'édition 2026",
+      "link": "https://sitgespride.com/",
+      "event": "3-06-2026"
+    },
+    {
+      "logo": "/assets/img/logos/LOGO-BEARS-WEEK-mini.png",
+      "logoPosition": "left",
+      "title": "Bears Sitges Week",
+      "subtitle": "DJ résident depuis 2023",
+      "description": "Rejoignez notre communauté Sitges Bears Week.",
+      "personImage": "/assets/img/RadioChi_IMG_0018_invert.webp",
+      "elipseImage": "/assets/img/elipse-home-slide-white.png",
+      "buttonText": "Pour commencer édition 2026",
+      "link": "https://bearssitges.org/",
+      "event": "08-09-2026"
+    },
+    {
+      "logo": "/assets/img/logos/Sixpackzone-Logo.png",
+      "logoPosition": "left",
+      "title": "SixPackZone Maspalomas",
+      "subtitle": "DJ résident de 2012 à 2018",
+      "description": " ",
+      "personImage": "/assets/img/RadioChi_IMG_0121.webp",
+      "elipseImage": "/assets/img/elipse-home-slide-white.png",
+      "buttonText": "",
+      "link": "",
+      "event": ""
+    },
+    {
+      "logo": "/assets/img/logos/parrots-group.png",
+      "logoPosition": "left",
+      "title": "Musique sans limites",
+      "subtitle": "Les meilleurs hits",
+      "description": "Des classiques aux derniers hits, nous avons la musique que vous aimez.",
+      "personImage": "/assets/img/RadioChi_IMG_0120.webp",
+      "elipseImage": "/assets/img/elipse-home-slide-white.png",
+      "buttonText": "",
+      "link": "",
+      "event": ""
+    }
+  ],
+  "nav": {
+    "home": "Accueil",
+    "about": "À propos",
+    "resume": "CV",
+    "portfolio": "Portfolio",
+    "contact": "Contact"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "openMenu": "Abrir menú",
+  "menu": {
+    "home": "Inicio",
+    "about": "Acerca",
+    "resume": "Currículum",
+    "portfolio": "Portafolio",
+    "services": "Servicios",
+    "contact": "Contacto",
+    "music": "Música",
+    "media": "Media",
+    "myjournal": "Mi Diario",
+    "calendarEvents": "Próximos Eventos"
+  }
+}

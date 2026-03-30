@@ -1,0 +1,92 @@
+{
+  "title": "ABSTRACT ART",
+  "subtitle": "Explorez ma collection de remixes et productions musicales",
+  "description": "Une sélection de mes meilleurs travaux en musique électronique, des bootlegs aux remixes officiels. Chaque morceau représente une exploration unique dans le monde du son.",
+  "contact": {
+    "birth": "Date de naissance: 03/08/1994",
+    "email": "abstractcolor@example.com",
+    "education": "Éducation: Julliard, NY(États-Unis)",
+    "phone": "+(123) 323 4467",
+    "location": "Basé à: New York, New York",
+    "download": "Télécharger CV"
+  },
+  "player": {
+    "currentTrack": "BODYBANGERS vs HAYLEY PARSONS",
+    "artist": "Sunglasses at Night (RadioChi Remix 2017)",
+    "duration": "00:00"
+  },
+  "tracks": [
+    {
+      "id": 1,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_1.svg",
+      "title": "BODYBANGERS vs HAYLEY PARSONS",
+      "subtitle": "Sunglasses at Night (RadioChi Remix)",
+      "description": "Un remix énergique qui combine des éléments de dance et d'electro house, transformant le classique des années 80 en une expérience moderne de piste de danse.",
+      "heroTitle": "Rythmes Nocturnes Électroniques",
+      "image": "/assets/img/SoundCloundSongs/song1.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/319714972&color=%23b4a4a4&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2017",
+      "genre": "Dance & EDM"
+    },
+    {
+      "id": 2,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_2.svg",
+      "title": "John NEWMAN",
+      "subtitle": "Losing Sleep (Mr.Chi Private Bootleg)",
+      "description": "Un bootleg privé qui réimagine le hit de John Newman avec des éléments de house progressive et des synthétiseurs analogiques.",
+      "heroTitle": "Rêves Perdus à l'Aube",
+      "image": "/assets/img/SoundCloundSongs/song2.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/166335624&color=%23a498ac&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2014",
+      "genre": "House"
+    },
+    {
+      "id": 3,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_3.svg",
+      "title": "Ride Gypsy White Hourse",
+      "subtitle": "Mr.Chi Bootleg Private Track",
+      "description": "Une fusion expérimentale qui combine des éléments ethniques avec des beats électroniques modernes, créant une atmosphère unique et immersive.",
+      "heroTitle": "Chevaux Blancs de l'Aube",
+      "image": "/assets/img/SoundCloundSongs/song3.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/176285886&color=%23846c8c&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2014",
+      "genre": "Electronic"
+    },
+    {
+      "id": 4,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_4.svg",
+      "title": "Wonderland Avenue Vs Stefano Noferini",
+      "subtitle": "Clamy White Hourse (Mr.Chi Bootleg)",
+      "description": "Un mashup innovant qui fusionne deux mondes musicaux différents, créant une expérience sonore complètement nouvelle et passionnante.",
+      "heroTitle": "Avenue des Merveilles",
+      "image": "/assets/img/SoundCloundSongs/song4.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/176259335&color=%23a498ac&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2014",
+      "genre": "Tech House"
+    },
+    {
+      "id": 5,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_5.svg",
+      "title": "FM AUDIO",
+      "subtitle": "Killer (MR.CHI EDIT)",
+      "description": "Une réinterprétation du classique de FM Audio avec des éléments d'electro house et des synthétiseurs puissants qui élèvent l'énergie originale.",
+      "heroTitle": "Fréquences Meurtrières",
+      "image": "/assets/img/SoundCloundSongs/song5.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/21455125&color=%23ac848c&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2011",
+      "genre": "Electro House"
+    },
+    {
+      "id": 6,
+      "label-img": "/assets/img/logos/music-label/RC_logo_color_6.svg",
+      "title": "ANOUK",
+      "subtitle": "NEW DAY (RadioChi Teaser Remix)",
+      "description": "Un teaser remix qui transforme la ballade émotionnelle d'Anouk en une expérience de piste de danse pleine d'énergie et d'émotion.",
+      "heroTitle": "Nouvelle Aube Musicale",
+      "image": "/assets/img/SoundCloundSongs/song6.webp",
+      "soundcloudUrl": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/318289089&color=%23b27868&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true",
+      "year": "2016",
+      "genre": "House"
+    }
+  ]
+}

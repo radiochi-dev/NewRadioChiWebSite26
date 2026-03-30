@@ -1,0 +1,58 @@
+{
+  "scrollytelling": {
+    "steps": [
+       
+      {
+        "id": 1,
+        "title": "DIE SCHLÜSSELZUTAT",
+        "subtitle": "EINER UNVERGESSLICHEN SESSION",
+        "content": "IN MEINER PERSÖNLICHEN PHILOSOPHIE IST DAS WICHTIGSTE, DIE ROHSTOFFE GUT AUSZUWÄHLEN UND SIE FÜR JEDES PUBLIKUM MIT EINEM EINZIGEN ZIEL ZUZUBEREITEN: DIE MENSCHEN DEN MOMENT GENIESSEN ZU LASSEN.",
+        "image": "/assets/img/aboutBg/SitgesPride2.webp",
+        "image2": "/assets/img/aboutBg/Abraxas2.webp",
+        "chartTitle": "RadioChi",
+        "chartSubtitle": "Die Schlüsselzutat"
+      },
+      {
+        "id": 2,
+        "title": "Viele Tolle Erfahrungen",
+        "subtitle": "INTERNATIONALE LAUFBAHN",
+        "content": "Erfahrung in bekannten Clubs: PRIVILEGE Sitges, MAGMA CLUB, OTTO ZUTZ, PACHÁ Sitges, L'ATLÁNTIDA… in Barcelona und auf den Kanarischen Inseln… DUO CLUB (Bern, Schweiz), 136º (Hamburg, Deutschland) und viele mehr. Bei großen Events wie SITGES PRIDE 2010-2025, SITGES BEARS WEEK 2023-2025, SIXPACKZONE GAY PRIDE MASPALOMAS 2010-2018.",
+        "image": "/assets/img/aboutBg/Decadance3.webp",
+        "image2": "/assets/img/aboutBg/Decadance2.webp",
+        "chartTitle": "15+ Jahre",
+        "chartSubtitle": "Internationale Erfahrung"
+      },
+      {
+          "id": 3,
+          "title": "Unglaubliche Events",
+          "subtitle": "DIE MAN NIE VERGISST",
+          "content": "Unglaubliche Events: 136º (Hamburg, Deutschland), DECADANCE 2010-2015, ABRAXAS, DUO CLUB (Bern, Schweiz), ADDICTED TO REMAKES (Barcelona). Jedes dieser Events hat meine berufliche Laufbahn geprägt.",
+          "image": "/assets/img/aboutBg/Sixpackzone1.webp",
+          "image2": "/assets/img/aboutBg/Sixpackzone2.webp",
+          "chartTitle": "Events",
+          "chartSubtitle": "Unglaublich"
+        },
+        {
+          "id": 4,
+          "title": "Legendäre Events",
+          "subtitle": "DIE IM LAUFE DER ZEIT BESTEHEN",
+          "content": "Bei großen Events wie SITGES PRIDE (Resident DJ 2010-2025), SITGES BEARS WEEK (Resident DJ 2023-2025), SIXPACKZONE GAY PRIDE MASPALOMAS (Resident DJ 2010-2018). Residenzen, die meine Karriere definiert haben.",
+          "image": "/assets/img/aboutBg/SitgesPride1.webp",
+          "image2": "/assets/img/aboutBg/PrideGranCanarias.webp",
+          "chartTitle": "Events",
+          "chartSubtitle": "Legendär"
+        },
+        {
+          "id": 5,
+          "title": "Ein Eigener Stil",
+          "subtitle": "EINZIGARTIGE SESSIONS",
+          "content": "Ich greife gerne das Alte auf, um es zum Neuesten zu machen, und würze meine Sessions mit etwas Nostalgie, Rhythmus und Eleganz. Beispiele: ABRAXAS, SCANDAL DISCO, GAY BEACH PARTY, ADDICTED TO REMAKES, REMEMBER ME, INSANE.",
+          "image": "/assets/img/aboutBg/PrideGranCanarias2.webp",
+          "image2": "/assets/img/aboutBg/Decadance1.webp",
+          "chartTitle": "Einzigartiger Stil",
+          "chartSubtitle": "Nostalgie + Eleganz"
+        }
+    ]
+  } 
+   
+}

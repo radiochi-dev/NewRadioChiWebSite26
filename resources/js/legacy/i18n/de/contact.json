@@ -1,0 +1,20 @@
+{
+  "title": "Kontakt",
+  "subtitle": "Du wirst gerufen, um Männchen zu gebären, so Lichter<br>Sterne reichlich, ist ihr.",
+  "email_label": "E-Mail:",
+  "phone_label": "Telefon:",
+  "get_direction": "Wegbeschreibung abrufen",
+  "form.title": "Ich bin immer auf der Suche nach großartigen Mitarbeitern. Schreiben Sie mir eine Nachricht und lassen Sie uns <span class=\"has-first-color\">etwas zusammen machen!</span>",
+  "form.name_label": "Ihr Name (erforderlich)",
+  "form.name_placeholder": "Ihr Name",
+  "form.email_label": "Ihre E-Mail (erforderlich)",
+  "form.email_placeholder": "Ihre E-Mail",
+  "form.category_label": "Kategorie (optional)",
+  "form.category_placeholder": "Kategorie",
+  "form.budget_label": "Budget wählen (USD)",
+  "form.message_label": "Ihre Nachricht",
+  "form.message_placeholder": "Nachricht",
+  "form.success_message": "Ihre Nachricht wurde erfolgreich gesendet...",
+  "form.error_message": "Entschuldigung, etwas ist schief gelaufen!",
+  "form.submit_button": "Kontaktieren Sie mich"
+}
