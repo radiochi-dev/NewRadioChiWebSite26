@@ -26,4 +26,9 @@ class Page extends Model
     {
         return $this->hasMany(PageTranslation::class);
     }
+
+    public function blocks(): HasMany
+    {
+        return $this->hasMany(PageBlock::class)->orderBy('position');
+    }
 }

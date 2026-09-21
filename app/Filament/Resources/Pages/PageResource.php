@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Pages;
 use App\Filament\Resources\Pages\Pages\CreatePage;
 use App\Filament\Resources\Pages\Pages\EditPage;
 use App\Filament\Resources\Pages\Pages\ListPages;
+use App\Filament\Resources\Pages\RelationManagers\BlocksRelationManager;
 use App\Filament\Resources\Pages\RelationManagers\TranslationsRelationManager;
 use App\Filament\Resources\Pages\Schemas\PageForm;
 use App\Filament\Resources\Pages\Tables\PagesTable;
@@ -46,6 +47,7 @@ class PageResource extends Resource
     {
         return [
             TranslationsRelationManager::class,
+            BlocksRelationManager::class,
         ];
     }
 

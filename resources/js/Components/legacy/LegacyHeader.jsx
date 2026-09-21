@@ -9,6 +9,8 @@ export default function LegacyHeader({
     locales,
     currentPath,
     menu,
+    socialLinks = [],
+    legalLabels = {},
     isPlaying,
     isMuted,
     onTogglePlay,
@@ -18,6 +20,7 @@ export default function LegacyHeader({
 }) {
     const [menuOpen, setMenuOpen] = useState(false)
     const [blurActive, setBlurActive] = useState(false)
+    const findSocialLink = (platform) => socialLinks.find((link) => link.platform === platform) ?? { url: '#', label: platform }
 
     useEffect(() => {
         let timeoutId = null
@@ -110,23 +113,23 @@ export default function LegacyHeader({
                     <a href="#calendar" onClick={(e) => (e.preventDefault(), go('calendar'))}>{menu?.calendarEvents}</a>
                     <a href="#contact" onClick={(e) => (e.preventDefault(), go('contact'))}>{menu?.contact}</a>
                     <div className="legacy-side-divider" />
-                    <button className="legacy-side-policy" onClick={() => { setMenuOpen(false); onOpenLegalModal?.('terms') }}>Términos y Condiciones</button>
-                    <button className="legacy-side-policy" onClick={() => { setMenuOpen(false); onOpenLegalModal?.('privacy') }}>Política de Privacidad</button>
-                    <button className="legacy-side-policy" onClick={() => { setMenuOpen(false); onOpenLegalModal?.('cookies') }}>Política de Cookies</button>
+                    <button className="legacy-side-policy" onClick={() => { setMenuOpen(false); onOpenLegalModal?.('terms') }}>{legalLabels.terms_button ?? 'Términos y Condiciones'}</button>
+                    <button className="legacy-side-policy" onClick={() => { setMenuOpen(false); onOpenLegalModal?.('privacy') }}>{legalLabels.privacy_button ?? 'Política de Privacidad'}</button>
+                    <button className="legacy-side-policy" onClick={() => { setMenuOpen(false); onOpenLegalModal?.('cookies') }}>{legalLabels.cookies_button ?? 'Política de Cookies'}</button>
                     <div className="legacy-side-lang">
                         <LanguageSwitcher currentLocale={locale} locales={locales} currentPath={currentPath} mode="list" />
                     </div>
                     <div className="legacy-side-social">
-                        <a href="https://www.facebook.com/fernandocardonatoro" target="_blank" rel="noreferrer" aria-label="Facebook">
+                        <a href={findSocialLink('facebook').url} target="_blank" rel="noreferrer" aria-label={findSocialLink('facebook').label ?? 'Facebook'}>
                             <FaFacebookSquare />
                         </a>
-                        <a href="https://www.instagram.com/mrchiloveyou/" target="_blank" rel="noreferrer" aria-label="Instagram">
+                        <a href={findSocialLink('instagram').url} target="_blank" rel="noreferrer" aria-label={findSocialLink('instagram').label ?? 'Instagram'}>
                             <AiFillInstagram />
                         </a>
-                        <a href="#" target="_blank" rel="noreferrer" aria-label="SoundCloud">
+                        <a href={findSocialLink('soundcloud').url} target="_blank" rel="noreferrer" aria-label={findSocialLink('soundcloud').label ?? 'SoundCloud'}>
                             <ImSoundcloud2 />
                         </a>
-                        <a href="#" target="_blank" rel="noreferrer" aria-label="Spotify">
+                        <a href={findSocialLink('spotify').url} target="_blank" rel="noreferrer" aria-label={findSocialLink('spotify').label ?? 'Spotify'}>
                             <FaSpotify />
                         </a>
                     </div>

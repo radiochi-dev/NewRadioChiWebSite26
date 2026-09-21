@@ -18,6 +18,8 @@ class Event extends Model implements HasMedia
         'event_starts_at',
         'event_ends_at',
         'location',
+        'country',
+        'poster_path',
         'external_url',
         'is_featured',
         'is_published',

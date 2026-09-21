@@ -4,10 +4,11 @@ import { FaFacebookSquare, FaSpotify } from 'react-icons/fa'
 import { ImSoundcloud2 } from 'react-icons/im'
 import LanguageSwitcher from '../LanguageSwitcher'
 
-export default function LegacyIntro({ locale, locales, currentPath, intro, footer, onTogglePlay, onToggleMute, isMuted, isPlaying }) {
+export default function LegacyIntro({ locale, locales, currentPath, intro, footer, socialLinks = [], onTogglePlay, onToggleMute, isMuted, isPlaying }) {
     const [visible, setVisible] = useState(false)
     const [zoomOut, setZoomOut] = useState(false)
     const seenKey = 'radiochiIntroSeen'
+    const findSocialLink = (platform) => socialLinks.find((link) => link.platform === platform) ?? { url: '#', label: platform }
 
     useEffect(() => {
         const seen = localStorage.getItem(seenKey) === 'true' || document.cookie.includes(`${seenKey}=true`)
@@ -127,10 +128,10 @@ export default function LegacyIntro({ locale, locales, currentPath, intro, foote
             </div>
             <footer className="legacy-intro-footer">
                 <div className="legacy-intro-social">
-                    <a href="https://www.facebook.com/fernandocardonatoro" target="_blank" rel="noreferrer" aria-label="Facebook"><FaFacebookSquare /></a>
-                    <a href="https://www.instagram.com/mrchiloveyou/" target="_blank" rel="noreferrer" aria-label="Instagram"><AiFillInstagram /></a>
-                    <a href="#" target="_blank" rel="noreferrer" aria-label="SoundCloud"><ImSoundcloud2 /></a>
-                    <a href="#" target="_blank" rel="noreferrer" aria-label="Spotify"><FaSpotify /></a>
+                    <a href={findSocialLink('facebook').url} target="_blank" rel="noreferrer" aria-label={findSocialLink('facebook').label ?? 'Facebook'}><FaFacebookSquare /></a>
+                    <a href={findSocialLink('instagram').url} target="_blank" rel="noreferrer" aria-label={findSocialLink('instagram').label ?? 'Instagram'}><AiFillInstagram /></a>
+                    <a href={findSocialLink('soundcloud').url} target="_blank" rel="noreferrer" aria-label={findSocialLink('soundcloud').label ?? 'SoundCloud'}><ImSoundcloud2 /></a>
+                    <a href={findSocialLink('spotify').url} target="_blank" rel="noreferrer" aria-label={findSocialLink('spotify').label ?? 'Spotify'}><FaSpotify /></a>
                 </div>
                 <p>© 2025 Radiochi. {footer?.rights ?? footer?.copyright ?? ''}</p>
             </footer>

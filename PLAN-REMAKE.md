@@ -425,129 +425,247 @@ Decision segura de convivencia:
 
 ## Fase 4. Remodelado editorial y de datos
 
+**Estado:** COMPLETADA
+**Avance de fase:** 100%
+**Avance global del plan:** 66%
+
 ### Objetivo
 Crear el modelo de datos real que permita administrar todo el contenido.
 
 ### Paso 4.1
-Conservar y revisar tablas utiles existentes:
-- `pages`
-- `page_translations`
-- `events`
-- `seo_meta`
-- `newsletter_*`
+~~Conservar y revisar tablas utiles existentes:~~
+- ~~`pages`~~
+- ~~`page_translations`~~
+- ~~`events`~~
+- ~~`seo_meta`~~
+- ~~`newsletter_*`~~
+
+Base validada en esta iteracion:
+- ~~`pages` mantiene `slug`, `template`, `is_published` y `published_at`.~~
+- ~~`page_translations` mantiene `locale`, metadatos SEO y `content` JSON.~~
+- ~~`events` mantiene el dominio editorial actual y sigue alineado con Filament.~~
+- ~~`seo_meta` mantiene el contrato polimorfico actual por `entity_type` + `entity_id` + `locale`.~~
+- ~~`newsletter_subscribers`, `newsletter_campaigns` y `newsletter_logs` quedan preservadas como bloque operativo existente.~~
 
 ### Paso 4.2
-Introducir tablas faltantes para contenido total:
-- `page_blocks`
-- `page_block_translations`
-- `music_tracks`
-- `music_track_translations`
-- `partners`
-- `social_links`
-- `legal_documents`
-- `legal_document_translations`
-- `downloadable_files`
-- `redirect_rules`
-- `settings`
-- `settings_translations`
-- `automation_logs` si se decide persistir ejecuciones n8n internas
+~~Introducir tablas faltantes para contenido total:~~
+- ~~`page_blocks`~~
+- ~~`page_block_translations`~~
+- ~~`music_tracks`~~
+- ~~`music_track_translations`~~
+- ~~`partners`~~
+- ~~`social_links`~~
+- ~~`legal_documents`~~
+- ~~`legal_document_translations`~~
+- ~~`downloadable_files`~~
+- ~~`redirect_rules`~~
+- ~~`settings`~~
+- ~~`settings_translations`~~
+- ~~`automation_logs` para persistir ejecuciones internas de n8n/integraciones~~
+
+Base validada en esta iteracion:
+- ~~`page_blocks` introduce orden (`position`), activacion (`is_active`) y `settings` JSON por bloque ligado a `pages`.~~
+- ~~`page_block_translations` introduce `content` JSON por locale con FK a `page_blocks`.~~
+- ~~`music_tracks` y `music_track_translations` cubren hero, CTAs, descripcion, orden y publicacion del bloque Music por locale.~~
+- ~~`partners` y `social_links` cubren sponsors, enlaces externos y presencia social reutilizable sin tocar frontend publico.~~
+- ~~`legal_documents` y `legal_document_translations` cubren terminos, privacidad y cookies por locale con versionado editorial.~~
+- ~~`downloadable_files` cubre adjuntos y press kits con relacion polimorfica opcional.~~
+- ~~`redirect_rules` cubre redirecciones 301/302 y metrica basica de uso.~~
+- ~~`settings` y `settings_translations` cubren configuracion global publica/privada y textos reutilizables por locale.~~
+- ~~`automation_logs` queda decidido e implementado como bitacora persistente de integraciones internas (`n8n`, webhooks y procesos de automatizacion).~~
 
 ### Paso 4.3
-Definir FKs, indices y politicas de borrado.
+~~Definir FKs, indices y politicas de borrado.~~
+
+Validado en esta iteracion:
+- ~~FKs con `cascadeOnDelete()` en `page_block_translations`, `music_track_translations`, `legal_document_translations` y `settings_translations`.~~
+- ~~Unicidad editorial por dominio: `pages(page_id,key)`, `music_track_translations(music_track_id,locale)`, `legal_document_translations(legal_document_id,locale)` y `settings(group,key)` / `settings_translations(setting_id,locale)`.~~
+- ~~Indices operativos en publicacion, orden, visibilidad y tipo para lectura eficiente desde CMS/backend (`position`, `is_published`, `is_active`, `group`, `locale`, `processed_at`).~~
+- ~~Relaciones polimorficas operativas para `downloadable_files.attachable` y `automation_logs.reference`.~~
 
 ### Paso 4.4
-Definir que entidades seran translatables con Spatie y cuales requeriran tabla satelite.
+~~Definir que entidades seran translatables con Spatie y cuales requeriran tabla satelite.~~
+
+Decision cerrada en esta iteracion:
+- ~~Se mantiene tabla satelite para entidades editoriales multi-campo y con necesidad de unicidad por locale: `Page`, `PageBlock`, `MusicTrack`, `LegalDocument` y `Setting`.~~
+- ~~`SeoMeta` conserva su patron actual por fila y locale (`entity_type` + `entity_id` + `locale`) en lugar de migrarse a JSON translatable.~~
+- ~~`Partner`, `SocialLink`, `DownloadableFile`, `RedirectRule` y `AutomationLog` quedan no translatables en Fase 4 porque su dominio actual no exige payload editorial multilenguaje.~~
+- ~~`spatie/laravel-translatable` queda reservado para futuros campos JSON simples de una sola tabla; el modelo editorial principal de RadioChi queda normalizado con tablas satelite para no mezclar contenido complejo por locale dentro de una sola columna JSON.~~
 
 ## Fase 5. Migracion de contenido legacy a contenido administrable
+
+**Estado:** COMPLETADA
+**Avance de fase:** 100%
+**Avance global del plan:** 78%
 
 ### Objetivo
 Sacar el sitio del modo JSON legacy y pasarlo a PostgreSQL + CMS.
 
 ### Paso 5.1
-Inventariar y migrar todos los archivos legacy:
-- `home.json`
-- `about.json`
-- `music.json`
-- `calendarEvents.json`
-- `contact.json`
-- `media.json`
-- `introwebsite.json`
-- `footer.json`
-- `terms-policy-cookies.json`
-- `videos.json`
-- `events.json`
+~~Inventariar y migrar todos los archivos legacy:~~
+- ~~`home.json`~~
+- ~~`about.json`~~
+- ~~`music.json`~~
+- ~~`calendarEvents.json`~~
+- ~~`contact.json`~~
+- ~~`media.json`~~
+- ~~`introwebsite.json`~~
+- ~~`footer.json`~~
+- ~~`terms-policy-cookies.json`~~
+- ~~`videos.json`~~
+- ~~`events.json`~~
+
+Inventario real validado en esta iteracion:
+- ~~Se auditaron los 6 locales activos (`es`, `en`, `ca`, `fr`, `it`, `de`) y se verifico la presencia de los ficheros runtime realmente consumidos por el frontend legacy.~~
+- ~~Ademas del listado inicial del plan, se detectaron y migraron tambien `header.json` y `seo.json` porque `resources/js/legacy/content.js` los usa de forma efectiva en runtime.~~
+- ~~`resources/js/legacy/data/calendarevents.json` se inventario como fuente real de eventos + traducciones del calendario.~~
+- ~~`resources/js/legacy/data/events.json` se inventario y migro como bloque auxiliar de enlaces/fechas legacy.~~
+- ~~`resources/js/legacy/data/videos.json` se detecto vacio; se documento como artefacto residual y no como fuente efectiva de datos.~~
+- ~~Se documento que los arrays reales de media, sponsors, social links y marquees viven hoy en `resources/js/legacy/content.js` y `resources/js/Pages/Home.jsx`, no en JSON separados.~~
 
 ### Paso 5.2
-Crear importadores idempotentes por dominio:
-- paginas y bloques
-- music tracks
-- eventos
-- media
-- legales
-- SEO base
+~~Crear importadores idempotentes por dominio:~~
+- ~~paginas y bloques~~
+- ~~music tracks~~
+- ~~eventos~~
+- ~~media~~
+- ~~legales~~
+- ~~SEO base~~
+
+Base implementada y validada en esta iteracion:
+- ~~Comando `legacy:inventory-content` para auditar fuentes legacy efectivas antes de importar.~~
+- ~~Comando `legacy:import-content` para cargar contenido legacy de forma idempotente en `pages`, `page_translations`, `page_blocks`, `page_block_translations`, `music_tracks`, `events`, `media_assets`, `partners`, `social_links`, `legal_documents`, `settings` y `seo_meta`.~~
+- ~~Importacion de hero slides, pasos de about y lineas marquee a `page_blocks` usando claves estables para evitar duplicados en re-ejecuciones.~~
+- ~~Importacion de tracks musicales con traducciones por locale a `music_tracks` + `music_track_translations`.~~
+- ~~Importacion de eventos desde `calendarevents.json` a `events` sin tocar rutas legacy ni frontend publico.~~
+- ~~Importacion de fotos y videos legacy a `media_assets`, usando como fuente exacta los arrays runtime actuales del legacy.~~
+- ~~Importacion de legales multilenguaje a `legal_documents` + `legal_document_translations`.~~
+- ~~Importacion de `header`, `intro`, `footer`, botones legales, locales activos e inventario legacy a `settings` + `settings_translations`.~~
+- ~~Importacion de SEO base por locale para la pagina `home` en `seo_meta`.~~
 
 ### Paso 5.3
-Validar paridad por locale:
-- es
-- en
-- ca
-- fr
-- it
-- de
+~~Validar paridad por locale:~~
+- ~~es~~
+- ~~en~~
+- ~~ca~~
+- ~~fr~~
+- ~~it~~
+- ~~de~~
+
+Validacion real en esta iteracion:
+- ~~`Phase5LegacyImportTest`: 4 tests OK, 40 assertions.~~
+- ~~Se verifico inventario, importacion completa, idempotencia en re-ejecucion y cobertura de los 6 locales soportados.~~
+- ~~Se valido ademas la regresion conjunta de Fase 4 + Fase 5: 15 tests OK, 112 assertions.~~
+- ~~Se valido regresion CMS + legacy: 26 tests OK, 111 assertions.~~
 
 ## Fase 6. CMS por seccion
+
+**Estado:** COMPLETADA
+**Avance de fase:** 100%
+**Avance global del plan:** 90%
 
 ### Objetivo
 Entregar administracion total seccion por seccion.
 
 ### Paso 6.1 Home
-Recursos Filament para hero slides, intro y CTA.
+~~Recursos Filament para hero slides, intro y CTA.~~
+- ~~`PageResource` ahora expone `BlocksRelationManager` para gestionar bloques por pagina (`home`, `about`, `contact`) desde el backoffice.~~
+- ~~`PageBlockResource` + `PageBlock` translations relation manager permiten editar hero slides, fondos, settings de bloque y contenido JSON por locale sin tocar frontend publico.~~
+- ~~`SettingResource` cubre `intro`, `header` y CTA/global settings importados en Fase 5.~~
 
 ### Paso 6.2 About
-Recursos Filament para pasos de scrollytelling y fondos.
+~~Recursos Filament para pasos de scrollytelling y fondos.~~
+- ~~Los pasos de scrollytelling y sus fondos quedan administrables en `PageBlockResource` filtrando por `page.slug = about` y `type = about_step`.~~
+- ~~Las traducciones de contenido por locale quedan cubiertas desde `PageBlock` relation manager de traducciones.~~
 
 ### Paso 6.3 Music
-Recursos Filament para tracks, embeds y CTAs.
+~~Recursos Filament para tracks, embeds y CTAs.~~
+- ~~`MusicTrackResource` implementado con formulario, tabla y relation manager de traducciones para `title`, `artist_name`, `hero_title`, `subtitle`, `description` y CTAs.~~
+- ~~Permite administrar plataforma, embeds/URLs, orden, destacado y publicacion.~~
 
 ### Paso 6.4 Calendar
-Recursos Filament para eventos, carteles, fechas y ticket URLs.
+~~Recursos Filament para eventos, carteles, fechas y ticket URLs.~~
+- ~~Se mantiene `EventResource` ya validado en Fase 3 como superficie de administracion para eventos, carteles/logica de media ligada, fechas y ticket URLs.~~
+- ~~La regresion de recursos editoriales y CMS confirma que sigue operativo tras Fases 4-6.~~
 
 ### Paso 6.5 Media
-Recursos Filament para fotos, videos, colecciones y archivos descargables.
+~~Recursos Filament para fotos, videos, colecciones y archivos descargables.~~
+- ~~`MediaAssetResource` sigue cubriendo fotos, videos y metadata.~~
+- ~~`DownloadableFileResource` nuevo cubre colecciones, archivos descargables, rutas locales/externas y adjuntos polimorficos.~~
 
 ### Paso 6.6 Contact
-Recursos Filament para redes, sponsors, links y lineas marquee.
+~~Recursos Filament para redes, sponsors, links y lineas marquee.~~
+- ~~`PartnerResource` nuevo cubre sponsors/partners y orden de logos.~~
+- ~~`SocialLinkResource` nuevo cubre redes, links y ubicacion (`contact`, `footer`, `global`).~~
+- ~~Las lineas marquee quedan administrables en `PageBlockResource` / `BlocksRelationManager` sobre la pagina `contact`.~~
 
 ### Paso 6.7 Legal y footer
-Recursos Filament para terminos, privacidad, cookies y pie global.
+~~Recursos Filament para terminos, privacidad, cookies y pie global.~~
+- ~~`LegalDocumentResource` nuevo cubre terminos, privacidad, cookies, versionado y publicacion con traducciones por locale.~~
+- ~~`SettingResource` nuevo cubre pie global, botones legales y configuracion editorial transversal con traducciones por locale.~~
 
 ### Paso 6.8 SEO
-Recursos Filament para metadata, redirects y sitemap rules.
+~~Recursos Filament para metadata, redirects y sitemap rules.~~
+- ~~`SeoMetaResource` sigue cubriendo metadata por entidad y locale.~~
+- ~~`RedirectRuleResource` nuevo cubre redirecciones 301/302/307/308 y control basico de activacion/hits.~~
+- ~~`SettingResource` cubre tambien `seo.*` / `sitemap_rules` como configuracion administrable sin inventar nueva estructura de datos.~~
+
+Validacion real en esta iteracion:
+- ~~`Phase6CmsResourcesTest`: 8 tests OK, 80 assertions.~~
+- ~~Regresion conjunta Fase 4 + Fase 5 + Fase 6: 23 tests OK, 192 assertions.~~
+- ~~Regresion CMS + legacy: 26 tests OK, 111 assertions.~~
 
 ## Fase 7. Integracion del frontend publico con el CMS
+
+**Estado:** COMPLETADA
+**Avance de fase:** 100%
+**Avance global del plan:** 95%
 
 ### Objetivo
 Hacer que el frontend lea datos administrables en lugar de contenido embebido.
 
 ### Paso 7.1
-Sustituir `getLegacyContent`, `getLegacyCalendarData` y `getLegacyMediaData` por queries/controladores/DTOs.
+~~Sustituir `getLegacyContent`, `getLegacyCalendarData` y `getLegacyMediaData` por queries/controladores/DTOs.~~
+
+Base implementada en esta iteracion:
+- ~~`BuildPublicHomePayloadAction` reconstruye desde PostgreSQL/CMS el shape legacy que consume `Home.jsx` sin redisenar el frontend publico.~~
+- ~~`PublicHomeController` deja de fabricar contenido hardcodeado y pasa a servir `content`, `calendarData`, `mediaData`, `contactData`, `events` y `seo` desde BD.~~
+- ~~`Event` se amplia para frontend publico con `country` y `poster_path`, y el importador legacy pasa a poblar ambos campos de forma idempotente.~~
+- ~~La CTA externa de media (`youtube_channel_url`) queda movida a `settings` publica para no dejar URLs embebidas en el JSX.~~
 
 ### Paso 7.2
-Mantener la fidelidad visual del frontend original sin redisenos no autorizados.
+~~Mantener la fidelidad visual del frontend original sin redisenos no autorizados.~~
+
+Validado en esta iteracion:
+- ~~`resources/js/Pages/Home.jsx` mantiene la misma estructura visual, las mismas clases y el mismo markup principal; solo cambia la fuente de datos.~~
+- ~~`LegacyHeader.jsx` y `LegacyIntro.jsx` mantienen el UI actual pero dejan de depender de enlaces legales/sociales hardcodeados.~~
+- ~~Las lineas marquee de contact se sirven desde CMS con el mismo contenido largo usado por el frontend restaurado, evitando recortes o huecos visuales.~~
 
 ### Paso 7.3
-Renderizar por locale:
-- textos,
-- media,
-- CTAs,
-- legales,
-- SEO.
+~~Renderizar por locale:~~
+- ~~textos,~~
+- ~~media,~~
+- ~~CTAs,~~
+- ~~legales,~~
+- ~~SEO.~~
+
+Cobertura real en esta iteracion:
+- ~~Hero, about, music, media, footer y legales salen por locale desde `pages`, `page_blocks`, `music_tracks`, `legal_documents` y `settings`.~~
+- ~~Eventos, sponsors, social links y media salen desde `events`, `partners`, `social_links` y `media_assets`.~~
+- ~~SEO home sale desde `seo_meta` por locale, manteniendo canonical, alternates y `json_ld`.~~
 
 ### Paso 7.4
-Verificacion de salida:
-- frontend con misma estructura visual,
-- datos desde DB/CMS,
-- sin dependencia del JSON legacy para produccion.
+~~Verificacion de salida:~~
+- ~~frontend con misma estructura visual,~~
+- ~~datos desde DB/CMS,~~
+- ~~sin dependencia del JSON legacy para produccion.~~
+
+Validacion real en esta iteracion:
+- ~~`Phase5LegacyImportTest`: 4 tests OK, 46 assertions, incluyendo `events.country`, `events.poster_path` y `media.youtube_channel_url`.~~
+- ~~`Phase7PublicCmsPayloadTest`: 2 tests OK, 15 assertions, validando payload publico CMS para `es` y `en`.~~
+- ~~`ProjectPremiumFlowTest`: 5 tests OK, 28 assertions, confirmando que las rutas publicas siguen sanas.~~
+- ~~Regresion conjunta Fase 5 + Fase 7 + flujo publico: 11 tests OK, 86 assertions.~~
+- ~~`docker compose exec app npm run build`: OK.~~
 
 ## Fase 8. Produccion Hostinger VPS con n8n y Ollama
 

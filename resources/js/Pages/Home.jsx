@@ -3,7 +3,6 @@ import PublicLayout from '../Layouts/PublicLayout'
 import LegacyHeader from '../Components/legacy/LegacyHeader'
 import LegacyIntro from '../Components/legacy/LegacyIntro'
 import LegacyStarshine from '../Components/legacy/LegacyStarshine'
-import { getLegacyCalendarData, getLegacyContent, getLegacyMediaData } from '../legacy/content'
 import { AiFillInstagram } from 'react-icons/ai'
 import { FaFacebookSquare, FaSpotify } from 'react-icons/fa'
 import { ImSoundcloud2 } from 'react-icons/im'
@@ -101,10 +100,8 @@ const MediaCarouselRow = ({
     </div>
 )
 
-export default function Home({ locale, locales, currentPath, events, seo }) {
-    const legacy = useMemo(() => getLegacyContent(locale), [locale])
-    const calendarData = useMemo(() => getLegacyCalendarData(locale), [locale])
-    const mediaData = useMemo(() => getLegacyMediaData(), [])
+export default function Home({ locale, locales, currentPath, events, seo, content, calendarData, mediaData, contactData }) {
+    const legacy = content ?? {}
     const [activeSectionIndex, setActiveSectionIndex] = useState(() => {
         if (typeof window === 'undefined') {
             return 0
@@ -169,16 +166,14 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
             }),
         [calendarData.events],
     )
-    const sponsorLogos = [
-        { name: 'Parrots Group', url: 'https://www.parrots-sitges.com/', imgSrc: '/assets/img/logos/parrots-group.png' },
-        { name: 'Sitges Pride', url: 'https://sitgespride.com/', imgSrc: '/assets/img/logos/Sitges-Pride-Logo-2025-BLUE.png' },
-        { name: 'Bears Week Sitges', url: 'https://bearssitges.org/bears-sitges-week/', imgSrc: '/assets/img/logos/LOGO-BEARS-WEEK-mini.png' },
-        { name: 'IBC Palm Springs', url: 'https://www.ibc-ps.com/', imgSrc: '/assets/img/logos/ibc+blue+logo+mk.webp' },
-        { name: 'Bears Events', url: 'https://www.bearsevents.com/', imgSrc: '/assets/img/logos/Bear-Events-Logo-2-300x95.png' },
-    ]
+    const sponsorLogos = contactData?.sponsorLogos ?? []
+    const contactSocialLinks = contactData?.socialLinks ?? []
+    const footerSocialLinks = contactData?.footerSocialLinks ?? []
+    const marqueeRows = contactData?.marqueeRows ?? []
     const activeTrack = tracks[currentTrack]
     const activeAboutStep = aboutSteps[aboutTextIndex]
     const policyContent = legacy.termsPolicyCookies ?? {}
+    const findSocialLink = (links, platform) => links.find((link) => link.platform === platform) ?? { url: '#', label: platform }
     const clearSectionAnimationTimeouts = () => {
         sectionAnimationTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId))
         sectionAnimationTimeoutsRef.current = []
@@ -748,10 +743,6 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
     const maxVideoIndex = Math.max(0, videos.length - mediaItemsPerView)
     const maxMusicOffset = Math.max(0, tracks.length - musicItemsPerView)
     const musicOffset = Math.min(maxMusicOffset, Math.max(0, currentTrack - Math.floor(musicItemsPerView / 2)))
-
-    const contactWordsA = ['TechHouse', 'House', 'Hits', 'Contact', 'BearWeek', 'SitgesPride', 'TechHouse', 'Contacto', 'House', 'Hits', 'BearWeek', 'Contatto', 'SitgesPride', 'TechHouse', 'House', 'Kontakt', 'Hits', 'BearWeek', 'SitgesPride', 'Contact', 'TechHouse', 'House', 'Hits', 'Contacte', 'BearWeek', 'SitgesPride', 'TechHouse', 'Contact', 'House', 'Hits', 'BearWeek', 'Contacto', 'SitgesPride', 'TechHouse', 'House', 'Contatto', 'Hits', 'BearWeek', 'SitgesPride', 'TechHouse', 'Kontakt', 'House', 'Hits', 'Contact', 'BearWeek', 'SitgesPride', 'TechHouse', 'Contacto', 'House', 'Hits', 'BearWeek', 'Contatto', 'SitgesPride', 'TechHouse', 'House', 'Contacte', 'Hits', 'BearWeek', 'SitgesPride', 'TechHouse', 'Contact', 'House', 'Hits', 'BearWeek', 'Contacto', 'SitgesPride', 'TechHouse', 'House', 'Contatto', 'Hits', 'BearWeek', 'SitgesPride', 'TechHouse', 'Kontakt', 'House', 'Hits', 'Contact']
-    const contactWordsB = ['Electronic', 'Dance', 'Music', 'Contacter', 'Festival', 'Party', 'Electronic', 'Kontakti', 'Dance', 'Music', 'Festival', 'Liên-hệ', 'Party', 'Electronic', 'Dance', 'Επαφή', 'Music', 'Festival', 'Party', 'Контакт', 'Electronic', 'Dance', 'Music', '連絡', 'Festival', 'Party', 'Electronic', 'Contacter', 'Dance', 'Music', 'Festival', 'Kontakti', 'Party', 'Electronic', 'Dance', 'Liên-hệ', 'Music', 'Festival', 'Party', 'Electronic', 'Επαφή', 'Dance', 'Music', 'Festival', 'Контакт', 'Party', 'Electronic', 'Dance', 'Music', '連絡', 'Festival', 'Party', 'Electronic', 'Contacter', 'Dance', 'Music', 'Festival', 'Kontakti', 'Party', 'Electronic', 'Dance', 'Liên-hệ', 'Music', 'Festival', 'Party', 'Electronic', 'Επαφή', 'Dance', 'Music', 'Festival', 'Контакт', 'Party', 'Electronic', 'Dance', 'Music', '連絡', 'Festival', 'Party', 'Electronic', 'Contacter']
-    const contactWordsC = ['RadioChi', 'Beats', 'Vibes', 'संपर्क', 'Sound', 'Waves', 'RadioChi', 'اتصال', 'Beats', 'Vibes', 'Sound', 'Yhteystiedot', 'Waves', 'RadioChi', 'Beats', 'Kontakt', 'Vibes', 'Sound', 'Waves', 'Kapcsolat', 'RadioChi', 'Beats', 'Vibes', 'Kontak', 'Sound', 'Waves', 'RadioChi', 'संपर्क', 'Beats', 'Vibes', 'Sound', 'اتصال', 'Waves', 'RadioChi', 'Beats', 'Yhteystiedot', 'Vibes', 'Sound', 'Waves', 'RadioChi', 'Kontakt', 'Beats', 'Vibes', 'Sound', 'Kapcsolat', 'Waves', 'RadioChi', 'Beats', 'Vibes', 'Kontak', 'Sound', 'Waves', 'RadioChi', 'संपर्क', 'Beats', 'Vibes', 'Sound', 'اتصال', 'Waves', 'RadioChi', 'Beats', 'Yhteystiedot', 'Vibes', 'Sound', 'Waves', 'RadioChi', 'Kontakt', 'Beats', 'Vibes', 'Sound', 'Kapcsolat', 'Waves', 'RadioChi', 'Beats', 'Vibes', 'Kontak', 'Sound', 'Waves', 'RadioChi', 'संपर्क']
     const scrollCurrentSectionInternally = (direction, amount = 120) => {
         const container = activeSectionIndex === 3 ? calendarScrollRef.current : null
 
@@ -814,6 +805,7 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
                 currentPath={currentPath}
                 intro={legacy.intro}
                 footer={legacy.footer}
+                socialLinks={footerSocialLinks}
                 onTogglePlay={() => setIsPlaying((v) => !v)}
                 onToggleMute={() => setIsMuted((v) => !v)}
                 isMuted={isMuted}
@@ -825,6 +817,8 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
                 locales={locales}
                 currentPath={currentPath}
                 menu={legacy.header?.menu}
+                socialLinks={footerSocialLinks}
+                legalLabels={policyContent}
                 isPlaying={isPlaying}
                 isMuted={isMuted}
                 onTogglePlay={() => setIsPlaying((v) => !v)}
@@ -964,7 +958,7 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
                                                             <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54Z" />
                                                         </svg>
                                                     </button>
-                                                    <button onClick={() => openTrackLink('https://soundcloud.com/mrchi1')} aria-label="Seguir en SoundCloud">
+                                                    <button onClick={() => openTrackLink(findSocialLink(contactSocialLinks, 'soundcloud').url)} aria-label="Seguir en SoundCloud">
                                                         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                                             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z" />
                                                         </svg>
@@ -1022,7 +1016,7 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
                                                             <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54Z" />
                                                         </svg>
                                                     </button>
-                                                    <button onClick={() => openTrackLink('https://soundcloud.com/mrchi1')} aria-label="Seguir en SoundCloud">
+                                                    <button onClick={() => openTrackLink(findSocialLink(contactSocialLinks, 'soundcloud').url)} aria-label="Seguir en SoundCloud">
                                                         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                                             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z" />
                                                         </svg>
@@ -1143,7 +1137,7 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
                                 />
                                 <div className="legacy-media-cta-wrap">
                                     <a
-                                        href="https://www.youtube.com/channel/TUCANALAQUI"
+                                        href={legacy.media?.youtubeChannelUrl ?? 'https://www.youtube.com/channel/TUCANALAQUI'}
                                         target="_blank"
                                         rel="noreferrer"
                                         className="legacy-media-cta"
@@ -1163,16 +1157,16 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
                         <div className="legacy-contact-bg" />
                         <div className="legacy-contact-content">
                             <div className="legacy-social">
-                                <a href="https://www.facebook.com/fernandocardonatoro" target="_blank" rel="noreferrer" aria-label="Facebook">
+                                <a href={findSocialLink(contactSocialLinks, 'facebook').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'facebook').label ?? 'Facebook'}>
                                     <FaFacebookSquare />
                                 </a>
-                                <a href="https://www.instagram.com/mrchiloveyou/" target="_blank" rel="noreferrer" aria-label="Instagram">
+                                <a href={findSocialLink(contactSocialLinks, 'instagram').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'instagram').label ?? 'Instagram'}>
                                     <AiFillInstagram />
                                 </a>
-                                <a href="#" target="_blank" rel="noreferrer" aria-label="SoundCloud">
+                                <a href={findSocialLink(contactSocialLinks, 'soundcloud').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'soundcloud').label ?? 'SoundCloud'}>
                                     <ImSoundcloud2 />
                                 </a>
-                                <a href="#" target="_blank" rel="noreferrer" aria-label="Spotify">
+                                <a href={findSocialLink(contactSocialLinks, 'spotify').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'spotify').label ?? 'Spotify'}>
                                     <FaSpotify />
                                 </a>
                             </div>
@@ -1188,9 +1182,9 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
                                 </div>
                             </div>
                             <div className="legacy-contact-marquee">
-                                <ContactMarqueeRow rowClass="a" words={contactWordsA} />
-                                <ContactMarqueeRow rowClass="b" words={contactWordsB} />
-                                <ContactMarqueeRow rowClass="c" words={contactWordsC} />
+                                <ContactMarqueeRow rowClass="a" words={marqueeRows[0] ?? []} />
+                                <ContactMarqueeRow rowClass="b" words={marqueeRows[1] ?? []} />
+                                <ContactMarqueeRow rowClass="c" words={marqueeRows[2] ?? []} />
                             </div>
                         </div>
                     </section>
@@ -1214,10 +1208,10 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
                     </button>
                 </div>
                 <div className="legacy-fixed-footer-right">
-                    <a href="https://www.facebook.com/fernandocardonatoro" target="_blank" rel="noreferrer" aria-label="Facebook"><FaFacebookSquare /></a>
-                    <a href="https://www.instagram.com/mrchiloveyou/" target="_blank" rel="noreferrer" aria-label="Instagram"><AiFillInstagram /></a>
-                    <a href="#" target="_blank" rel="noreferrer" aria-label="SoundCloud"><ImSoundcloud2 /></a>
-                    <a href="#" target="_blank" rel="noreferrer" aria-label="Spotify"><FaSpotify /></a>
+                    <a href={findSocialLink(footerSocialLinks, 'facebook').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'facebook').label ?? 'Facebook'}><FaFacebookSquare /></a>
+                    <a href={findSocialLink(footerSocialLinks, 'instagram').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'instagram').label ?? 'Instagram'}><AiFillInstagram /></a>
+                    <a href={findSocialLink(footerSocialLinks, 'soundcloud').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'soundcloud').label ?? 'SoundCloud'}><ImSoundcloud2 /></a>
+                    <a href={findSocialLink(footerSocialLinks, 'spotify').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'spotify').label ?? 'Spotify'}><FaSpotify /></a>
                 </div>
             </footer>
 
