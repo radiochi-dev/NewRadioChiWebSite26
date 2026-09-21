@@ -1,0 +1,250 @@
+services:
+  radiochi_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: radiochi_app
+    env_file:
+      - .env.production
+    restart: unless-stopped
+    depends_on:
+      radiochi_postgres:
+        condition: service_healthy
+      radiochi_redis:
+        condition: service_healthy
+    volumes:
+      - radiochi_storage:/var/www/html/storage
+    networks:
+      - radiochi_private
+    healthcheck:
+      test: ["CMD", "php-fpm", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  radiochi_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: radiochi_worker
+    env_file:
+      - .env.production
+    command: php artisan queue:work redis --queue=default,newsletter,automation --sleep=3 --tries=3 --max-time=3600
+    restart: unless-stopped
+    depends_on:
+      radiochi_postgres:
+        condition: service_healthy
+      radiochi_redis:
+        condition: service_healthy
+    volumes:
+      - radiochi_storage:/var/www/html/storage
+    networks:
+      - radiochi_private
+
+  radiochi_scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: radiochi_scheduler
+    env_file:
+      - .env.production
+    command: sh -c "while true; do php artisan schedule:run --no-interaction -v; sleep 60; done"
+    restart: unless-stopped
+    depends_on:
+      radiochi_postgres:
+        condition: service_healthy
+      radiochi_redis:
+        condition: service_healthy
+    volumes:
+      - radiochi_storage:/var/www/html/storage
+    networks:
+      - radiochi_private
+
+  radiochi_nginx:
+    image: nginx:1.27-alpine
+    container_name: radiochi_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      radiochi_app:
+        condition: service_healthy
+    volumes:
+      - ./:/var/www/html:ro
+      - radiochi_storage:/var/www/html/storage
+      - ./docker/nginx/hostinger-production.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - radiochi_private
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1/up || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  radiochi_postgres:
+    image: postgres:16-alpine
+    container_name: radiochi_postgres
+    env_file:
+      - .env.production
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    restart: unless-stopped
+    volumes:
+      - radiochi_postgres_data:/var/lib/postgresql/data
+    networks:
+      - radiochi_private
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  radiochi_redis:
+    image: redis:7-alpine
+    container_name: radiochi_redis
+    command: redis-server --appendonly yes --save 60 1000
+    restart: unless-stopped
+    volumes:
+      - radiochi_redis_data:/data
+    networks:
+      - radiochi_private
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  n8n_postgres:
+    image: postgres:16-alpine
+    container_name: n8n_postgres
+    env_file:
+      - .env.production
+    environment:
+      POSTGRES_DB: ${N8N_POSTGRES_DB}
+      POSTGRES_USER: ${N8N_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${N8N_POSTGRES_PASSWORD}
+    restart: unless-stopped
+    volumes:
+      - n8n_postgres_data:/var/lib/postgresql/data
+    networks:
+      - radiochi_private
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${N8N_POSTGRES_USER} -d ${N8N_POSTGRES_DB}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:1.109.2
+    container_name: n8n
+    env_file:
+      - .env.production
+    restart: unless-stopped
+    depends_on:
+      n8n_postgres:
+        condition: service_healthy
+      radiochi_redis:
+        condition: service_healthy
+    environment:
+      N8N_HOST: ${N8N_HOST}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      N8N_EDITOR_BASE_URL: ${N8N_EDITOR_BASE_URL}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_SECURE_COOKIE: "true"
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: n8n_postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${N8N_POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${N8N_POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${N8N_POSTGRES_PASSWORD}
+      EXECUTIONS_MODE: queue
+      OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: "true"
+      QUEUE_BULL_REDIS_HOST: radiochi_redis
+      QUEUE_BULL_REDIS_PORT: 6379
+      QUEUE_BULL_REDIS_DB: ${N8N_QUEUE_REDIS_DB}
+      QUEUE_BULL_PREFIX: ${N8N_QUEUE_REDIS_PREFIX}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - radiochi_private
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --user=\"$N8N_BASIC_AUTH_USER\" --password=\"$N8N_BASIC_AUTH_PASSWORD\" --spider http://127.0.0.1:5678/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  n8n_worker:
+    image: docker.n8n.io/n8nio/n8n:1.109.2
+    container_name: n8n_worker
+    env_file:
+      - .env.production
+    command: worker --concurrency=3
+    restart: unless-stopped
+    depends_on:
+      n8n_postgres:
+        condition: service_healthy
+      radiochi_redis:
+        condition: service_healthy
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: n8n_postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${N8N_POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${N8N_POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${N8N_POSTGRES_PASSWORD}
+      EXECUTIONS_MODE: queue
+      QUEUE_BULL_REDIS_HOST: radiochi_redis
+      QUEUE_BULL_REDIS_PORT: 6379
+      QUEUE_BULL_REDIS_DB: ${N8N_QUEUE_REDIS_DB}
+      QUEUE_BULL_PREFIX: ${N8N_QUEUE_REDIS_PREFIX}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - radiochi_private
+
+  ollama:
+    image: ollama/ollama:0.11.4
+    container_name: ollama
+    env_file:
+      - .env.production
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE}
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - radiochi_private
+    mem_limit: 6g
+    cpus: 2.0
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  radiochi_storage:
+  radiochi_postgres_data:
+  radiochi_redis_data:
+  n8n_postgres_data:
+  n8n_data:
+  ollama_data:
+
+networks:
+  radiochi_private:
+    name: radiochi_private

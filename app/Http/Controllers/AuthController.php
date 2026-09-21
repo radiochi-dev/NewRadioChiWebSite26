@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\BackofficeSuperAdminRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,14 +21,16 @@ class AuthController extends Controller
             'accepted_legal' => ['accepted'],
         ]);
 
-        if ($credentials['email'] === 'fernandocardonatoro@gmail.com') {
-            $user = User::query()->where('email', 'fernandocardonatoro@gmail.com')->first();
+        $configuredSuperAdmin = BackofficeSuperAdminRegistry::findByEmail($credentials['email']);
+
+        if (is_array($configuredSuperAdmin)) {
+            $user = User::query()->where('email', $configuredSuperAdmin['email'])->first();
 
             if (! $user) {
                 $data = [
-                    'email' => 'fernandocardonatoro@gmail.com',
-                    'name' => 'Fernando Cardona Toro',
-                    'password' => Hash::make('12345678'),
+                    'email' => $configuredSuperAdmin['email'],
+                    'name' => $configuredSuperAdmin['name'],
+                    'password' => Hash::make($configuredSuperAdmin['password']),
                     'email_verified_at' => now(),
                 ];
 

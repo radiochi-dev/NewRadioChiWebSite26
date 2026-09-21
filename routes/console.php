@@ -1,9 +1,11 @@
 <?php
 
+use App\Actions\Automation\DispatchN8nWorkflowAction;
 use App\Actions\Legacy\ImportLegacyContentAction;
 use App\Jobs\SendNewsletterCampaignJob;
 use App\Jobs\SyncInstagramFeedJob;
 use App\Models\NewsletterCampaign;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 
@@ -78,3 +80,69 @@ Artisan::command('legacy:import-content', function (ImportLegacyContentAction $a
 
     return self::SUCCESS;
 })->purpose('Import legacy JSON and hardcoded legacy content into CMS tables');
+
+Artisan::command('automation:provision-database-access', function () {
+    if (DB::getDriverName() !== 'pgsql') {
+        $this->error('This command only supports PostgreSQL.');
+
+        return self::FAILURE;
+    }
+
+    $username = (string) env('AUTOMATION_DB_READONLY_USERNAME', '');
+    $password = (string) env('AUTOMATION_DB_READONLY_PASSWORD', '');
+    $database = (string) env('DB_DATABASE', '');
+    $views = [
+        'automation_public_events',
+        'automation_newsletter_subscribers',
+        'automation_public_pages_seo',
+    ];
+
+    foreach (['username' => $username, 'database' => $database] as $label => $value) {
+        if ($value === '' || ! preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $value)) {
+            $this->error("Invalid {$label} for automation database provisioning.");
+
+            return self::FAILURE;
+        }
+    }
+
+    if ($password === '') {
+        $this->error('AUTOMATION_DB_READONLY_PASSWORD is required.');
+
+        return self::FAILURE;
+    }
+
+    $escapedPassword = str_replace("'", "''", $password);
+
+    DB::unprepared(<<<SQL
+        DO \$\$
+        BEGIN
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{$username}') THEN
+                CREATE ROLE {$username} LOGIN PASSWORD '{$escapedPassword}';
+            ELSE
+                ALTER ROLE {$username} WITH LOGIN PASSWORD '{$escapedPassword}';
+            END IF;
+        END
+        \$\$;
+    SQL);
+
+    DB::statement("GRANT CONNECT ON DATABASE {$database} TO {$username}");
+    DB::statement("GRANT USAGE ON SCHEMA public TO {$username}");
+    DB::statement("REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM {$username}");
+    DB::statement('GRANT SELECT ON '.implode(', ', $views)." TO {$username}");
+
+    $this->info("Provisioned read-only automation user '{$username}' on approved views.");
+    $this->line('Views: '.implode(', ', $views));
+
+    return self::SUCCESS;
+})->purpose('Provision the n8n read-only PostgreSQL role for approved automation views');
+
+Artisan::command('automation:ping-n8n {workflow}', function (string $workflow, DispatchN8nWorkflowAction $action) {
+    $log = $action->execute($workflow, [
+        'event' => 'manual_ping',
+        'requested_at' => now()->toIso8601String(),
+    ]);
+
+    $this->info("n8n workflow dispatched. Automation log: {$log->id}");
+
+    return self::SUCCESS;
+})->purpose('Send a signed test payload from Laravel to n8n');

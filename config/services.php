@@ -40,4 +40,19 @@ return [
         'token' => env('INSTAGRAM_ACCESS_TOKEN'),
     ],
 
+    'n8n' => [
+        'webhook_base_url' => env('N8N_WEBHOOK_BASE_URL'),
+        'api_key' => env('N8N_API_KEY'),
+        'shared_secret' => env('N8N_SHARED_SECRET'),
+        'timeout' => (int) env('N8N_TIMEOUT', 15),
+        'allowed_clock_skew' => (int) env('N8N_ALLOWED_CLOCK_SKEW', 300),
+    ],
+
+    'ollama' => [
+        'base_url' => env('OLLAMA_BASE_URL', 'http://ollama:11434'),
+        'model' => env('OLLAMA_MODEL', 'phi3:mini'),
+        'timeout' => (int) env('OLLAMA_TIMEOUT', 45),
+        'keep_alive' => env('OLLAMA_KEEP_ALIVE', '5m'),
+    ],
+
 ];

@@ -669,85 +669,122 @@ Validacion real en esta iteracion:
 
 ## Fase 8. Produccion Hostinger VPS con n8n y Ollama
 
+**Estado:** COMPLETADA
+**Avance de fase:** 100%
+**Avance global del plan:** 98%
+
 ### Objetivo
 Definir una arquitectura de produccion realista, segura y operable.
 
 ### Paso 8.1 Infraestructura de servicios
-Definir stack de produccion con:
-- `radiochi_nginx`
-- `radiochi_app`
-- `radiochi_worker`
-- `radiochi_scheduler`
-- `radiochi_postgres`
-- `radiochi_redis`
-- `n8n`
-- `n8n_postgres`
-- `ollama`
-- reverse proxy/SSL segun estrategia final
+~~Definir stack de produccion con:~~
+- ~~`radiochi_nginx`~~
+- ~~`radiochi_app`~~
+- ~~`radiochi_worker`~~
+- ~~`radiochi_scheduler`~~
+- ~~`radiochi_postgres`~~
+- ~~`radiochi_redis`~~
+- ~~`n8n`~~
+- ~~`n8n_postgres`~~
+- ~~`ollama`~~
+- ~~reverse proxy/SSL segun estrategia final~~
+
+Implementado en esta iteracion:
+- ~~`docker-compose.production.yml` define el stack completo de Hostinger VPS con separacion web/app/worker/scheduler y red privada para automatizaciones.~~
+- ~~`docker/nginx/hostinger-production.conf` deja Nginx listo para servir Laravel/Inertia en produccion manteniendo `/up` como health endpoint.~~
+- ~~`.env.production.example` y `docs/hostinger-vps-phase8.md` documentan la topologia real de despliegue.~~
 
 ### Paso 8.2 Base de datos independiente para n8n
-Implementar `n8n_postgres` separado de `radiochi_postgres`.
+~~Implementar `n8n_postgres` separado de `radiochi_postgres`.~~
 
 Requisitos:
-- base propia de n8n para ejecuciones, credenciales y metadatos,
-- usuario y secretos propios,
-- backups independientes,
-- no mezclar datos internos de n8n con la base del proyecto.
+- ~~base propia de n8n para ejecuciones, credenciales y metadatos,~~
+- ~~usuario y secretos propios,~~
+- ~~backups independientes,~~
+- ~~no mezclar datos internos de n8n con la base del proyecto.~~
+
+Implementado en esta iteracion:
+- ~~`n8n_postgres` usa credenciales y volumen propios en produccion.~~
+- ~~La configuracion de n8n queda separada de `radiochi_postgres` tanto en compose como en variables de entorno.~~
 
 ### Paso 8.3 Acceso controlado de n8n a la base principal
-Crear un usuario tecnico de solo lectura o permisos minimizados sobre `radiochi_postgres` para consultas de automatizacion.
+~~Crear un usuario tecnico de solo lectura o permisos minimizados sobre `radiochi_postgres` para consultas de automatizacion.~~
 
 Requisitos:
-- acceso solo a tablas/vistas aprobadas,
-- sin privilegios de schema ni DDL,
-- preferencia por vistas/materialized views si aplica,
-- auditoria de consultas si el alcance lo exige.
+- ~~acceso solo a tablas/vistas aprobadas,~~
+- ~~sin privilegios de schema ni DDL,~~
+- ~~preferencia por vistas/materialized views si aplica,~~
+- ~~auditoria de consultas si el alcance lo exige.~~
+
+Implementado en esta iteracion:
+- ~~Migracion `2026_09_22_000000_create_automation_access_views.php` crea `automation_public_events`, `automation_newsletter_subscribers` y `automation_public_pages_seo`.~~
+- ~~Comando `automation:provision-database-access` crea/actualiza el rol tecnico y le concede solo `SELECT` sobre las vistas aprobadas.~~
+- ~~Provision local validada con el usuario `radiochi_automation`.~~
 
 ### Paso 8.4 Integracion backend Laravel <-> n8n
-Definir contrato bidireccional:
+~~Definir contrato bidireccional:~~
 
 Laravel hacia n8n:
-- webhooks firmados,
-- API keys/headers HMAC,
-- disparo de workflows por eventos de negocio,
-- endpoints para consultar estado de ejecucion.
+- ~~webhooks firmados,~~
+- ~~API keys/headers HMAC,~~
+- ~~disparo de workflows por eventos de negocio,~~
+- ~~endpoints para consultar estado de ejecucion.~~
 
 n8n hacia Laravel:
-- webhooks autenticados,
-- endpoints internos protegidos,
-- posibilidad de leer datos del proyecto,
-- posibilidad de registrar resultados en tablas de automatizacion.
+- ~~webhooks autenticados,~~
+- ~~endpoints internos protegidos,~~
+- ~~posibilidad de leer datos del proyecto,~~
+- ~~posibilidad de registrar resultados en tablas de automatizacion.~~
 
 Casos objetivo:
-- automatizaciones de marketing,
-- generacion de contenido asistido,
-- sincronizaciones programadas,
-- enriquecimiento SEO,
-- tareas internas CMS.
+- ~~automatizaciones de marketing,~~
+- ~~generacion de contenido asistido,~~
+- ~~sincronizaciones programadas,~~
+- ~~enriquecimiento SEO,~~
+- ~~tareas internas CMS.~~
+
+Implementado en esta iteracion:
+- ~~`routes/api.php` expone `GET /api/internal/automation/public-home/{locale}`, `GET /api/internal/automation/logs/{automationLog}` y `POST /api/internal/automation/n8n/results`.~~
+- ~~`EnsureValidAutomationSignature` valida `X-Radiochi-Timestamp` + `X-Radiochi-Signature` con HMAC y ventana de tiempo configurable.~~
+- ~~`DispatchN8nWorkflowAction` y `DispatchN8nWorkflowJob` formalizan el flujo Laravel -> n8n con logging en `automation_logs`.~~
+- ~~`N8nResultWebhookController` registra resultados inbound de n8n en `automation_logs`.~~
 
 ### Paso 8.5 Integracion con Ollama en VPS
-Instalar `ollama` como servicio interno no expuesto publicamente.
+~~Instalar `ollama` como servicio interno no expuesto publicamente.~~
 
 Requisitos:
-- modelo ligero configurable,
-- consumo solo desde backend o n8n por red privada,
-- limites de recursos del VPS,
-- colas o timeouts para evitar bloquear peticiones web.
+- ~~modelo ligero configurable,~~
+- ~~consumo solo desde backend o n8n por red privada,~~
+- ~~limites de recursos del VPS,~~
+- ~~colas o timeouts para evitar bloquear peticiones web.~~
 
 Usos previstos:
-- resumen/clasificacion de contenido,
-- sugerencias SEO,
-- asistencia editorial,
-- etiquetado de media,
-- borradores internos.
+- ~~resumen/clasificacion de contenido,~~
+- ~~sugerencias SEO,~~
+- ~~asistencia editorial,~~
+- ~~etiquetado de media,~~
+- ~~borradores internos.~~
+
+Implementado en esta iteracion:
+- ~~`GenerateOllamaTextAction` encapsula el cliente HTTP interno a `ollama` con timeout, modelo configurable y logging.~~
+- ~~`RunOllamaPromptJob` fuerza el uso de cola `automation` para no bloquear peticiones web.~~
+- ~~`docker-compose.production.yml` deja `ollama` sin exposicion publica y con limites de CPU/memoria.~~
 
 ### Paso 8.6 Seguridad y operaciones
-- no exponer Postgres ni Redis al exterior,
-- n8n protegido tras autenticacion fuerte y, si procede, acceso solo por VPN/IP allowlist,
-- backups cifrados,
-- healthchecks,
-- rotacion de secretos,
-- logs y monitoreo.
+~~Seguridad y operaciones:~~
+- ~~no exponer Postgres ni Redis al exterior,~~
+- ~~n8n protegido tras autenticacion fuerte y, si procede, acceso solo por VPN/IP allowlist,~~
+- ~~backups cifrados,~~
+- ~~healthchecks,~~
+- ~~rotacion de secretos,~~
+- ~~logs y monitoreo.~~
+
+Validacion real en esta iteracion:
+- ~~Backoffice privado confirmado en `/backoffice/login`.~~
+- ~~Super admin solicitados creados en la base actual: `fernandocardonatoro@gmail.com` y `radiochi.dev@gmail.com`.~~
+- ~~`Phase8ProductionAutomationTest`: 6 tests OK, 24 assertions.~~
+- ~~Regresion conjunta Fase 7 + Fase 8 + flujo publico: 13 tests OK, 67 assertions.~~
+- ~~`docker compose --env-file .env.production.example -f docker-compose.production.yml config`: OK.~~
 
 ## Fase 9. QA, seguridad y Definition of Done
 
