@@ -1,7 +1,8 @@
-import { router } from '@inertiajs/react'
 import { useEffect, useState } from 'react'
 import LanguageSwitcher from '../LanguageSwitcher'
-import { FaFacebookF, FaInstagram, FaSoundcloud } from 'react-icons/fa'
+import { AiFillInstagram } from 'react-icons/ai'
+import { FaFacebookSquare, FaSpotify } from 'react-icons/fa'
+import { ImSoundcloud2 } from 'react-icons/im'
 
 export default function LegacyHeader({
     locale,
@@ -17,13 +18,6 @@ export default function LegacyHeader({
 }) {
     const [menuOpen, setMenuOpen] = useState(false)
     const [blurActive, setBlurActive] = useState(false)
-    const [authOpen, setAuthOpen] = useState(false)
-    const [authAccepted, setAuthAccepted] = useState(false)
-    const [authEmail, setAuthEmail] = useState('')
-    const [authPassword, setAuthPassword] = useState('')
-    const [authLoading, setAuthLoading] = useState(false)
-    const [authError, setAuthError] = useState('')
-    const [isRegisterForm, setIsRegisterForm] = useState(false)
 
     useEffect(() => {
         let timeoutId = null
@@ -41,7 +35,6 @@ export default function LegacyHeader({
             }
             if (e.key === 'Escape') {
                 setMenuOpen(false)
-                setAuthOpen(false)
             }
         }
 
@@ -74,19 +67,32 @@ export default function LegacyHeader({
                         <img src="/assets/img/logos/RC_Logo_white.png" alt="RadioChi" className="legacy-header-logo" />
                     </a>
                     <div className="legacy-header-right">
-                        <button onClick={onTogglePlay} className={`legacy-header-icon ${isPlaying ? '' : 'active'}`}>
-                            {isPlaying ? '❚❚' : '▶'}
+                        <button onClick={onTogglePlay} className="legacy-header-icon" aria-label="Reproducir/Pausar música">
+                            {isPlaying ? (
+                                <svg className="legacy-header-svg active" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                                </svg>
+                            ) : (
+                                <svg className="legacy-header-svg" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                            )}
                         </button>
-                        <button onClick={onToggleMute} className={`legacy-header-icon ${isMuted ? 'active' : ''}`}>
-                            {isMuted ? '🔇' : '🔊'}
+                        <button onClick={onToggleMute} className={`legacy-header-icon ${isMuted ? 'active' : ''}`} aria-label="Control de volumen">
+                            {isMuted ? (
+                                <svg className="legacy-header-svg active" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M16.5 12c0-1.77-1-3.29-2.45-4.03v2.21l2.36 2.36c.05-.17.09-.35.09-.54zM19 12c0 .94-.2 1.82-.55 2.64l1.51 1.51A8.91 8.91 0 0021 12c0-3.72-2.14-6.94-5.25-8.47v2.21A6.98 6.98 0 0119 12zM4.27 3 3 4.27l4.73 4.73H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.21v2.06a8.94 8.94 0 003.73-1.78L19.73 21 21 19.73 12 10.73 4.27 3zM12 4 9.91 6.09 12 8.18V4z" />
+                                </svg>
+                            ) : (
+                                <svg className="legacy-header-svg" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1-3.29-2.45-4.03v8.05A4.985 4.985 0 0016.5 12zM14.05 3.23v2.06A8.968 8.968 0 0119 12c0 2.93-1.4 5.53-3.55 7.17v2.06C18.83 19.65 21 16.05 21 12s-2.17-7.65-5.55-8.77z" />
+                                </svg>
+                            )}
                         </button>
                         <div className={`legacy-lang-wrap ${menuOpen ? 'hidden' : ''}`}>
                             <LanguageSwitcher currentLocale={locale} locales={locales} currentPath={currentPath} />
                         </div>
-                        <button className="legacy-auth-btn" onClick={() => setAuthOpen(true)}>
-                            Login/Register
-                        </button>
-                        <button className={`legacy-menu-toggle ${menuOpen ? 'active' : ''}`} onClick={() => setMenuOpen((v) => !v)} aria-label="Open menu">
+                        <button className={`legacy-menu-toggle ${menuOpen ? 'active' : ''}`} onClick={() => setMenuOpen((v) => !v)} aria-label="Abrir menú">
                             <span />
                             <span />
                             <span />
@@ -102,84 +108,30 @@ export default function LegacyHeader({
                     <a href="#about" onClick={(e) => (e.preventDefault(), go('about'))}>{menu?.about}</a>
                     <a href="#music" onClick={(e) => (e.preventDefault(), go('music'))}>{menu?.music}</a>
                     <a href="#calendar" onClick={(e) => (e.preventDefault(), go('calendar'))}>{menu?.calendarEvents}</a>
-                    <a href="#media" onClick={(e) => (e.preventDefault(), go('media'))}>{menu?.media}</a>
                     <a href="#contact" onClick={(e) => (e.preventDefault(), go('contact'))}>{menu?.contact}</a>
-                    <button className="legacy-side-auth-btn" onClick={() => { setMenuOpen(false); setAuthOpen(true) }}>Login/Register</button>
+                    <div className="legacy-side-divider" />
+                    <button className="legacy-side-policy" onClick={() => { setMenuOpen(false); onOpenLegalModal?.('terms') }}>Términos y Condiciones</button>
+                    <button className="legacy-side-policy" onClick={() => { setMenuOpen(false); onOpenLegalModal?.('privacy') }}>Política de Privacidad</button>
+                    <button className="legacy-side-policy" onClick={() => { setMenuOpen(false); onOpenLegalModal?.('cookies') }}>Política de Cookies</button>
                     <div className="legacy-side-lang">
                         <LanguageSwitcher currentLocale={locale} locales={locales} currentPath={currentPath} mode="list" />
                     </div>
                     <div className="legacy-side-social">
                         <a href="https://www.facebook.com/fernandocardonatoro" target="_blank" rel="noreferrer" aria-label="Facebook">
-                            <FaFacebookF />
+                            <FaFacebookSquare />
                         </a>
                         <a href="https://www.instagram.com/mrchiloveyou/" target="_blank" rel="noreferrer" aria-label="Instagram">
-                            <FaInstagram />
+                            <AiFillInstagram />
                         </a>
-                        <a href="https://soundcloud.com/mrchi1" target="_blank" rel="noreferrer" aria-label="SoundCloud">
-                            <FaSoundcloud />
+                        <a href="#" target="_blank" rel="noreferrer" aria-label="SoundCloud">
+                            <ImSoundcloud2 />
+                        </a>
+                        <a href="#" target="_blank" rel="noreferrer" aria-label="Spotify">
+                            <FaSpotify />
                         </a>
                     </div>
                 </nav>
             </aside>
-
-            {authOpen && (
-                <div className="legacy-auth-modal" onClick={() => setAuthOpen(false)}>
-                    <div className="legacy-auth-card" onClick={(e) => e.stopPropagation()}>
-                        <button className="legacy-auth-close" onClick={() => setAuthOpen(false)}>×</button>
-                        <h3>{isRegisterForm ? 'Crear cuenta' : 'Acceso CMS'}</h3>
-                        <p>{isRegisterForm ? 'Registro de acceso (deshabilitado temporalmente)' : 'Accede al panel de administración para gestionar contenidos.'}</p>
-                        <form
-                            className="legacy-auth-form"
-                            onSubmit={(e) => {
-                                e.preventDefault()
-                                if (!authAccepted) {
-                                    setAuthError('Debes aceptar los términos legales para continuar.')
-                                    return
-                                }
-                                if (isRegisterForm) {
-                                    setAuthError('Registro deshabilitado temporalmente.')
-                                    return
-                                }
-                                setAuthLoading(true)
-                                setAuthError('')
-                                router.post('/login', {
-                                    email: authEmail,
-                                    password: authPassword,
-                                    accepted_legal: authAccepted ? 1 : 0,
-                                }, {
-                                    preserveScroll: true,
-                                    onSuccess: () => {
-                                        setAuthOpen(false)
-                                        setAuthPassword('')
-                                    },
-                                    onError: (errors) => {
-                                        setAuthError(errors.email || errors.password || errors.accepted_legal || 'No se pudo iniciar sesión.')
-                                    },
-                                    onFinish: () => {
-                                        setAuthLoading(false)
-                                    },
-                                })
-                            }}
-                        >
-                            <input type="email" placeholder="Email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} required />
-                            <input type="password" placeholder="Password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} required />
-                            <label className="legacy-auth-legal">
-                                <input type="checkbox" checked={authAccepted} onChange={(e) => setAuthAccepted(e.target.checked)} />
-                                <span>Acepto los términos legales</span>
-                            </label>
-                            <div className="legacy-auth-legal-links">
-                                <button type="button" onClick={() => onOpenLegalModal?.('terms')}>Términos y Condiciones</button>
-                                <button type="button" onClick={() => onOpenLegalModal?.('privacy')}>Política de Privacidad</button>
-                                <button type="button" onClick={() => onOpenLegalModal?.('cookies')}>Política de Cookies</button>
-                            </div>
-                            {authError && <div className="legacy-auth-error">{authError}</div>}
-                            <button type="submit" className="legacy-auth-submit" disabled={authLoading}>
-                                {authLoading ? 'Validando...' : isRegisterForm ? 'Crear cuenta' : 'Iniciar sesión'}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
         </>
     )
 }

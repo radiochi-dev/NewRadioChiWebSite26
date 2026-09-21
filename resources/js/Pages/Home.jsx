@@ -4,23 +4,125 @@ import LegacyHeader from '../Components/legacy/LegacyHeader'
 import LegacyIntro from '../Components/legacy/LegacyIntro'
 import LegacyStarshine from '../Components/legacy/LegacyStarshine'
 import { getLegacyCalendarData, getLegacyContent, getLegacyMediaData } from '../legacy/content'
-import { FaFacebookF, FaInstagram, FaSoundcloud, FaYoutube } from 'react-icons/fa'
+import { AiFillInstagram } from 'react-icons/ai'
+import { FaFacebookSquare, FaSpotify } from 'react-icons/fa'
+import { ImSoundcloud2 } from 'react-icons/im'
 
 const sectionIds = ['home', 'about', 'music', 'calendar', 'media', 'contact']
+const shuffleArray = (items) => {
+    const next = [...items]
+    for (let index = next.length - 1; index > 0; index -= 1) {
+        const randomIndex = Math.floor(Math.random() * (index + 1))
+        ;[next[index], next[randomIndex]] = [next[randomIndex], next[index]]
+    }
+    return next
+}
+const ContactMarqueeRow = ({ rowClass, words }) => (
+    <div className={`legacy-marquee-row ${rowClass}`}>
+        <div className={`legacy-marquee-track ${rowClass}`}>
+            {[0, 1].map((copyIndex) => (
+                <h2 key={`${rowClass}-${copyIndex}`} className="legacy-marquee">
+                    {words.map((word, wordIndex) => (
+                        <span key={`${rowClass}-${copyIndex}-${wordIndex}`}>{word}</span>
+                    ))}
+                </h2>
+            ))}
+        </div>
+    </div>
+)
+const MediaNavIcon = ({ direction }) => (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        {direction === 'prev'
+            ? <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            : <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />}
+    </svg>
+)
+const MediaCarouselRow = ({
+    items,
+    itemType,
+    currentIndex,
+    setCurrentIndex,
+    maxIndex,
+    perView,
+    label,
+    onOpen,
+}) => (
+    <div className={`legacy-media-row ${itemType === 'video' ? 'is-videos' : 'is-photos'}`}>
+        <div className="legacy-media-carousel-shell">
+            <button
+                type="button"
+                className="legacy-media-nav legacy-media-nav-prev"
+                onClick={() => setCurrentIndex((value) => Math.max(0, value - 1))}
+                disabled={currentIndex === 0}
+                aria-label={itemType === 'video' ? 'Mostrar videos anteriores' : 'Mostrar fotos anteriores'}
+            >
+                <MediaNavIcon direction="prev" />
+            </button>
+            <div className="legacy-media-viewport">
+                <div className="legacy-media-track" style={{ transform: `translateX(-${currentIndex * (100 / perView)}%)` }}>
+                    {items.map((item, idx) => (
+                        <div key={itemType === 'video' ? item.id : item.src} className="legacy-media-cell" style={{ flex: `0 0 ${100 / perView}%` }}>
+                            <button
+                                type="button"
+                                className={`legacy-media-card ${itemType === 'video' ? 'is-video' : 'is-photo'}`}
+                                onClick={() => onOpen(item, idx)}
+                            >
+                                <div className="legacy-media-figure">
+                                    <img src={itemType === 'video' ? item.thumbnail : item.src} alt={itemType === 'video' ? item.title : item.alt} />
+                                    <span className="legacy-media-badge">{label}</span>
+                                    {itemType === 'video' && (
+                                        <span className="legacy-media-play" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </span>
+                                    )}
+                                    <span className="legacy-media-overlay">
+                                        <span className="legacy-media-overlay-title">{itemType === 'video' ? item.title : item.caption}</span>
+                                        <span className="legacy-media-overlay-subtitle">{itemType === 'video' ? item.duration : item.date}</span>
+                                    </span>
+                                </div>
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <button
+                type="button"
+                className="legacy-media-nav legacy-media-nav-next"
+                onClick={() => setCurrentIndex((value) => Math.min(maxIndex, value + 1))}
+                disabled={currentIndex >= maxIndex}
+                aria-label={itemType === 'video' ? 'Mostrar mas videos' : 'Mostrar mas fotos'}
+            >
+                <MediaNavIcon direction="next" />
+            </button>
+        </div>
+    </div>
+)
 
 export default function Home({ locale, locales, currentPath, events, seo }) {
     const legacy = useMemo(() => getLegacyContent(locale), [locale])
     const calendarData = useMemo(() => getLegacyCalendarData(locale), [locale])
     const mediaData = useMemo(() => getLegacyMediaData(), [])
-    const [activeSectionIndex, setActiveSectionIndex] = useState(0)
+    const [activeSectionIndex, setActiveSectionIndex] = useState(() => {
+        if (typeof window === 'undefined') {
+            return 0
+        }
+        const initialHash = window.location.hash.replace('#', '').split('/')[0]
+        const initialIndex = sectionIds.indexOf(initialHash)
+        return initialIndex >= 0 ? initialIndex : 0
+    })
     const [isScrolling, setIsScrolling] = useState(false)
     const [currentSlide, setCurrentSlide] = useState(0)
     const [currentTrack, setCurrentTrack] = useState(0)
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
     const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
-    const [aboutStep, setAboutStep] = useState(0)
-    const [aboutBgStep, setAboutBgStep] = useState(0)
+    const [aboutTextIndex, setAboutTextIndex] = useState(0)
+    const [aboutBgIndex, setAboutBgIndex] = useState(0)
     const [typedAboutTitle, setTypedAboutTitle] = useState('')
+    const [aboutSubtitleVisible, setAboutSubtitleVisible] = useState(false)
+    const [aboutDescriptionVisible, setAboutDescriptionVisible] = useState(false)
     const [lightbox, setLightbox] = useState(null)
     const [isPlaying, setIsPlaying] = useState(true)
     const [isMuted, setIsMuted] = useState(false)
@@ -35,8 +137,26 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
     const soundcloudRef = useRef(null)
     const soundcloudWidgetRef = useRef(null)
     const positionIntervalRef = useRef(null)
+    const calendarScrollRef = useRef(null)
+    const sectionRefs = useRef([])
+    const activeSectionIndexRef = useRef(activeSectionIndex)
+    const isScrollingRef = useRef(isScrolling)
+    const didMountSectionsRef = useRef(false)
+    const sectionAnimationTimeoutsRef = useRef([])
+    const sequentialNavTimeoutsRef = useRef([])
+    const aboutTimeoutsRef = useRef([])
+    const aboutTextIntervalRef = useRef(null)
+    const aboutBgIntervalRef = useRef(null)
+    const aboutTextOrderRef = useRef([])
+    const aboutBgOrderRef = useRef([])
+    const aboutTextPointerRef = useRef(0)
+    const aboutBgPointerRef = useRef(0)
     const slides = legacy.home?.slides ?? []
     const aboutSteps = legacy.about?.scrollytelling?.steps ?? []
+    const aboutImages = useMemo(
+        () => aboutSteps.flatMap((step) => [step.image, step.image2].filter(Boolean)),
+        [aboutSteps],
+    )
     const tracks = legacy.music?.tracks ?? []
     const photos = mediaData.photos ?? []
     const videos = mediaData.videos ?? []
@@ -57,7 +177,55 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
         { name: 'Bears Events', url: 'https://www.bearsevents.com/', imgSrc: '/assets/img/logos/Bear-Events-Logo-2-300x95.png' },
     ]
     const activeTrack = tracks[currentTrack]
+    const activeAboutStep = aboutSteps[aboutTextIndex]
     const policyContent = legacy.termsPolicyCookies ?? {}
+    const clearSectionAnimationTimeouts = () => {
+        sectionAnimationTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId))
+        sectionAnimationTimeoutsRef.current = []
+    }
+    const clearSequentialNavTimeouts = () => {
+        sequentialNavTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId))
+        sequentialNavTimeoutsRef.current = []
+    }
+    const clearAboutAnimation = () => {
+        aboutTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId))
+        aboutTimeoutsRef.current = []
+        if (aboutTextIntervalRef.current) {
+            window.clearInterval(aboutTextIntervalRef.current)
+            aboutTextIntervalRef.current = null
+        }
+        if (aboutBgIntervalRef.current) {
+            window.clearInterval(aboutBgIntervalRef.current)
+            aboutBgIntervalRef.current = null
+        }
+    }
+    const formatPlayerTime = (milliseconds) => {
+        if (!milliseconds || Number.isNaN(milliseconds)) {
+            return '00:00'
+        }
+
+        const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000))
+        const minutes = Math.floor(totalSeconds / 60)
+        const seconds = totalSeconds % 60
+
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+    }
+    const goPrevTrack = () => {
+        setCurrentTrack((prev) => (prev > 0 ? prev - 1 : Math.max(0, tracks.length - 1)))
+    }
+    const goNextTrack = () => {
+        setCurrentTrack((prev) => (prev < tracks.length - 1 ? prev + 1 : 0))
+    }
+    const openTrackLink = (url) => {
+        if (!url) {
+            return
+        }
+        window.open(url, '_blank', 'noopener,noreferrer')
+    }
+    const handleShareTrack = () => {
+        const shareUrl = activeTrack?.soundcloudUrl || 'https://soundcloud.com/mrchi1'
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer')
+    }
     const openLegalModal = (type) => {
         if (type === 'terms') {
             setPolicyModal({ title: policyContent.terms?.title, content: policyContent.terms?.content })
@@ -71,6 +239,78 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
             setPolicyModal({ title: policyContent.cookies?.title, content: policyContent.cookies?.content })
         }
     }
+    const openPhotoLightbox = (photo, index) => {
+        setLightbox({ type: 'image', index, src: photo.src, title: photo.caption, subtitle: photo.date })
+    }
+    const openVideoLightbox = (video) => {
+        if (soundcloudWidgetRef.current) {
+            soundcloudWidgetRef.current.pause()
+        }
+        setLightbox({
+            type: 'video',
+            src: `https://www.youtube.com/embed/${video.id}?autoplay=1`,
+            title: video.title,
+            subtitle: video.date,
+            link: `https://www.youtube.com/watch?v=${video.id}`,
+        })
+    }
+
+    useEffect(() => {
+        activeSectionIndexRef.current = activeSectionIndex
+    }, [activeSectionIndex])
+
+    useEffect(() => {
+        isScrollingRef.current = isScrolling
+    }, [isScrolling])
+
+    useEffect(() => {
+        const shouldAnimate = didMountSectionsRef.current
+        clearSectionAnimationTimeouts()
+
+        sectionRefs.current.forEach((section, index) => {
+            if (!section) {
+                return
+            }
+
+            const translateY = index < activeSectionIndex ? -100 * (activeSectionIndex - index) : 0
+
+            section.style.transform = `translateY(${translateY}vh)`
+            section.style.transition = shouldAnimate
+                ? 'transform 700ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                : 'none'
+            section.style.pointerEvents = 'auto'
+            section.style.opacity = '1'
+            section.style.visibility = 'visible'
+        })
+
+        if (shouldAnimate) {
+            const bounceTimeout = window.setTimeout(() => {
+                sectionRefs.current.forEach((section, index) => {
+                    if (!section || index >= activeSectionIndex) {
+                        return
+                    }
+
+                    const bounceY = (-100 * (activeSectionIndex - index)) + 0.8
+                    section.style.transition = 'transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    section.style.transform = `translateY(${bounceY}vh)`
+
+                    const settleTimeout = window.setTimeout(() => {
+                        section.style.transition = 'transform 80ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                        section.style.transform = `translateY(${-100 * (activeSectionIndex - index)}vh)`
+                    }, 120)
+                    sectionAnimationTimeoutsRef.current.push(settleTimeout)
+                })
+            }, 550)
+
+            sectionAnimationTimeoutsRef.current.push(bounceTimeout)
+        }
+
+        didMountSectionsRef.current = true
+
+        return () => {
+            clearSectionAnimationTimeouts()
+        }
+    }, [activeSectionIndex])
 
     useEffect(() => {
         if (slides.length <= 1) {
@@ -81,6 +321,12 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
         }, 7000)
         return () => clearInterval(interval)
     }, [slides.length])
+
+    useEffect(() => {
+        return () => {
+            clearSequentialNavTimeouts()
+        }
+    }, [])
 
     useEffect(() => {
         const onKeyDown = (e) => {
@@ -135,6 +381,11 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
     }, [])
 
     useEffect(() => {
+        setCurrentPhotoIndex((value) => Math.min(value, Math.max(0, photos.length - mediaItemsPerView)))
+        setCurrentVideoIndex((value) => Math.min(value, Math.max(0, videos.length - mediaItemsPerView)))
+    }, [mediaItemsPerView, photos.length, videos.length])
+
+    useEffect(() => {
         const updateMusicPerView = () => {
             const width = window.innerWidth
             if (width < 768) {
@@ -153,40 +404,102 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
     }, [])
 
     useEffect(() => {
-        if (aboutSteps.length === 0) {
+        if (activeSectionIndex !== 1 || aboutSteps.length === 0) {
+            clearAboutAnimation()
+            setTypedAboutTitle('')
+            setAboutSubtitleVisible(false)
+            setAboutDescriptionVisible(false)
             return
         }
-        setAboutStep(0)
-        setAboutBgStep(0)
-        const interval = setInterval(() => {
-            setAboutStep((prev) => {
-                const next = (prev + 1) % aboutSteps.length
-                setAboutBgStep(next)
-                return next
-            })
-        }, 6000)
-        return () => {
-            clearInterval(interval)
+
+        const startTypingTitle = (stepIndex) => {
+            const step = aboutSteps[stepIndex]
+            setAboutTextIndex(stepIndex)
+            setTypedAboutTitle('')
+            setAboutSubtitleVisible(false)
+            setAboutDescriptionVisible(false)
+
+            if (!step) {
+                return
+            }
+
+            let charIndex = 0
+            const tick = () => {
+                charIndex += 1
+                setTypedAboutTitle(step.title.slice(0, charIndex))
+
+                if (charIndex < step.title.length) {
+                    const timeoutId = window.setTimeout(tick, 50)
+                    aboutTimeoutsRef.current.push(timeoutId)
+                    return
+                }
+
+                const subtitleTimeout = window.setTimeout(() => {
+                    setAboutSubtitleVisible(true)
+                }, 200)
+                const descriptionTimeout = window.setTimeout(() => {
+                    setAboutDescriptionVisible(true)
+                }, 400)
+                aboutTimeoutsRef.current.push(subtitleTimeout)
+                aboutTimeoutsRef.current.push(descriptionTimeout)
+            }
+
+            if (!step.title) {
+                setAboutSubtitleVisible(true)
+                setAboutDescriptionVisible(true)
+                return
+            }
+
+            const timeoutId = window.setTimeout(tick, 50)
+            aboutTimeoutsRef.current.push(timeoutId)
         }
-    }, [aboutSteps.length])
+
+        const nextTextOrder = shuffleArray(aboutSteps.map((_, index) => index))
+        const nextBgOrder = shuffleArray(aboutImages.map((_, index) => index))
+
+        aboutTextOrderRef.current = nextTextOrder
+        aboutBgOrderRef.current = nextBgOrder
+        aboutTextPointerRef.current = 0
+        aboutBgPointerRef.current = 0
+
+        setAboutBgIndex(nextBgOrder[0] ?? 0)
+        startTypingTitle(nextTextOrder[0] ?? 0)
+
+        aboutTextIntervalRef.current = window.setInterval(() => {
+            let nextPointer = (aboutTextPointerRef.current + 1) % Math.max(1, aboutTextOrderRef.current.length)
+            if (nextPointer === 0) {
+                aboutTextOrderRef.current = shuffleArray(aboutSteps.map((_, index) => index))
+            }
+            aboutTextPointerRef.current = nextPointer
+            const stepIndex = aboutTextOrderRef.current[nextPointer] ?? 0
+            startTypingTitle(stepIndex)
+        }, 6000)
+
+        aboutBgIntervalRef.current = window.setInterval(() => {
+            let nextPointer = (aboutBgPointerRef.current + 1) % Math.max(1, aboutBgOrderRef.current.length)
+            if (nextPointer === 0) {
+                aboutBgOrderRef.current = shuffleArray(aboutImages.map((_, index) => index))
+            }
+            aboutBgPointerRef.current = nextPointer
+            setAboutBgIndex(aboutBgOrderRef.current[nextPointer] ?? 0)
+        }, 4000)
+
+        return () => {
+            clearAboutAnimation()
+        }
+    }, [activeSectionIndex, aboutImages, aboutSteps])
 
     useEffect(() => {
-        const title = aboutSteps[aboutStep]?.title ?? ''
-        if (!title) {
-            setTypedAboutTitle('')
-            return
+        if (activeSectionIndex === 3 && calendarScrollRef.current) {
+            calendarScrollRef.current.scrollTop = 0
         }
-        setTypedAboutTitle('')
-        let i = 0
-        const timer = setInterval(() => {
-            i += 1
-            setTypedAboutTitle(title.slice(0, i))
-            if (i >= title.length) {
-                clearInterval(timer)
-            }
-        }, 50)
-        return () => clearInterval(timer)
-    }, [aboutStep, aboutSteps])
+    }, [activeSectionIndex])
+
+    useEffect(() => {
+        setPlayerDuration(0)
+        setPlayerPosition(0)
+        setWidgetReady(false)
+    }, [activeTrack?.id])
 
     useEffect(() => {
         const cleanup = () => {
@@ -261,25 +574,37 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
         let wheelTimeout = null
 
         const goToSection = (index, animate = true) => {
-            if (index < 0 || index >= sectionIds.length || isScrolling) {
+            const currentIndex = activeSectionIndexRef.current
+
+            if (index < 0 || index >= sectionIds.length || isScrollingRef.current || index === currentIndex) {
                 return
             }
             if (animate) {
+                isScrollingRef.current = true
                 setIsScrolling(true)
-                window.setTimeout(() => setIsScrolling(false), 700)
+                window.setTimeout(() => {
+                    isScrollingRef.current = false
+                    setIsScrolling(false)
+                }, 700)
             }
             setActiveSectionIndex(index)
+            activeSectionIndexRef.current = index
             window.history.replaceState(null, '', `#${sectionIds[index]}`)
         }
 
-        const moveDown = () => goToSection(activeSectionIndex + 1)
-        const moveUp = () => goToSection(activeSectionIndex - 1)
+        const moveDown = () => goToSection(activeSectionIndexRef.current + 1)
+        const moveUp = () => goToSection(activeSectionIndexRef.current - 1)
 
         const onWheel = (e) => {
             e.preventDefault()
-            if (isScrolling) {
+            if (isScrollingRef.current) {
                 return
             }
+
+            if (scrollCurrentSectionInternally(e.deltaY > 0 ? 1 : -1, 120)) {
+                return
+            }
+
             if (wheelTimeout) {
                 clearTimeout(wheelTimeout)
             }
@@ -300,6 +625,9 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
             const touchEndY = e.changedTouches[0].clientY
             const delta = touchStartY - touchEndY
             if (Math.abs(delta) > 50) {
+                if (scrollCurrentSectionInternally(delta > 0 ? 1 : -1, 180)) {
+                    return
+                }
                 if (delta > 0) {
                     moveDown()
                 } else {
@@ -309,15 +637,21 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
         }
 
         const onKeyDown = (e) => {
-            if (isScrolling) {
+            if (isScrollingRef.current) {
                 return
             }
             if (['ArrowDown', 'PageDown', ' '].includes(e.key)) {
                 e.preventDefault()
+                if (scrollCurrentSectionInternally(1, 180)) {
+                    return
+                }
                 moveDown()
             }
             if (['ArrowUp', 'PageUp'].includes(e.key)) {
                 e.preventDefault()
+                if (scrollCurrentSectionInternally(-1, 180)) {
+                    return
+                }
                 moveUp()
             }
             if (e.key === 'Home') {
@@ -331,10 +665,11 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
         }
 
         const onHashLoad = () => {
-            const hash = window.location.hash.replace('#', '')
+            const hash = window.location.hash.replace('#', '').split('/')[0]
             const idx = sectionIds.indexOf(hash)
             if (idx >= 0) {
                 setActiveSectionIndex(idx)
+                activeSectionIndexRef.current = idx
             }
         }
 
@@ -361,10 +696,52 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
 
     const goTo = (id) => {
         const idx = sectionIds.indexOf(id)
-        if (idx >= 0) {
-            setActiveSectionIndex(idx)
-            window.history.replaceState(null, '', `#${id}`)
+        if (idx < 0) {
+            return
         }
+
+        const currentIndex = activeSectionIndexRef.current
+        const distance = Math.abs(idx - currentIndex)
+
+        const goDirect = (nextIndex) => {
+            setActiveSectionIndex(nextIndex)
+            activeSectionIndexRef.current = nextIndex
+            window.history.replaceState(null, '', `#${sectionIds[nextIndex]}`)
+            if (sectionIds[nextIndex] === 'calendar' && calendarScrollRef.current) {
+                calendarScrollRef.current.scrollTop = 0
+            }
+        }
+
+        if (distance <= 1) {
+            goDirect(idx)
+            return
+        }
+
+        clearSequentialNavTimeouts()
+        const direction = idx > currentIndex ? 1 : -1
+
+        let step = currentIndex
+        const moveNext = () => {
+            if (step === idx) {
+                return
+            }
+
+            step += direction
+            goDirect(step)
+
+            if (step !== idx) {
+                const timeoutId = window.setTimeout(moveNext, 800)
+                sequentialNavTimeoutsRef.current.push(timeoutId)
+            }
+        }
+
+        moveNext()
+    }
+    const handleScrollIndicator = () => {
+        if (scrollCurrentSectionInternally(1, Math.max(180, Math.round(window.innerHeight * 0.85)))) {
+            return
+        }
+        goTo(sectionIds[Math.min(sectionIds.length - 1, activeSectionIndex + 1)])
     }
 
     const maxPhotoIndex = Math.max(0, photos.length - mediaItemsPerView)
@@ -372,9 +749,38 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
     const maxMusicOffset = Math.max(0, tracks.length - musicItemsPerView)
     const musicOffset = Math.min(maxMusicOffset, Math.max(0, currentTrack - Math.floor(musicItemsPerView / 2)))
 
-    const contactWordsA = ['TechHouse', 'House', 'Hits', 'Contact', 'BearWeek', 'SitgesPride', 'Contacto', 'Contatto', 'Kontakt', 'Contacte']
-    const contactWordsB = ['Electronic', 'Dance', 'Music', 'Festival', 'Party', 'Contacter', 'Kontakti', 'Liên-hệ', 'Επαφή', 'Контакт']
-    const contactWordsC = ['RadioChi', 'Beats', 'Vibes', 'Sound', 'Waves', 'संपर्क', 'اتصال', 'Yhteystiedot', 'Kapcsolat', 'Kontak']
+    const contactWordsA = ['TechHouse', 'House', 'Hits', 'Contact', 'BearWeek', 'SitgesPride', 'TechHouse', 'Contacto', 'House', 'Hits', 'BearWeek', 'Contatto', 'SitgesPride', 'TechHouse', 'House', 'Kontakt', 'Hits', 'BearWeek', 'SitgesPride', 'Contact', 'TechHouse', 'House', 'Hits', 'Contacte', 'BearWeek', 'SitgesPride', 'TechHouse', 'Contact', 'House', 'Hits', 'BearWeek', 'Contacto', 'SitgesPride', 'TechHouse', 'House', 'Contatto', 'Hits', 'BearWeek', 'SitgesPride', 'TechHouse', 'Kontakt', 'House', 'Hits', 'Contact', 'BearWeek', 'SitgesPride', 'TechHouse', 'Contacto', 'House', 'Hits', 'BearWeek', 'Contatto', 'SitgesPride', 'TechHouse', 'House', 'Contacte', 'Hits', 'BearWeek', 'SitgesPride', 'TechHouse', 'Contact', 'House', 'Hits', 'BearWeek', 'Contacto', 'SitgesPride', 'TechHouse', 'House', 'Contatto', 'Hits', 'BearWeek', 'SitgesPride', 'TechHouse', 'Kontakt', 'House', 'Hits', 'Contact']
+    const contactWordsB = ['Electronic', 'Dance', 'Music', 'Contacter', 'Festival', 'Party', 'Electronic', 'Kontakti', 'Dance', 'Music', 'Festival', 'Liên-hệ', 'Party', 'Electronic', 'Dance', 'Επαφή', 'Music', 'Festival', 'Party', 'Контакт', 'Electronic', 'Dance', 'Music', '連絡', 'Festival', 'Party', 'Electronic', 'Contacter', 'Dance', 'Music', 'Festival', 'Kontakti', 'Party', 'Electronic', 'Dance', 'Liên-hệ', 'Music', 'Festival', 'Party', 'Electronic', 'Επαφή', 'Dance', 'Music', 'Festival', 'Контакт', 'Party', 'Electronic', 'Dance', 'Music', '連絡', 'Festival', 'Party', 'Electronic', 'Contacter', 'Dance', 'Music', 'Festival', 'Kontakti', 'Party', 'Electronic', 'Dance', 'Liên-hệ', 'Music', 'Festival', 'Party', 'Electronic', 'Επαφή', 'Dance', 'Music', 'Festival', 'Контакт', 'Party', 'Electronic', 'Dance', 'Music', '連絡', 'Festival', 'Party', 'Electronic', 'Contacter']
+    const contactWordsC = ['RadioChi', 'Beats', 'Vibes', 'संपर्क', 'Sound', 'Waves', 'RadioChi', 'اتصال', 'Beats', 'Vibes', 'Sound', 'Yhteystiedot', 'Waves', 'RadioChi', 'Beats', 'Kontakt', 'Vibes', 'Sound', 'Waves', 'Kapcsolat', 'RadioChi', 'Beats', 'Vibes', 'Kontak', 'Sound', 'Waves', 'RadioChi', 'संपर्क', 'Beats', 'Vibes', 'Sound', 'اتصال', 'Waves', 'RadioChi', 'Beats', 'Yhteystiedot', 'Vibes', 'Sound', 'Waves', 'RadioChi', 'Kontakt', 'Beats', 'Vibes', 'Sound', 'Kapcsolat', 'Waves', 'RadioChi', 'Beats', 'Vibes', 'Kontak', 'Sound', 'Waves', 'RadioChi', 'संपर्क', 'Beats', 'Vibes', 'Sound', 'اتصال', 'Waves', 'RadioChi', 'Beats', 'Yhteystiedot', 'Vibes', 'Sound', 'Waves', 'RadioChi', 'Kontakt', 'Beats', 'Vibes', 'Sound', 'Kapcsolat', 'Waves', 'RadioChi', 'Beats', 'Vibes', 'Kontak', 'Sound', 'Waves', 'RadioChi', 'संपर्क']
+    const scrollCurrentSectionInternally = (direction, amount = 120) => {
+        const container = activeSectionIndex === 3 ? calendarScrollRef.current : null
+
+        if (!container) {
+            return false
+        }
+
+        const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
+
+        if (direction > 0 && container.scrollTop < maxScrollTop - 4) {
+            container.scrollTop = Math.min(maxScrollTop, container.scrollTop + amount)
+            return true
+        }
+
+        if (direction < 0 && container.scrollTop > 4) {
+            container.scrollTop = Math.max(0, container.scrollTop - amount)
+            return true
+        }
+
+        return false
+    }
+    const getSectionStyle = (index) => {
+        return {
+            transform: index < activeSectionIndex ? `translateY(-${(activeSectionIndex - index) * 100}vh)` : 'translateY(0vh)',
+            pointerEvents: 'auto',
+            opacity: 1,
+            visibility: 'visible',
+        }
+    }
 
     useEffect(() => {
         if (!policyModal) {
@@ -404,11 +810,14 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
         <PublicLayout title={legacy.home?.name ?? 'RadioChi'} locale={locale} locales={locales} currentPath={currentPath} menu={legacy.header?.menu ?? {}} seo={seo} hideNav>
             <LegacyIntro
                 locale={locale}
+                locales={locales}
+                currentPath={currentPath}
                 intro={legacy.intro}
                 footer={legacy.footer}
                 onTogglePlay={() => setIsPlaying((v) => !v)}
                 onToggleMute={() => setIsMuted((v) => !v)}
                 isMuted={isMuted}
+                isPlaying={isPlaying}
             />
 
             <LegacyHeader
@@ -426,18 +835,32 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
 
             <div className="fullpage-container">
                 <div className="fullpage-wrapper">
-                    <section id="home" className={`legacy-section ${activeSectionIndex === 0 ? 'is-active' : ''}`} style={{ transform: `translateY(${activeSectionIndex > 0 ? -100 * activeSectionIndex : 0}vh)` }}>
+                    <section id="home" ref={(element) => { sectionRefs.current[0] = element }} className={`legacy-section ${activeSectionIndex === 0 ? 'is-active' : ''}`} style={getSectionStyle(0)}>
                         <div className="legacy-animated-bg" />
                         <div className="legacy-starshine-layer">
                             <LegacyStarshine />
                         </div>
-                        <div className="absolute inset-0 bg-black" />
                         {slides.map((slide, idx) => (
                             <div key={`${slide.title}-${idx}`} className={`legacy-home-slide ${idx === currentSlide ? 'active' : ''}`}>
                                 <div className="legacy-home-content">
-                                    <div className="legacy-home-heading">
-                                        <img src={slide.logo} alt={slide.title} className="legacy-home-logo" />
-                                        <h1>{slide.title}</h1>
+                                    <div className="legacy-home-content-inner">
+                                        {slide.logo && slide.logoPosition === 'left' ? (
+                                            <div className="legacy-home-heading">
+                                                <div className="legacy-home-logo-box">
+                                                    <img src={slide.logo} alt={`${slide.title} Logo`} className="legacy-home-logo left" />
+                                                </div>
+                                                <div className="legacy-home-title-box">
+                                                    <h1 className="legacy-home-title left">{slide.title}</h1>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {slide.logo && (
+                                                    <img src={slide.logo} alt={`${slide.title} Logo`} className="legacy-home-logo top" />
+                                                )}
+                                                <h1 className="legacy-home-title">{slide.title}</h1>
+                                            </>
+                                        )}
                                     </div>
                                     <h2>{slide.subtitle}</h2>
                                     <p>{slide.description}</p>
@@ -460,108 +883,222 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
                         </div>
                     </section>
 
-                    <section id="about" className={`legacy-section ${activeSectionIndex === 1 ? 'is-active' : ''}`} style={{ transform: `translateY(${activeSectionIndex > 1 ? -100 * (activeSectionIndex - 1) : 0}vh)` }}>
-                        {aboutSteps.map((step, idx) => (
-                            <div key={`bg-${step.id}`} className={`legacy-about-bg ${idx === aboutBgStep ? 'active' : ''}`} style={{ backgroundImage: `url(${step.image})` }} />
+                    <section id="about" ref={(element) => { sectionRefs.current[1] = element }} className={`legacy-section ${activeSectionIndex === 1 ? 'is-active' : ''}`} style={getSectionStyle(1)}>
+                        <div className="legacy-animated-bg" />
+                        {aboutImages.map((image, idx) => (
+                            <div
+                                key={`about-bg-${idx}`}
+                                className={`legacy-about-bg ${idx === aboutBgIndex ? 'active' : ''}`}
+                                style={{ backgroundImage: `url(${image})` }}
+                            />
                         ))}
-                        {aboutSteps[aboutStep] && (
-                            <div className="legacy-about-content">
-                                <h1>{typedAboutTitle}</h1>
-                                <h2>{aboutSteps[aboutStep].subtitle}</h2>
-                                <p>{aboutSteps[aboutStep].content}</p>
+                        {activeAboutStep && (
+                            <div className="legacy-about-copy-layer">
+                                <div className="legacy-about-content">
+                                    <h1 className="legacy-about-title">{typedAboutTitle}</h1>
+                                    <h2 className={`legacy-about-subtitle ${aboutSubtitleVisible ? 'is-visible' : ''}`}>{activeAboutStep.subtitle}</h2>
+                                    <p className={`legacy-about-description ${aboutDescriptionVisible ? 'is-visible' : ''}`}>{activeAboutStep.content}</p>
+                                </div>
                             </div>
                         )}
                     </section>
 
-                    <section id="music" className={`legacy-section ${activeSectionIndex === 2 ? 'is-active' : ''}`} style={{ transform: `translateY(${activeSectionIndex > 2 ? -100 * (activeSectionIndex - 2) : 0}vh)` }}>
+                    <section id="music" ref={(element) => { sectionRefs.current[2] = element }} className={`legacy-section ${activeSectionIndex === 2 ? 'is-active' : ''}`} style={getSectionStyle(2)}>
                         <div className="legacy-animated-bg" />
                         {activeTrack && (
                             <>
-                                <div className="legacy-music-image" style={{ backgroundImage: `url(${activeTrack.image})` }} />
+                                <div className="legacy-music-main-image-wrap">
+                                    <div className="legacy-music-main-image" style={{ backgroundImage: `url(${activeTrack.image})` }} />
+                                    <div className="legacy-music-main-image-overlay" />
+                                </div>
                                 <div className="legacy-music-content">
-                                    <h1>{activeTrack.heroTitle}</h1>
-                                    <h2>{activeTrack.subtitle}</h2>
-                                    <p>{activeTrack.description}</p>
-                                    <div className="legacy-soundcloud-wrap">
-                                        <div className="legacy-player-header">
-                                            <div>
-                                                <h3>{activeTrack.title}</h3>
-                                                <p>{activeTrack.subtitle}</p>
-                                            </div>
-                                            <div className="legacy-player-controls">
-                                                <button onClick={() => setCurrentTrack((prev) => (prev > 0 ? prev - 1 : tracks.length - 1))}>⏮</button>
-                                                <button onClick={() => setIsPlaying((v) => !v)}>{isPlaying ? '⏸' : '▶'}</button>
-                                                <button onClick={() => setCurrentTrack((prev) => (prev < tracks.length - 1 ? prev + 1 : 0))}>⏭</button>
-                                                <button onClick={() => setIsMuted((v) => !v)}>{isMuted ? '🔇' : '🔊'}</button>
-                                            </div>
+                                    <div className="legacy-music-stage">
+                                        <div className="legacy-music-copy">
+                                            <h1 className="legacy-music-title">{activeTrack.heroTitle}</h1>
+                                            <p className="legacy-music-description">{activeTrack.description}</p>
                                         </div>
-                                        <div className="legacy-player-progress" onClick={(e) => {
-                                            if (!soundcloudWidgetRef.current || playerDuration <= 0) return
-                                            const rect = e.currentTarget.getBoundingClientRect()
-                                            const ratio = (e.clientX - rect.left) / rect.width
-                                            const seekTo = Math.max(0, Math.min(playerDuration, ratio * playerDuration))
-                                            soundcloudWidgetRef.current.seekTo(seekTo)
-                                            setPlayerPosition(seekTo)
-                                        }}>
-                                            <div style={{ width: `${playerDuration > 0 ? (playerPosition / playerDuration) * 100 : 0}%` }} />
-                                        </div>
-                                        <iframe
-                                            ref={soundcloudRef}
-                                            key={activeTrack.id}
-                                            title={activeTrack.title}
-                                            src={activeTrack.soundcloudUrl}
-                                            className="legacy-soundcloud"
-                                            allow="autoplay"
-                                        />
-                                    </div>
-                                    <div className="legacy-track-carousel-wrap">
-                                        <button className="legacy-carousel-btn left" onClick={() => setCurrentTrack((prev) => Math.max(0, prev - 1))}>‹</button>
-                                        <div
-                                            className="legacy-track-carousel"
-                                            onTouchStart={(e) => setMusicTouchStartX(e.touches[0].clientX)}
-                                            onTouchEnd={(e) => {
-                                                const delta = musicTouchStartX - e.changedTouches[0].clientX
-                                                if (Math.abs(delta) < 50) return
-                                                if (delta > 0) {
-                                                    setCurrentTrack((prev) => Math.min(tracks.length - 1, prev + 1))
-                                                } else {
-                                                    setCurrentTrack((prev) => Math.max(0, prev - 1))
-                                                }
-                                            }}
-                                        >
-                                            <div className="legacy-track-cards" style={{ transform: `translateX(-${musicOffset * (100 / musicItemsPerView)}%)` }}>
-                                                {tracks.map((track, idx) => (
-                                                    <button key={track.id} className={`legacy-track-card ${idx === currentTrack ? 'active' : ''}`} style={{ flex: `0 0 calc(${100 / musicItemsPerView}% - 10px)` }} onClick={() => setCurrentTrack(idx)}>
-                                                        <img src={track['label-img']} alt={track.title} />
-                                                        <div>
-                                                            <h4>{track.title}</h4>
-                                                            <p>{track.subtitle}</p>
-                                                        </div>
+                                        <div className="legacy-music-player-card">
+                                            <div className="legacy-player-row desktop">
+                                                <div className="legacy-player-meta">
+                                                    <h3>{activeTrack.title}</h3>
+                                                    <p>{activeTrack.subtitle}</p>
+                                                </div>
+                                                <div className="legacy-player-controls">
+                                                    <button onClick={goPrevTrack} aria-label="Pista anterior">
+                                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                            <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
+                                                        </svg>
                                                     </button>
-                                                ))}
+                                                    <button onClick={() => setIsPlaying((v) => !v)} aria-label={isPlaying ? 'Pausar' : 'Reproducir'}>
+                                                        {isPlaying ? (
+                                                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                                <path d="M8 5v14l11-7z" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                    <button onClick={goNextTrack} aria-label="Pista siguiente">
+                                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                                <div className="legacy-player-side-actions">
+                                                    <span>{formatPlayerTime(playerPosition)}</span>
+                                                    <button onClick={() => setIsMuted((v) => !v)} aria-label={isMuted ? 'Activar sonido' : 'Silenciar'}>
+                                                        {isMuted ? (
+                                                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .88-.15 1.72-.43 2.5l1.51 1.51A8.92 8.92 0 0 0 21 12a8.94 8.94 0 0 0-3-6.71l-1.42 1.42A6.96 6.96 0 0 1 19 12zM4.27 3 3 4.27l4.73 4.73H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.45.94-2.31 1.21v2.06a8.94 8.94 0 0 0 3.76-1.76L19.73 21 21 19.73 12 10.73 4.27 3zM12 4 9.91 6.09 12 8.18V4z" />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05A4.98 4.98 0 0 0 16.5 12zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                    <button onClick={() => openTrackLink(activeTrack.soundcloudUrl)} aria-label="Abrir track en SoundCloud">
+                                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                            <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54Z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button onClick={() => openTrackLink('https://soundcloud.com/mrchi1')} aria-label="Seguir en SoundCloud">
+                                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button onClick={handleShareTrack} aria-label="Compartir track">
+                                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                            <path d="M18 16.08a3 3 0 1 0-2.83-4l-6.02-3.01a3 3 0 0 0 0-1.16l6.02-3.01a3 3 0 1 0-.89-1.79 3.1 3.1 0 0 0 .05.54L8.31 6.66a3 3 0 1 0 0 4.68l6.02 3.01a3.1 3.1 0 0 0-.05.54A3 3 0 1 0 18 16.08Z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="legacy-player-row mobile">
+                                                <div className="legacy-player-mobile-meta">
+                                                    <h3>{activeTrack.title}</h3>
+                                                    <p>{activeTrack.subtitle}</p>
+                                                    <span>{formatPlayerTime(playerPosition)}</span>
+                                                </div>
+                                                <div className="legacy-player-controls">
+                                                    <button onClick={goPrevTrack} aria-label="Pista anterior">
+                                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                            <path d="M6 6h2v12H6zm3.5 6 8.5 6V6z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button onClick={() => setIsPlaying((v) => !v)} aria-label={isPlaying ? 'Pausar' : 'Reproducir'}>
+                                                        {isPlaying ? (
+                                                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                                <path d="M8 5v14l11-7z" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                    <button onClick={goNextTrack} aria-label="Pista siguiente">
+                                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button onClick={() => setIsMuted((v) => !v)} aria-label={isMuted ? 'Activar sonido' : 'Silenciar'}>
+                                                        {isMuted ? (
+                                                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                                <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .88-.15 1.72-.43 2.5l1.51 1.51A8.92 8.92 0 0 0 21 12a8.94 8.94 0 0 0-3-6.71l-1.42 1.42A6.96 6.96 0 0 1 19 12zM4.27 3 3 4.27l4.73 4.73H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.45.94-2.31 1.21v2.06a8.94 8.94 0 0 0 3.76-1.76L19.73 21 21 19.73 12 10.73 4.27 3zM12 4 9.91 6.09 12 8.18V4z" />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05A4.98 4.98 0 0 0 16.5 12zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                                <div className="legacy-player-mobile-actions">
+                                                    <button onClick={() => openTrackLink(activeTrack.soundcloudUrl)} aria-label="Abrir track en SoundCloud">
+                                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                            <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54Z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button onClick={() => openTrackLink('https://soundcloud.com/mrchi1')} aria-label="Seguir en SoundCloud">
+                                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button onClick={handleShareTrack} aria-label="Compartir track">
+                                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                                            <path d="M18 16.08a3 3 0 1 0-2.83-4l-6.02-3.01a3 3 0 0 0 0-1.16l6.02-3.01a3 3 0 1 0-.89-1.79 3.1 3.1 0 0 0 .05.54L8.31 6.66a3 3 0 1 0 0 4.68l6.02 3.01a3.1 3.1 0 0 0-.05.54A3 3 0 1 0 18 16.08Z" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="legacy-player-progress" onClick={(e) => {
+                                                if (!soundcloudWidgetRef.current || playerDuration <= 0) return
+                                                const rect = e.currentTarget.getBoundingClientRect()
+                                                const ratio = (e.clientX - rect.left) / rect.width
+                                                const seekTo = Math.max(0, Math.min(playerDuration, ratio * playerDuration))
+                                                soundcloudWidgetRef.current.seekTo(seekTo)
+                                                setPlayerPosition(seekTo)
+                                            }}>
+                                                <div style={{ width: `${playerDuration > 0 ? (playerPosition / playerDuration) * 100 : 0}%` }} />
                                             </div>
                                         </div>
-                                        <button className="legacy-carousel-btn right" onClick={() => setCurrentTrack((prev) => Math.min(tracks.length - 1, prev + 1))}>›</button>
-                                    </div>
-                                    <div className="legacy-track-links">
-                                        <a href={activeTrack.soundcloudUrl} target="_blank" rel="noreferrer" className="legacy-btn">
-                                            SoundCloud
-                                        </a>
-                                        <a href="https://soundcloud.com/mrchi1" target="_blank" rel="noreferrer" className="legacy-btn">
-                                            Follow
-                                        </a>
+                                        <div className="legacy-track-carousel-wrap">
+                                            <button className="legacy-carousel-btn left" onClick={goPrevTrack} aria-label="Mover carrusel a la izquierda">‹</button>
+                                            <div
+                                                className="legacy-track-carousel"
+                                                onTouchStart={(e) => setMusicTouchStartX(e.touches[0].clientX)}
+                                                onTouchEnd={(e) => {
+                                                    const delta = musicTouchStartX - e.changedTouches[0].clientX
+                                                    if (Math.abs(delta) < 50) return
+                                                    if (delta > 0) {
+                                                        goNextTrack()
+                                                    } else {
+                                                        goPrevTrack()
+                                                    }
+                                                }}
+                                            >
+                                                <div className="legacy-track-cards" style={{ transform: `translateX(-${musicOffset * (100 / musicItemsPerView)}%)` }}>
+                                                    {tracks.map((track, idx) => (
+                                                        <button key={track.id} className={`legacy-track-card ${idx === currentTrack ? 'active' : ''}`} style={{ flex: `0 0 calc(${100 / musicItemsPerView}% - 10px)` }} onClick={() => setCurrentTrack(idx)}>
+                                                            <div className="legacy-track-card-shell">
+                                                                <img src={track['label-img']} alt={track.title} />
+                                                                <div>
+                                                                    <h4>{track.title}</h4>
+                                                                    <p>{track.subtitle}</p>
+                                                                </div>
+                                                            </div>
+                                                            <span className="legacy-track-indicator" />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <button className="legacy-carousel-btn right" onClick={goNextTrack} aria-label="Mover carrusel a la derecha">›</button>
+                                        </div>
+                                        <div className="legacy-soundcloud-hidden">
+                                            <iframe
+                                                ref={soundcloudRef}
+                                                key={activeTrack.id}
+                                                title={activeTrack.title}
+                                                src={activeTrack.soundcloudUrl}
+                                                className="legacy-soundcloud"
+                                                allow="autoplay"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </>
                         )}
                     </section>
 
-                    <section id="calendar" className={`legacy-section ${activeSectionIndex === 3 ? 'is-active' : ''}`} style={{ transform: `translateY(${activeSectionIndex > 3 ? -100 * (activeSectionIndex - 3) : 0}vh)` }}>
+                    <section id="calendar" ref={(element) => { sectionRefs.current[3] = element }} className={`legacy-section ${activeSectionIndex === 3 ? 'is-active' : ''}`} style={getSectionStyle(3)}>
                         <div className="legacy-animated-bg" />
                         <div className="legacy-events-bg" />
                         <div className="legacy-events-content">
-                            <h2>{calendarData.translations?.title ?? legacy.header?.menu?.calendarEvents}</h2>
-                            <div className="legacy-events-list">
+                            <h2 className="legacy-events-title">{calendarData.translations?.title ?? legacy.header?.menu?.calendarEvents}</h2>
+                            <div ref={calendarScrollRef} className="legacy-events-list">
                                 {sortedEvents.map((event) => (
                                     <article key={event.id} className="legacy-event-card">
                                         <img src={event.logo} alt={event.title} />
@@ -579,99 +1116,113 @@ export default function Home({ locale, locales, currentPath, events, seo }) {
                         </div>
                     </section>
 
-                    <section id="media" className={`legacy-section ${activeSectionIndex === 4 ? 'is-active' : ''}`} style={{ transform: `translateY(${activeSectionIndex > 4 ? -100 * (activeSectionIndex - 4) : 0}vh)` }}>
+                    <section id="media" ref={(element) => { sectionRefs.current[4] = element }} className={`legacy-section ${activeSectionIndex === 4 ? 'is-active' : ''}`} style={getSectionStyle(4)}>
                         <div className="legacy-animated-bg" />
                         <div className="legacy-media-content">
-                            <h2>{legacy.media?.title ?? 'MEDIA'}</h2>
-                            <div className="legacy-media-carousel-nav">
-                                <button className="legacy-nav-btn" onClick={() => setCurrentPhotoIndex((v) => Math.max(0, v - 1))}>‹</button>
-                                <button className="legacy-nav-btn" onClick={() => setCurrentPhotoIndex((v) => Math.min(maxPhotoIndex, v + 1))}>›</button>
-                            </div>
-                            <div className="legacy-media-grid" style={{ transform: `translateX(-${currentPhotoIndex * (100 / mediaItemsPerView)}%)` }}>
-                                {photos.map((photo, idx) => (
-                                    <button key={photo.src} className="legacy-media-photo" style={{ flex: `0 0 calc(${100 / mediaItemsPerView}% - 8px)` }} onClick={() => setLightbox({ type: 'image', index: idx, src: photo.src, title: photo.caption, subtitle: photo.date })}>
-                                        <img src={photo.src} alt={photo.alt} />
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="legacy-media-carousel-nav">
-                                <button className="legacy-nav-btn" onClick={() => setCurrentVideoIndex((v) => Math.max(0, v - 1))}>‹</button>
-                                <button className="legacy-nav-btn" onClick={() => setCurrentVideoIndex((v) => Math.min(maxVideoIndex, v + 1))}>›</button>
-                            </div>
-                            <div className="legacy-media-videos">
-                                {videos.slice(currentVideoIndex, currentVideoIndex + mediaItemsPerView).map((video) => (
-                                    <button key={video.id} className="legacy-media-video" style={{ flex: `0 0 calc(${100 / mediaItemsPerView}% - 8px)` }} onClick={() => setLightbox({ type: 'video', src: `https://www.youtube.com/embed/${video.id}?autoplay=1`, title: video.title, subtitle: video.duration, link: `https://www.youtube.com/watch?v=${video.id}` })}>
-                                        <img src={video.thumbnail} alt={video.title} />
-                                        <span>{video.title}</span>
-                                    </button>
-                                ))}
+                            <h2 className="legacy-media-title">{legacy.media?.title ?? 'MEDIA'}</h2>
+                            <div className="legacy-media-stack">
+                                <MediaCarouselRow
+                                    items={photos}
+                                    itemType="photo"
+                                    currentIndex={currentPhotoIndex}
+                                    setCurrentIndex={setCurrentPhotoIndex}
+                                    maxIndex={maxPhotoIndex}
+                                    perView={mediaItemsPerView}
+                                    label={legacy.media?.photoLabel ?? 'Foto'}
+                                    onOpen={openPhotoLightbox}
+                                />
+                                <MediaCarouselRow
+                                    items={videos}
+                                    itemType="video"
+                                    currentIndex={currentVideoIndex}
+                                    setCurrentIndex={setCurrentVideoIndex}
+                                    maxIndex={maxVideoIndex}
+                                    perView={mediaItemsPerView}
+                                    label={legacy.media?.videoLabel ?? 'Video'}
+                                    onOpen={openVideoLightbox}
+                                />
+                                <div className="legacy-media-cta-wrap">
+                                    <a
+                                        href="https://www.youtube.com/channel/TUCANALAQUI"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="legacy-media-cta"
+                                    >
+                                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
+                                        </svg>
+                                        <span>{legacy.media?.viewMoreOnYoutube ?? 'Ver mas en YouTube'}</span>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </section>
 
-                    <section id="contact" className={`legacy-section ${activeSectionIndex === 5 ? 'is-active' : ''}`} style={{ transform: `translateY(${activeSectionIndex > 5 ? -100 * (activeSectionIndex - 5) : 0}vh)` }}>
+                    <section id="contact" ref={(element) => { sectionRefs.current[5] = element }} className={`legacy-section ${activeSectionIndex === 5 ? 'is-active' : ''}`} style={getSectionStyle(5)}>
                         <div className="legacy-animated-bg" />
                         <div className="legacy-contact-bg" />
                         <div className="legacy-contact-content">
-                            <h2>{legacy.contact?.title ?? 'CONTACT'}</h2>
                             <div className="legacy-social">
                                 <a href="https://www.facebook.com/fernandocardonatoro" target="_blank" rel="noreferrer" aria-label="Facebook">
-                                    <FaFacebookF />
+                                    <FaFacebookSquare />
                                 </a>
                                 <a href="https://www.instagram.com/mrchiloveyou/" target="_blank" rel="noreferrer" aria-label="Instagram">
-                                    <FaInstagram />
+                                    <AiFillInstagram />
                                 </a>
-                                <a href="https://soundcloud.com/mrchi1" target="_blank" rel="noreferrer" aria-label="SoundCloud">
-                                    <FaSoundcloud />
+                                <a href="#" target="_blank" rel="noreferrer" aria-label="SoundCloud">
+                                    <ImSoundcloud2 />
                                 </a>
-                                <a href="https://www.youtube.com/@cardonatoro" target="_blank" rel="noreferrer" aria-label="YouTube">
-                                    <FaYoutube />
+                                <a href="#" target="_blank" rel="noreferrer" aria-label="Spotify">
+                                    <FaSpotify />
                                 </a>
                             </div>
                             <div className="legacy-sponsors">
-                                {[...sponsorLogos, ...sponsorLogos].map((logo, idx) => (
-                                    <a key={`${logo.name}-${idx}`} href={logo.url} target="_blank" rel="noreferrer">
-                                        <img src={logo.imgSrc} alt={logo.name} />
-                                    </a>
-                                ))}
+                                <div className="legacy-sponsors-box">
+                                    <div className="legacy-sponsors-track">
+                                        {[...sponsorLogos, ...sponsorLogos].map((logo, idx) => (
+                                            <a key={`${logo.name}-${idx}`} href={logo.url} target="_blank" rel="noreferrer">
+                                                <img src={logo.imgSrc} alt={logo.name} />
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                             <div className="legacy-contact-marquee">
-                                <div className="legacy-marquee a">{[...contactWordsA, ...contactWordsA, ...contactWordsA].map((word, idx) => <span key={`a-${idx}`}>{word}</span>)}</div>
-                                <div className="legacy-marquee b">{[...contactWordsB, ...contactWordsB, ...contactWordsB].map((word, idx) => <span key={`b-${idx}`}>{word}</span>)}</div>
-                                <div className="legacy-marquee c">{[...contactWordsC, ...contactWordsC, ...contactWordsC].map((word, idx) => <span key={`c-${idx}`}>{word}</span>)}</div>
+                                <ContactMarqueeRow rowClass="a" words={contactWordsA} />
+                                <ContactMarqueeRow rowClass="b" words={contactWordsB} />
+                                <ContactMarqueeRow rowClass="c" words={contactWordsC} />
                             </div>
                         </div>
                     </section>
                 </div>
             </div>
 
-            <footer className="pointer-events-auto fixed bottom-0 left-0 right-0 z-40 hidden h-6 items-center px-2 text-white lg:grid lg:grid-cols-[220px_1fr_120px]">
-                <div className="pointer-events-none absolute inset-0 bg-transparent" />
-                <div className="relative flex flex-col leading-[1]">
-                    <span className="text-[9px] font-bold">{legacy.footer?.copyright ?? '© 2025 Copyright.'}</span>
-                    <span className="text-[10px] font-bold">{legacy.footer?.rights ?? 'Domo Digital Studio'}</span>
+            <footer className="legacy-fixed-footer pointer-events-auto hidden lg:grid">
+                <div className="legacy-fixed-footer-left">
+                    <span>{legacy.footer?.copyright ?? '© 2025 Copyright.'}</span>
+                    <span>{legacy.footer?.rights ?? 'Domo Digital Studio'}</span>
                 </div>
-                <div className="relative flex items-center justify-center gap-4">
+                <div className="legacy-fixed-footer-center">
                     <button onClick={() => setPolicyModal({ title: policyContent.terms?.title, content: policyContent.terms?.content })}>
-                        <span className="text-[10px] font-medium transition-colors duration-150 hover:text-gray-300">{policyContent.terms_button ?? 'Términos y Condiciones'}</span>
+                        {policyContent.terms_button ?? 'Términos y Condiciones'}
                     </button>
                     <button onClick={() => setPolicyModal({ title: policyContent.privacy?.title, content: policyContent.privacy?.content })}>
-                        <span className="text-[10px] font-medium transition-colors duration-150 hover:text-gray-300">{policyContent.privacy_button ?? 'Política de Privacidad'}</span>
+                        {policyContent.privacy_button ?? 'Política de Privacidad'}
                     </button>
                     <button onClick={() => setPolicyModal({ title: policyContent.cookies?.title, content: policyContent.cookies?.content })}>
-                        <span className="text-[10px] font-medium transition-colors duration-150 hover:text-gray-300">{policyContent.cookies_button ?? 'Política de Cookies'}</span>
+                        {policyContent.cookies_button ?? 'Política de Cookies'}
                     </button>
                 </div>
-                <div className="relative flex items-center justify-end gap-1.5 text-[10px]">
-                    <a className="opacity-95 transition-opacity duration-150 hover:opacity-70" href="https://www.facebook.com/fernandocardonatoro" target="_blank" rel="noreferrer" aria-label="Facebook"><FaFacebookF /></a>
-                    <a className="opacity-95 transition-opacity duration-150 hover:opacity-70" href="https://www.instagram.com/mrchiloveyou/" target="_blank" rel="noreferrer" aria-label="Instagram"><FaInstagram /></a>
-                    <a className="opacity-95 transition-opacity duration-150 hover:opacity-70" href="https://soundcloud.com/mrchi1" target="_blank" rel="noreferrer" aria-label="SoundCloud"><FaSoundcloud /></a>
-                    <a className="opacity-95 transition-opacity duration-150 hover:opacity-70" href="https://www.youtube.com/@cardonatoro" target="_blank" rel="noreferrer" aria-label="YouTube"><FaYoutube /></a>
+                <div className="legacy-fixed-footer-right">
+                    <a href="https://www.facebook.com/fernandocardonatoro" target="_blank" rel="noreferrer" aria-label="Facebook"><FaFacebookSquare /></a>
+                    <a href="https://www.instagram.com/mrchiloveyou/" target="_blank" rel="noreferrer" aria-label="Instagram"><AiFillInstagram /></a>
+                    <a href="#" target="_blank" rel="noreferrer" aria-label="SoundCloud"><ImSoundcloud2 /></a>
+                    <a href="#" target="_blank" rel="noreferrer" aria-label="Spotify"><FaSpotify /></a>
                 </div>
             </footer>
 
             {activeSectionIndex < sectionIds.length - 1 && (
-                <button className="legacy-scroll-indicator" onClick={() => goTo(sectionIds[Math.min(sectionIds.length - 1, activeSectionIndex + 1)])}>
+                <button className="legacy-scroll-indicator" onClick={handleScrollIndicator}>
                     <span className="legacy-scroll-dot" />
                 </button>
             )}
