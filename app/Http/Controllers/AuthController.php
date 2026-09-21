@@ -47,6 +47,8 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
+        $request->user()?->syncLegacyRoleToSpatieRole();
+
         return redirect()->intended('/dashboard');
     }
 

@@ -2,9 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureSuperAdmin
@@ -12,11 +12,8 @@ class EnsureSuperAdmin
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        $isSuperAdminByEmail = $user && $user->email === 'fernandocardonatoro@gmail.com';
-        $hasRoleColumn = Schema::hasColumn('users', 'role');
-        $isSuperAdminByRole = $hasRoleColumn && $user && $user->role === 'SuperAdmin';
 
-        if (! $user || (! $isSuperAdminByRole && ! $isSuperAdminByEmail)) {
+        if (! ($user instanceof User) || ! $user->isSuperAdmin()) {
             abort(403);
         }
 

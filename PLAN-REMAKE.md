@@ -335,13 +335,13 @@ Modelo recomendado:
 
 ## Fase 2. Alineacion de stack a Laravel 13
 
-**Estado:** SIGUIENTE FASE SEGURA
+**Estado:** COMPLETADA
 
 ### Objetivo
 Cumplir exactamente el stack pedido.
 
 ### Paso 2.1
-Actualizar el stack PHP/Laravel y validar compatibilidad real de:
+~~Actualizar el stack PHP/Laravel y validar compatibilidad real de:~~
 - Laravel 13
 - Inertia
 - React
@@ -351,7 +351,7 @@ Actualizar el stack PHP/Laravel y validar compatibilidad real de:
 - paquetes existentes
 
 ### Paso 2.2
-Regenerar lock y corregir incompatibilidades de:
+~~Regenerar lock y corregir incompatibilidades de:~~
 - middleware,
 - auth,
 - bootstrap,
@@ -359,43 +359,69 @@ Regenerar lock y corregir incompatibilidades de:
 - providers.
 
 ### Paso 2.3
-Verificacion de salida:
+~~Verificacion de salida:~~
 - `php artisan about`
 - `php artisan test`
 - rutas publicas y privadas sanas
 
 ## Fase 3. Filament base + Spatie
 
+**Estado:** PRACTICAMENTE CERRADA
+**Avance de fase:** 99%
+**Avance global del plan:** 50%
+
 ### Objetivo
 Sustituir el admin custom parcial por CMS visual mantenible y seguro.
 
 ### Paso 3.1
-Instalar Filament v5 compatible con Laravel 13.
+~~Instalar Filament v5 compatible con Laravel 13.~~
 
 ### Paso 3.2
-Instalar y configurar:
-- `spatie/laravel-permission`
-- `spatie/laravel-medialibrary`
-- `spatie/laravel-translatable`
-- `spatie/laravel-activitylog`
+~~Instalar y configurar:~~
+- ~~`spatie/laravel-permission`~~
+- ~~`spatie/laravel-medialibrary`~~
+- ~~`spatie/laravel-translatable`~~
+- ~~`spatie/laravel-activitylog`~~
 
 ### Paso 3.3
-Crear panel admin base:
-- login,
-- dashboard,
-- navegacion,
-- grupos editoriales,
-- control por roles.
+~~Crear panel admin base:~~
+- ~~login,~~
+- ~~dashboard,~~
+- ~~navegacion,~~
+- ~~grupos editoriales,~~
+- ~~control por roles.~~
 
 ### Paso 3.4
-Definir roles base:
-- `super_admin`
-- `editor`
-- `marketing`
-- `readonly`
+~~Definir roles base:~~
+- ~~`super_admin`~~
+- ~~`editor`~~
+- ~~`marketing`~~
+- ~~`readonly`~~
 
 ### Paso 3.5
 Migrar gradualmente la operativa del dashboard actual a recursos Filament.
+
+Avance validado en esta iteracion:
+- ~~Recurso Filament base para `Event`.~~
+- ~~Recurso Filament base para `Page`.~~
+- ~~Recurso Filament base para `MediaAsset`.~~
+- ~~Relation manager Filament para `PageTranslation` dentro de `Page`.~~
+- ~~Recurso Filament base para `SeoMeta`.~~
+- ~~Recurso Filament base para `NewsletterSubscriber`.~~
+- ~~Recurso Filament base para `NewsletterCampaign`.~~
+- ~~Auditoria final de convivencia con el admin legacy.~~
+
+Inventario real tras auditoria:
+- `backoffice/*` ya cubre dashboard Filament y CRUD de `Event`, `Page`, `MediaAsset`, `SeoMeta`, `NewsletterSubscriber` y `NewsletterCampaign`.
+- `/dashboard` sigue vivo como dashboard Inertia legacy protegido por `auth` + `EnsureSuperAdmin`.
+- `/dashboard/api/*` sigue vivo como API legacy autenticada para CRUD editorial/marketing y logs de newsletter.
+- `/admin/*` sigue vivo como duplicado legacy por `auth.basic` de la misma API editorial/marketing.
+
+Decision segura de convivencia:
+- Mantener temporalmente `backoffice/*` como superficie principal del CMS.
+- Mantener temporalmente `/dashboard` y `/dashboard/api/*` mientras no se migren o retiren los puntos legacy residuales, especialmente `newsletter-logs` y cualquier consumidor interno del dashboard antiguo.
+- Marcar `/admin/*` como primer candidato de apagado, porque hoy es el bloque mas redundante: duplica el CRUD ya cubierto por `backoffice/*` y por `/dashboard/api/*`.
+- No apagar todavia `/dashboard/api/*` hasta decidir si `newsletter-logs` se migra a Filament o se retira por completo.
 
 ## Fase 4. Remodelado editorial y de datos
 
