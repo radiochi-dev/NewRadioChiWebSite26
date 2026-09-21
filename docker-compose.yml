@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: development
     container_name: newradiochiwebsite26_app
     working_dir: /var/www/html
     volumes:
