@@ -6,7 +6,7 @@
 
 - **Estado del backoffice React/Inertia**: `CERRADO Y VALIDADO`
 - **Siguiente fase segura activa**: `Activacion controlada GA4`
-- **Avance de la fase actual**: `75%`
+- **Avance de la fase actual**: `85%`
 
 ### Fase post-plan. Analitica publica GA4
 
@@ -29,6 +29,9 @@
 - [x] ~~Añadir compuerta tecnica para que `GA4_ENABLED` + `GA4_MEASUREMENT_ID` no carguen el script sin `GA4_LEGAL_APPROVED=true`.~~
 - [x] ~~Mantener el soporte de `settings` solo como fuente de configuracion complementaria, no como sustituto de la aprobacion legal de entorno.~~
 - [x] ~~Validar en navegador real local que, con la compuerta cerrada, no se inyecta `gtag.js` ni aparecen requests a Google Analytics/Tag Manager.~~
+- [x] ~~Alinear dinamicamente el contenido legal de privacidad/cookies/terminos con el estado real del tracking para evitar textos falsos cuando GA4 quede activado.~~
+- [x] ~~Validar por tests que la parte legal sigue diciendo "sin tracking" cuando GA4 no esta activo y cambia a texto compatible con Google Analytics 4 cuando la activacion es real.~~
+- [x] ~~Documentar en `Recordar_antes_Depoly _Produccion.md` los pendientes obligatorios antes del despliegue real a produccion para que no se olvide la activacion final de GA4.~~
 - [ ] Definir el `GA4_MEASUREMENT_ID` real de produccion.
 - [ ] Actualizar el texto legal/cookies antes de encender tracking real en produccion.
 - [ ] Validar en navegador real la emision de `page_view`, `hero_cta_click`, `event_ticket_click`, `youtube_channel_click` y `social_click` con una propiedad GA4 real o de staging.

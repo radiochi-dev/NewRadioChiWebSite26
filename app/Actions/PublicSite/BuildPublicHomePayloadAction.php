@@ -23,6 +23,7 @@ class BuildPublicHomePayloadAction
     public function execute(string $locale, string $baseUrl): array
     {
         $locale = in_array($locale, self::LOCALES, true) ? $locale : self::DEFAULT_LOCALE;
+        $analytics = app(ResolvePublicAnalyticsConfigAction::class)->execute();
 
         $pages = Page::query()
             ->whereIn('slug', ['home', 'about', 'music', 'calendar', 'media', 'contact'])
@@ -112,7 +113,7 @@ class BuildPublicHomePayloadAction
                 'copyright' => data_get($this->settingValue($settings, 'footer', 'credits', $locale), 'copyright', '© 2025 Copyright.'),
                 'rights' => data_get($this->settingValue($settings, 'footer', 'credits', $locale), 'rights', ''),
             ],
-            'termsPolicyCookies' => $this->buildLegalContent($legalDocuments, $settings, $locale),
+            'termsPolicyCookies' => $this->buildLegalContent($legalDocuments, $settings, $locale, $analytics),
         ];
 
         $calendarData = [
@@ -345,7 +346,7 @@ class BuildPublicHomePayloadAction
         return data_get($this->settingValue($settings, 'contact', 'marquee_rows', $locale), 'rows', []);
     }
 
-    private function buildLegalContent(Collection $legalDocuments, Collection $settings, string $locale): array
+    private function buildLegalContent(Collection $legalDocuments, Collection $settings, string $locale, array $analytics): array
     {
         $buttons = $this->settingValue($settings, 'legal', 'buttons', $locale);
 
@@ -353,20 +354,121 @@ class BuildPublicHomePayloadAction
             'terms_button' => data_get($buttons, 'terms_button', 'Términos y Condiciones'),
             'privacy_button' => data_get($buttons, 'privacy_button', 'Política de Privacidad'),
             'cookies_button' => data_get($buttons, 'cookies_button', 'Política de Cookies'),
-            'terms' => $this->buildLegalDocumentPayload($legalDocuments->get('terms'), $locale),
-            'privacy' => $this->buildLegalDocumentPayload($legalDocuments->get('privacy'), $locale),
-            'cookies' => $this->buildLegalDocumentPayload($legalDocuments->get('cookies'), $locale),
+            'terms' => $this->buildLegalDocumentPayload($legalDocuments->get('terms'), 'terms', $locale, $analytics),
+            'privacy' => $this->buildLegalDocumentPayload($legalDocuments->get('privacy'), 'privacy', $locale, $analytics),
+            'cookies' => $this->buildLegalDocumentPayload($legalDocuments->get('cookies'), 'cookies', $locale, $analytics),
         ];
     }
 
-    private function buildLegalDocumentPayload(?LegalDocument $document, string $locale): array
+    private function buildLegalDocumentPayload(?LegalDocument $document, string $documentType, string $locale, array $analytics): array
     {
         $translation = $document ? $this->translatedRecord($document->translations, $locale) : null;
 
         return [
             'title' => $translation?->title,
-            'content' => $translation?->content,
+            'content' => $this->alignLegalDocumentContent($documentType, $locale, $translation?->content, $analytics),
         ];
+    }
+
+    private function alignLegalDocumentContent(string $documentType, string $locale, ?string $content, array $analytics): ?string
+    {
+        if (! is_string($content) || trim($content) === '') {
+            return $content;
+        }
+
+        if (! data_get($analytics, 'ga4.loadScript', false)) {
+            return $content;
+        }
+
+        $replacements = $this->legalAnalyticsReplacements($locale);
+
+        if (! isset($replacements[$documentType])) {
+            return $content;
+        }
+
+        foreach ($replacements[$documentType] as $search => $replace) {
+            $content = str_replace($search, $replace, $content);
+        }
+
+        return $content;
+    }
+
+    private function legalAnalyticsReplacements(string $locale): array
+    {
+        return match ($locale) {
+            'en' => [
+                'terms' => [
+                    '<li>No cookies or tracking technologies that may collect personal information are used.</li>' => '<li>Google Analytics 4 may be used, once legally approved and activated in production, to measure navigation and public conversion events as described in the Cookie Policy and Privacy Policy.</li>',
+                ],
+                'privacy' => [
+                    '<p>This Website does not use cookies of any type, neither own nor third-party, for analytical, advertising or tracking purposes. Navigation is completely free of trackers, ensuring that your activity is not monitored.</p>' => '<p>This Website may use Google Analytics 4, once legally approved and activated in production, to measure aggregated navigation and public conversion events. The analytics setup is limited to the site measurement described in the Cookie Policy and does not enable the script until that activation has been formally approved.</p>',
+                ],
+                'cookies' => [
+                    '<p><strong>This Website DOES NOT USE any type of cookie, neither own nor third-party.</strong></p>' => '<p><strong>This Website may use Google Analytics 4 analytics cookies once legal approval has been completed and the production activation is explicitly enabled.</strong></p>',
+                    '<p>We do not use any technology that stores information in your browser for tracking, analysis, advertising, or operational purposes. Your visit is completely anonymous and private from our website\'s perspective.</p>' => '<p>When analytics is activated, Google Analytics 4 is used only to measure page views and public navigation/conversion events such as hero CTA clicks, ticket clicks, YouTube clicks and social link clicks. Outside that approved activation, the analytics script remains disabled.</p>',
+                ],
+            ],
+            'ca' => [
+                'terms' => [
+                    '<li>No s\'utilitzen galetes (cookies) ni tecnologies de seguiment que puguin recopilar informació personal.</li>' => '<li>Es pot utilitzar Google Analytics 4, un cop aprovat legalment i activat en producció, per mesurar la navegació i els esdeveniments públics de conversió descrits a la Política de Cookies i a la Política de Privacitat.</li>',
+                ],
+                'privacy' => [
+                    '<p>Aquest Lloc Web no utilitza galetes (cookies) de cap tipus, ni pròpies ni de tercers, per a finalitats analítiques, publicitàries o de seguiment. La navegació és completament lliure de rastrejadors, garantint que la teva activitat no és monitorada.</p>' => '<p>Aquest Lloc Web pot utilitzar Google Analytics 4, un cop aprovat legalment i activat en producció, per mesurar de forma agregada la navegació i els esdeveniments públics de conversió. La configuració analítica queda limitada al mesurament descrit a la Política de Cookies i el script no s\'activa fins que aquesta activació ha estat aprovada formalment.</p>',
+                ],
+                'cookies' => [
+                    '<p><strong>Aquest Lloc Web NO UTILITZA cap tipus de galeta (cookie), ni pròpia ni de tercers.</strong></p>' => '<p><strong>Aquest Lloc Web pot utilitzar cookies analítiques de Google Analytics 4 un cop completada l\'aprovació legal i habilitada explícitament l\'activació en producció.</strong></p>',
+                    '<p>No fem servir cap tecnologia que emmagatzemi informació al teu navegador per a finalitats de seguiment, anàlisi, publicitat o funcionament. La teva visita és completament anònima i privada des del punt de vista del nostre lloc web.</p>' => '<p>Quan l\'analítica està activada, Google Analytics 4 s\'utilitza només per mesurar pàgines vistes i esdeveniments públics de navegació/conversió com clics en la CTA principal, entrades, YouTube i enllaços socials. Fora d\'aquesta activació aprovada, el script d\'analítica roman desactivat.</p>',
+                ],
+            ],
+            'fr' => [
+                'terms' => [
+                    '<li>Aucun cookie ni technologie de suivi pouvant collecter des informations personnelles n\'est utilisé.</li>' => '<li>Google Analytics 4 peut être utilisé, une fois l\'approbation légale obtenue et l\'activation en production réalisée, afin de mesurer la navigation et les événements publics de conversion décrits dans la Politique de Cookies et la Politique de Confidentialité.</li>',
+                ],
+                'privacy' => [
+                    '<p>Ce Site Web n\'utilise aucun cookie, ni propre ni tiers, à des fins analytiques, publicitaires ou de suivi. La navigation est complètement exempte de traceurs, garantissant que votre activité n\'est pas surveillée.</p>' => '<p>Ce Site Web peut utiliser Google Analytics 4, une fois l\'approbation légale obtenue et l\'activation en production réalisée, afin de mesurer de manière agrégée la navigation et les événements publics de conversion. La configuration analytique est limitée à la mesure décrite dans la Politique de Cookies et le script ne s\'active pas tant que cette activation n\'a pas été formellement approuvée.</p>',
+                ],
+                'cookies' => [
+                    '<p><strong>Ce Site Web N\'UTILISE AUCUN type de cookie, ni propre ni tiers.</strong></p>' => '<p><strong>Ce Site Web peut utiliser des cookies analytiques Google Analytics 4 une fois l\'approbation légale finalisée et l\'activation en production explicitement activée.</strong></p>',
+                    '<p>Nous n\'utilisons aucune technologie qui stocke des informations dans votre navigateur à des fins de suivi, d\'analyse, de publicité ou de fonctionnement. Votre visite est complètement anonyme et privée du point de vue de notre site web.</p>' => '<p>Lorsque l\'analytique est activée, Google Analytics 4 est utilisé uniquement pour mesurer les pages vues et les événements publics de navigation/conversion comme les clics sur la CTA principale, les billets, YouTube et les liens sociaux. En dehors de cette activation approuvée, le script analytique reste désactivé.</p>',
+                ],
+            ],
+            'it' => [
+                'terms' => [
+                    '<li>Non si utilizzano cookie né tecnologie di tracciamento che possano raccogliere informazioni personali.</li>' => '<li>Google Analytics 4 può essere utilizzato, una volta ottenuta l\'approvazione legale e attivata la produzione, per misurare la navigazione e gli eventi pubblici di conversione descritti nella Politica sui Cookie e nella Privacy Policy.</li>',
+                ],
+                'privacy' => [
+                    '<p>Questo Sito Web non utilizza cookie di alcun tipo, né propri né di terze parti, per finalità analitiche, pubblicitarie o di tracciamento. La navigazione è completamente libera da tracker, garantendo che la tua attività non venga monitorata.</p>' => '<p>Questo Sito Web può utilizzare Google Analytics 4, una volta ottenuta l\'approvazione legale e attivata la produzione, per misurare in forma aggregata la navigazione e gli eventi pubblici di conversione. La configurazione analitica è limitata alla misurazione descritta nella Politica sui Cookie e lo script non viene attivato finché tale attivazione non è stata formalmente approvata.</p>',
+                ],
+                'cookies' => [
+                    '<p><strong>Questo Sito Web NON UTILIZZA alcun tipo di cookie, né proprio né di terze parti.</strong></p>' => '<p><strong>Questo Sito Web può utilizzare cookie analitici di Google Analytics 4 una volta completata l\'approvazione legale e abilitata esplicitamente l\'attivazione in produzione.</strong></p>',
+                    '<p>Non utilizziamo alcuna tecnologia che memorizzi informazioni nel vostro browser per finalità di tracciamento, analisi, pubblicità o funzionamento. La vostra visita è completamente anonima e privata dal punto di vista del nostro sito web.</p>' => '<p>Quando l\'analitica è attiva, Google Analytics 4 viene utilizzato solo per misurare page view ed eventi pubblici di navigazione/conversione come clic sulla CTA principale, biglietti, YouTube e link social. Al di fuori di tale attivazione approvata, lo script analitico resta disattivato.</p>',
+                ],
+            ],
+            'de' => [
+                'terms' => [
+                    '<li>Es werden keine Cookies oder Tracking-Technologien verwendet, die personenbezogene Informationen sammeln könnten.</li>' => '<li>Google Analytics 4 kann, nachdem eine rechtliche Freigabe erteilt und die Aktivierung in Produktion vorgenommen wurde, zur Messung der Navigation und der in der Cookie-Richtlinie sowie Datenschutzerklärung beschriebenen öffentlichen Conversion-Ereignisse verwendet werden.</li>',
+                ],
+                'privacy' => [
+                    '<p>Diese Website verwendet keinerlei Cookies, weder eigene noch von Dritten, für Analyse-, Werbe- oder Trackingzwecke. Das Surfen ist vollständig frei von Trackern, sodass Ihre Aktivität nicht überwacht wird.</p>' => '<p>Diese Website kann Google Analytics 4 verwenden, nachdem eine rechtliche Freigabe erteilt und die Aktivierung in Produktion vorgenommen wurde, um Navigation und öffentliche Conversion-Ereignisse in aggregierter Form zu messen. Die Analysekonfiguration ist auf die in der Cookie-Richtlinie beschriebene Messung begrenzt, und das Skript wird erst nach formaler Freigabe aktiviert.</p>',
+                ],
+                'cookies' => [
+                    '<p><strong>Diese Website KEINE Art von Cookie verwendet, weder eigene noch von Dritten.</strong></p>' => '<p><strong>Diese Website kann analytische Google-Analytics-4-Cookies verwenden, sobald die rechtliche Freigabe abgeschlossen und die Aktivierung in Produktion ausdrücklich eingeschaltet wurde.</strong></p>',
+                    '<p>Wir verwenden keine Technologie, die Informationen in Ihrem Browser für Tracking-, Analyse-, Werbe- oder Betriebszwecke speichert. Ihr Besuch ist aus Sicht unserer Website völlig anonym und privat.</p>' => '<p>Wenn die Analytik aktiviert ist, wird Google Analytics 4 nur verwendet, um Seitenaufrufe sowie öffentliche Navigations-/Conversion-Ereignisse wie Klicks auf die Haupt-CTA, Tickets, YouTube und Social-Links zu messen. Außerhalb dieser freigegebenen Aktivierung bleibt das Analytik-Skript deaktiviert.</p>',
+                ],
+            ],
+            default => [
+                'terms' => [
+                    '<li>No se utilizan cookies ni tecnologías de seguimiento que puedan recopilar información personal.</li>' => '<li>Puede utilizarse Google Analytics 4, una vez exista aprobación legal y activación expresa en producción, para medir la navegación y los eventos públicos de conversión descritos en la Política de Cookies y en la Política de Privacidad.</li>',
+                ],
+                'privacy' => [
+                    '<p>Este Sitio Web no utiliza cookies de ningún tipo, ni propias ni de terceros, para finalidades analíticas, publicitarias o de seguimiento. La navegación es completamente libre de rastreadores, garantizando que tu actividad no es monitoreada.</p>' => '<p>Este Sitio Web puede utilizar Google Analytics 4, una vez exista aprobación legal y activación expresa en producción, para medir de forma agregada la navegación y los eventos públicos de conversión. La configuración analítica queda limitada a la medición descrita en la Política de Cookies y el script no se activa hasta que esa activación haya sido aprobada formalmente.</p>',
+                ],
+                'cookies' => [
+                    '<p><strong>Este Sitio Web NO UTILIZA ningún tipo de cookie, ni propia ni de terceros.</strong></p>' => '<p><strong>Este Sitio Web puede utilizar cookies analíticas de Google Analytics 4 una vez se complete la aprobación legal y se habilite explícitamente la activación en producción.</strong></p>',
+                    '<p>No utilizamos ninguna tecnología que almacene información en tu navegador para finalidades de seguimiento, análisis, publicidad o funcionamiento. Tu visita es completamente anónima y privada desde el punto de vista de nuestro sitio web.</p>' => '<p>Cuando la analítica está activada, Google Analytics 4 se utiliza únicamente para medir páginas vistas y eventos públicos de navegación/conversión como clics en la CTA principal, tickets, YouTube y enlaces sociales. Fuera de esa activación aprobada, el script de analítica permanece desactivado.</p>',
+                ],
+            ],
+        };
     }
 
     private function buildSeo(?Page $page, string $locale, string $baseUrl, string $fallbackTitle, Collection $socialLinks): array
