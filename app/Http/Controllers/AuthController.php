@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\Backoffice\BackofficePath;
 use App\Support\BackofficeSuperAdminRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,7 +53,7 @@ class AuthController extends Controller
 
         $request->user()?->syncLegacyRoleToSpatieRole();
 
-        return redirect()->intended('/dashboard');
+        return redirect()->intended(BackofficePath::official());
     }
 
     public function logout(Request $request): RedirectResponse

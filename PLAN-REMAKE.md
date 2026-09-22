@@ -788,6 +788,14 @@ Validacion real en esta iteracion:
 
 ## Fase 9. QA, seguridad y Definition of Done
 
+**Estado:** EN CURSO
+**Avance de fase:** 82%
+**Avance global del plan:** 99%
+
+Incidencia cerrada y validada en esta iteracion:
+- ~~`/backoffice/login` ya carga sin errores de assets Filament ni bloqueos CSP de Alpine/Livewire, y queda alineado visualmente con el lenguaje del proyecto usando el logo y fondo del sistema legacy restaurado.~~
+- ~~Se elimina el contenedor negro exterior del login del backoffice y se injerta un footer persistente del proyecto en la pantalla de acceso sin tocar `vendor`, usando hook oficial de Filament y datos reales de `settings` + `social_links`.~~
+
 ### Paso 9.1 Tests backend
 - auth
 - roles/permisos
@@ -796,11 +804,57 @@ Validacion real en esta iteracion:
 - media real
 - integraciones n8n
 
+Avance validado en esta iteracion:
+- ~~Nuevo test `BackofficeLoginExperienceTest` para asegurar que el login del backoffice expone branding correcto y una CSP compatible con Filament v5 / Livewire / Alpine solo en `backoffice/*`.~~
+- ~~Nuevo test para verificar que la home publica conserva una CSP mas estricta y sin `unsafe-eval`.~~
+- ~~Nuevo flujo de auth Inertia para `/backoffice/login` con `AuthController`, `BackofficeLoginRequest` y `AuthenticateBackofficeUserAction`, manteniendo compatibilidad de rutas esperadas por Filament.~~
+- ~~`EnsureBackofficeAccess` endurecido para redirigir invitados a `/backoffice/login` y preservar intended redirect hacia el shell preview del nuevo backoffice.~~
+- ~~Regresion del backoffice validada en Docker: `BackofficeInertiaAuthFlowTest`, `BackofficeShellPreviewTest`, `BackofficeLoginExperienceTest` y `CmsBasePackagesTest` en verde (14 tests, 92 assertions).~~
+- ~~La raiz `/backoffice` ya resuelve un dashboard Inertia unificado (`Backoffice\\Dashboard\\Index`) sin romper los recursos Filament restantes bajo `/backoffice/*`.~~
+- ~~Nuevo test `BackofficeUnifiedDashboardTest` para cubrir guest redirect, acceso de editor y visibilidad de enlaces legacy para super admin.~~
+- ~~Regresion ampliada del backoffice y dashboard validada en Docker: 19 tests, 142 assertions en verde (`BackofficeUnifiedDashboardTest`, `CmsBasePackagesTest`, `BackofficeShellPreviewTest`, `BackofficeLoginExperienceTest`, `ProjectPremiumFlowTest`).~~
+- ~~Build frontend del backoffice validado en Docker con `npm run build`; persisten warnings conocidos de assets runtime y chunk size, sin error bloqueante.~~
+- ~~Infraestructura CRUD reusable cerrada para el nuevo backoffice: blueprint de modulos, payloads normalizados, `FormRequest` de index/draft/actions y componentes React reutilizables (`CrudIndexScreen`, `CrudFormScreen`, `CrudFieldRenderer`, `CrudActionCard`).~~
+- ~~Nuevas rutas preview `POST /backoffice-preview/{module}/draft`, `POST /backoffice-preview/{module}/draft/{record}` y `POST /backoffice-preview/{module}/actions/{action}` para validar el patron CRUD sin tocar persistencia productiva.~~
+- ~~Nuevo test `BackofficeCrudInfrastructureTest` para cubrir querystring CRUD, formulario reusable, errores de `FormRequest` y confirmacion de acciones peligrosas.~~
+- ~~Regresion ampliada de Fase 5 validada en Docker: 19 tests y 181 assertions en verde (`BackofficeCrudInfrastructureTest`, `BackofficeShellPreviewTest`, `BackofficeUnifiedDashboardTest`, `BackofficeLoginExperienceTest`, `CmsBasePackagesTest`).~~
+- ~~Build frontend del backoffice revalidado en Docker tras Fase 5; persisten warnings conocidos de assets runtime/chunk size, sin error bloqueante.~~
+- ~~Ola 1 de modulos editoriales nucleares del nuevo backoffice cerrada sobre `/backoffice-preview/*` con persistencia real para `Events`, `Pages`, `PageTranslations`, `PageBlocks`, `Settings` y `SeoMeta`, manteniendo coexistencia segura con Filament hasta el cutover.~~
+- ~~Nuevo catalogo/payload/save layer para Fase 6: `Phase6ModuleCatalog`, `BuildBackofficePhase6CrudPayloadAction` y `SaveBackofficePhase6ModuleAction`.~~
+- ~~Equivalentes React/Inertia de relation managers operativos para traducciones de `Pages`, `PageBlocks` y `Settings`, mas composicion `Pages -> PageBlocks`, mediante rutas anidadas y `Phase6TranslationController`.~~
+- ~~Nueva prueba `BackofficePhase6CrudPersistenceTest` en verde y regresion conjunta Fase 6 validada en Docker: 18 tests OK, 254 assertions OK (`BackofficePhase6CrudPersistenceTest`, `BackofficeCrudInfrastructureTest`, `BackofficeShellPreviewTest`, `BackofficeUnifiedDashboardTest`).~~
+- ~~Build frontend del backoffice revalidado en Docker tras Fase 6 con `npm run build`; persisten warnings conocidos de assets runtime/chunk size, sin error bloqueante.~~
+- ~~Ola 2 de modulos de contenido enriquecido cerrada sobre la misma superficie `/backoffice-preview/*` con persistencia real para `MusicTracks`, `MediaAssets`, `Partners`, `SocialLinks` y `DownloadableFiles`.~~
+- ~~`Phase6ModuleCatalog`, `BuildBackofficePhase6CrudPayloadAction` y `SaveBackofficePhase6ModuleAction` ampliados para soportar media, metadata y adjuntos polimorficos sin abrir otra UI paralela.~~
+- ~~Equivalente React/Inertia del relation manager de `MusicTracks` operativo mediante `BackofficeMusicTrackTranslationUpsertRequest` y nuevas rutas anidadas en `Phase6TranslationController`.~~
+- ~~Nueva prueba `BackofficePhase7RichContentPersistenceTest` en verde y regresion conjunta Fase 7 validada en Docker: 24 tests OK, 348 assertions OK (`BackofficePhase7RichContentPersistenceTest`, `BackofficePhase6CrudPersistenceTest`, `BackofficeCrudInfrastructureTest`, `BackofficeShellPreviewTest`, `BackofficeUnifiedDashboardTest`).~~
+- ~~Build frontend del backoffice revalidado en Docker tras Fase 7 con `npm run build`; persisten warnings conocidos de assets runtime/chunk size, sin error bloqueante.~~
+- ~~Ola 3 de modulos legales y newsletters cerrada sobre la misma superficie `/backoffice-preview/*` con persistencia real para `LegalDocuments`, `RedirectRules`, `NewsletterSubscribers`, `NewsletterCampaigns` y `NewsletterLogs`.~~
+- ~~Acciones especiales de Fase 8 cerradas sin abrir otra UI paralela: relation manager equivalente de traducciones legales, CTA `Ver logs` por campana y ejecucion real de `queue-campaign` mediante `QueueNewsletterCampaign`.~~
+- ~~Nuevo test `BackofficePhase8OperationalModulesTest` en verde y regresion conjunta Fases 6-8 validada en Docker: 18 tests OK, 335 assertions OK (`BackofficePhase8OperationalModulesTest`, `BackofficePhase7RichContentPersistenceTest`, `BackofficePhase6CrudPersistenceTest`).~~
+- ~~Build frontend del backoffice revalidado en Docker tras Fase 8 con `npm run build`; persisten warnings conocidos de assets runtime/chunk size, sin error bloqueante.~~
+- ~~Corte de rutas de Fase 9 completado: `/backoffice/*` ya es la superficie oficial React/Inertia, `/backoffice-preview/*` queda como alias temporal de compatibilidad y el panel Filament legacy se desplaza a `/backoffice-legacy/*`.~~
+- ~~Nuevo contrato centralizado de prefijos en `config/backoffice.php` y `App\\Support\\Backoffice\\BackofficePath` para controlar ruta oficial, alias temporal y panel legacy sin hardcodes dispersos.~~
+- ~~Nueva regresion `BackofficePhase9RouteCutoverTest` en verde y validacion conjunta Fases 6-9 en Docker: 39 tests OK, 564 assertions OK (`BackofficePhase9RouteCutoverTest`, `BackofficeCrudInfrastructureTest`, `BackofficePhase6CrudPersistenceTest`, `BackofficePhase7RichContentPersistenceTest`, `BackofficePhase8OperationalModulesTest`, `BackofficeUnifiedDashboardTest`, `BackofficeShellPreviewTest`, `BackofficeInertiaAuthFlowTest`).~~
+- ~~Build frontend del backoffice revalidado tras Fase 9 con `npm run build`; persisten warnings conocidos de assets runtime/chunk size, sin error bloqueante.~~
+- ~~Limpieza residual segura del backoffice completada tras el cutover: se retiran `/dashboard`, `/dashboard/api/*`, `/admin/*`, el panel `Filament` legacy, recursos `app/Filament/**/*`, assets publicados y dependencias `filament/filament` + `livewire/livewire`.~~
+- ~~Regresion del backoffice adaptada a la ruta oficial `/backoffice/*`, cerrando el alias temporal `/backoffice-preview/*` y eliminando enlaces legacy visibles en dashboard/navegacion.~~
+- ~~Regresion feature completa validada en Docker tras la retirada definitiva del legado: `php artisan test tests/Feature` -> 77 tests OK, 766 assertions OK.~~
+- ~~Build frontend revalidado en Docker tras Fase 10 con `npm run build`; persisten warnings conocidos de assets runtime/chunk size, sin error bloqueante.~~
+- ~~QA premium final del nuevo backoffice cerrada con regresion especifica de Fase 11: 54 tests OK y 670 assertions OK cubriendo auth, permisos, CRUD, traducciones, newsletters, navegacion Inertia y superficie publica.~~
+- ~~Auditoria de seguridad y runtime final cerrada: `composer audit` limpio, CSP del backoffice sin `unsafe-eval` y ausencia verificada de runtime `Filament`/`Livewire`.~~
+- ~~Smoke real en navegador completado para `/backoffice/login`, `/backoffice`, CRUDs representativos de Fase 6/7/8 y home publica `/en`; se detecta y corrige una incidencia real del dashboard en el contrato de `recentTables`.~~
+
 ### Paso 9.2 Tests frontend
 - rutas publicas
 - locale switching
 - render de contenido dinamico
 - SEO visible
+
+Avance validado en esta iteracion:
+- ~~Validacion visual real del login del backoffice en navegador integrado: logo aplicado, fondo alineado al proyecto y consola limpia en una carga fresca.~~
+- ~~Ajuste de maquetacion del login para dejar visible el fondo completo y mostrar el footer del proyecto en la propia pantalla `/backoffice/login`.~~
+- ~~Smoke visual en navegador del flujo CRUD preview del backoffice: redirect correcto al login, index reusable cargando `newsletter-campaigns` y formulario reusable cargando `pages/create` dentro del shell Inertia.~~
 
 ### Paso 9.3 Smoke tests de infraestructura
 - desarrollo Docker limpio
@@ -848,3 +902,13 @@ Validacion real en esta iteracion:
 - mezclar la base interna de n8n con la base principal del proyecto,
 - exponer integraciones automatizadas sin contrato ni seguridad,
 - llegar a Hostinger sin una ruta de despliegue reproducible.
+
+## Incidencia post-plan: rendimiento del backoffice
+
+- **Estado:** `Mitigacion aplicada y verificacion inicial completada`
+- **Avance de la incidencia:** `85%`
+- ~~Auditoria runtime del login y del backoffice completada sin tocar funcionalidad de negocio.~~
+- ~~Causa raiz principal localizada en el runtime local Docker/PHP sobre bind mount host, especialmente en el arbol `vendor`, no en los payloads CRUD/dashboard.~~
+- ~~Mitigacion aplicada con volumen Docker nativo para `vendor` y caches oficiales de Laravel calentadas para recortar bootstrap/I/O por request.~~
+- ~~Verificacion inicial positiva: la carga de `/backoffice/login` cae de varios segundos a ~2.9 s observados desde cliente y a cientos de ms dentro del kernel PHP.~~
+- Validacion final pendiente en navegacion autenticada real entre modulos del backoffice.

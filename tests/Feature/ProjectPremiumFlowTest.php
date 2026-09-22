@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Jobs\SendNewsletterCampaignJob;
+use App\Models\Event;
 use App\Models\NewsletterCampaign;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class ProjectPremiumFlowTest extends TestCase
@@ -32,36 +34,37 @@ class ProjectPremiumFlowTest extends TestCase
         $robots->assertSee('User-agent', false);
     }
 
-    public function test_admin_can_crud_events_with_basic_auth(): void
+    public function test_editor_can_create_and_update_events_through_the_official_backoffice_flow(): void
     {
-        $authHeaders = $this->basicAuthHeaders();
+        $editor = $this->createUserWithRole('editor');
 
-        $create = $this->withHeaders($authHeaders)->postJson('/admin/events', [
+        $this->actingAs($editor)->post('/backoffice/events/draft', [
             'slug' => 'test-event-premium',
             'title' => 'Test Event Premium',
             'location' => 'Barcelona',
             'is_published' => true,
-        ]);
+        ])->assertRedirect();
 
-        $create->assertCreated();
-        $eventId = $create->json('id');
+        $event = Event::query()->where('slug', 'test-event-premium')->firstOrFail();
 
-        $index = $this->withHeaders($authHeaders)->getJson('/admin/events');
-        $index->assertOk()->assertJsonPath('data.0.id', $eventId);
-
-        $update = $this->withHeaders($authHeaders)->putJson('/admin/events/'.$eventId, [
+        $this->actingAs($editor)->post('/backoffice/events/draft/'.$event->id, [
+            'slug' => 'test-event-premium',
             'title' => 'Test Event Premium Updated',
-        ]);
-        $update->assertOk()->assertJsonPath('title', 'Test Event Premium Updated');
+            'location' => 'Madrid',
+            'is_published' => true,
+        ])->assertRedirect('/backoffice/events/'.$event->id.'/edit');
 
-        $delete = $this->withHeaders($authHeaders)->deleteJson('/admin/events/'.$eventId);
-        $delete->assertNoContent();
+        $this->assertDatabaseHas('events', [
+            'id' => $event->id,
+            'title' => 'Test Event Premium Updated',
+            'location' => 'Madrid',
+        ]);
     }
 
-    public function test_admin_can_queue_newsletter_campaign(): void
+    public function test_editor_can_queue_newsletter_campaign_through_the_official_backoffice_action(): void
     {
-        $authHeaders = $this->basicAuthHeaders();
         Queue::fake();
+        $editor = $this->createUserWithRole('editor');
 
         $campaign = NewsletterCampaign::query()->create([
             'name' => 'Launch',
@@ -70,8 +73,12 @@ class ProjectPremiumFlowTest extends TestCase
             'status' => 'draft',
         ]);
 
-        $queue = $this->withHeaders($authHeaders)->postJson('/admin/newsletter-campaigns/'.$campaign->id.'/queue');
-        $queue->assertOk()->assertJsonPath('campaign_id', $campaign->id);
+        $this->actingAs($editor)
+            ->post('/backoffice/newsletter-campaigns/actions/queue-campaign', [
+                'record' => (string) $campaign->id,
+                'confirmation' => 'ENCOLAR',
+            ])
+            ->assertRedirect('/backoffice/newsletter-campaigns/'.$campaign->id.'/edit');
 
         Queue::assertPushed(SendNewsletterCampaignJob::class);
         $this->assertDatabaseHas('newsletter_campaigns', [
@@ -80,34 +87,37 @@ class ProjectPremiumFlowTest extends TestCase
         ]);
     }
 
-    public function test_dashboard_access_flow_has_login_route_and_super_admin_access(): void
+    public function test_backoffice_access_flow_has_login_route_and_super_admin_access(): void
     {
         $this->assertTrue(Route::has('login'));
+        $this->assertTrue(Route::has('filament.backoffice.pages.dashboard'));
 
-        $this->get('/dashboard')->assertRedirect(route('login'));
+        $this->get('/backoffice')->assertRedirect('/backoffice/login');
 
         $superAdmin = User::query()->updateOrCreate(
             ['email' => 'fernandocardonatoro@gmail.com'],
             [
                 'name' => 'Fernando Cardona Toro',
                 'password' => bcrypt('12345678'),
+                'role' => 'SuperAdmin',
             ]
         );
+        $superAdmin->syncLegacyRoleToSpatieRole();
 
         $this->actingAs($superAdmin)
-            ->get('/dashboard')
+            ->get('/backoffice')
             ->assertOk();
     }
 
-    public function test_login_redirects_to_dashboard_with_valid_credentials(): void
+    public function test_public_login_redirects_to_the_official_backoffice_with_valid_credentials(): void
     {
-        User::query()->updateOrCreate(
-            ['email' => 'fernandocardonatoro@gmail.com'],
+        config()->set('backoffice.super_admins', [
             [
                 'name' => 'Fernando Cardona Toro',
-                'password' => bcrypt('12345678'),
-            ]
-        );
+                'email' => 'fernandocardonatoro@gmail.com',
+                'password' => '12345678',
+            ],
+        ]);
 
         $response = $this->post('/login', [
             'email' => 'fernandocardonatoro@gmail.com',
@@ -115,18 +125,15 @@ class ProjectPremiumFlowTest extends TestCase
             'accepted_legal' => 1,
         ]);
 
-        $response->assertRedirect('/dashboard');
+        $response->assertRedirect('/backoffice');
         $this->assertAuthenticated();
     }
 
-    private function basicAuthHeaders(): array
+    private function createUserWithRole(string $roleName): User
     {
-        $user = User::factory()->create([
-            'password' => bcrypt('password'),
-        ]);
+        $user = User::factory()->create();
+        $user->assignRole(Role::findOrCreate($roleName, 'web'));
 
-        return [
-            'Authorization' => 'Basic '.base64_encode($user->email.':password'),
-        ];
+        return $user;
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureBackofficeAccess;
 use App\Http\Middleware\EnsureValidAutomationSignature;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeaders;
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
+            'backoffice.access' => EnsureBackofficeAccess::class,
             'automation.signature' => EnsureValidAutomationSignature::class,
         ]);
 

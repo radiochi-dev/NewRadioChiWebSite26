@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class NewsletterSubscriber extends Model
 {
@@ -21,5 +22,10 @@ class NewsletterSubscriber extends Model
             'subscribed_at' => 'datetime',
             'unsubscribed_at' => 'datetime',
         ];
+    }
+
+    public function logs(): HasMany
+    {
+        return $this->hasMany(NewsletterLog::class, 'subscriber_id');
     }
 }

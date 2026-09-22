@@ -6,8 +6,14 @@ services:
       target: development
     container_name: newradiochiwebsite26_app
     working_dir: /var/www/html
+    command: >
+      sh -lc "if [ ! -f vendor/autoload.php ] || [ composer.lock -nt vendor/autoload.php ]; then
+        composer install --no-interaction --prefer-dist;
+      fi &&
+      php-fpm"
     volumes:
       - ./:/var/www/html
+      - newradiochiwebsite26_vendor:/var/www/html/vendor
     depends_on:
       postgres:
         condition: service_healthy
@@ -161,6 +167,7 @@ volumes:
   newradiochiwebsite26_n8n_postgres_data:
   newradiochiwebsite26_n8n_data:
   newradiochiwebsite26_ollama_data:
+  newradiochiwebsite26_vendor:
 
 networks:
   newradiochiwebsite26_net:

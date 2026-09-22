@@ -19,12 +19,29 @@ class SecurityHeaders
         $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
         $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
         $response->headers->set('X-Permitted-Cross-Domain-Policies', 'none');
-        $response->headers->set('Content-Security-Policy', "default-src 'self'; img-src 'self' https: data:; media-src 'self' https:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:; connect-src 'self' https:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'");
+        $response->headers->set('Content-Security-Policy', $this->contentSecurityPolicy($request));
 
         if ($request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
         }
 
         return $response;
+    }
+
+    private function contentSecurityPolicy(Request $request): string
+    {
+        return implode('; ', [
+            "default-src 'self'",
+            "img-src 'self' https: data:",
+            "media-src 'self' https:",
+            "font-src 'self' https: data:",
+            "style-src 'self' 'unsafe-inline' https:",
+            "script-src 'self' 'unsafe-inline' https:",
+            "connect-src 'self' https:",
+            "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+        ]);
     }
 }

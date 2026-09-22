@@ -3,7 +3,7 @@
 $configuredSuperAdmins = json_decode((string) env('BACKOFFICE_SUPER_ADMINS', ''), true);
 
 return [
-    'path' => env('BACKOFFICE_PATH', 'backoffice'),
+    'official_prefix' => env('BACKOFFICE_OFFICIAL_PREFIX', 'backoffice'),
 
     'super_admins' => is_array($configuredSuperAdmins) && $configuredSuperAdmins !== []
         ? $configuredSuperAdmins
