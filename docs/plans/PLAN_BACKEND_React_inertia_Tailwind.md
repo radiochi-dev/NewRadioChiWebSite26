@@ -51,7 +51,6 @@ Esta planificacion se apoya en:
 
 ## Fuentes de verdad del proyecto
 
-- `.trae/project_rules1.md`
 - `PLAN-REMAKE.md`
 - este archivo `PLAN_BACKEND_React_inertia_Tailwind.md`
 
@@ -833,12 +832,12 @@ Criterio de salida:
 
 ## Incidencia post-plan: rendimiento del backoffice
 
-- **Estado:** `Mitigacion aplicada y verificacion inicial completada`
-- **Avance de la incidencia:** `85%`
+- **Estado:** `Mitigacion validada y cerrada`
+- **Avance de la incidencia:** `100%`
 - **Naturaleza:** `Auditoria post-cierre del plan; no reabre fases ya completadas`
 - ~~Auditoria runtime del backoffice/login completada con instrumentacion minima en kernel, middleware global, Inertia share y payloads.~~
 - ~~Payloads principales descartados como causa raiz principal: login ~24.78 ms, `share()` ~7.06 ms tras la optimizacion y CRUD/dashboard previamente muy por debajo de la latencia percibida.~~
 - ~~Causa raiz principal acotada al runtime local Docker/PHP: bootstrap Laravel costoso sobre bind mount host, especialmente en el arbol `vendor`, con mejora adicional al calentar caches oficiales de Laravel.~~
 - ~~Mitigacion aplicada en `docker-compose.yml`: volumen Docker nativo para `/var/www/html/vendor` y `composer install` automatico cuando falta `vendor/autoload.php` o cambia `composer.lock`.~~
 - ~~Verificacion inicial completada: `GET /backoffice/login` baja aprox. de `8559.48 ms` a `2902.9 ms` observado desde cliente; `public/index.php` baja aprox. de `6357-7282 ms` a `370-752 ms` segun corrida.~~
-- Validacion final pendiente en navegacion autenticada real entre modulos antes de dar la incidencia por cerrada al 100%.
+- ~~Validacion final completada con confirmacion manual de mejora sustancial en navegador real tras el ajuste de runtime Docker/PHP.~~

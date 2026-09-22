@@ -1,5 +1,7 @@
 # PLAN REMAKE
 
+> Nota: este documento queda como roadmap historico general del proyecto. El estado real y cerrado del backoffice actual se sigue en `docs/documentation/PLAN_BACKEND_React_inertia_Tailwind.md`.
+
 ## Objetivo
 
 Llevar el proyecto actual a un estado que cumpla de forma verificable estos requisitos:
@@ -692,7 +694,7 @@ Definir una arquitectura de produccion realista, segura y operable.
 Implementado en esta iteracion:
 - ~~`docker-compose.production.yml` define el stack completo de Hostinger VPS con separacion web/app/worker/scheduler y red privada para automatizaciones.~~
 - ~~`docker/nginx/hostinger-production.conf` deja Nginx listo para servir Laravel/Inertia en produccion manteniendo `/up` como health endpoint.~~
-- ~~`.env.production.example` y `docs/hostinger-vps-phase8.md` documentan la topologia real de despliegue.~~
+- ~~`.env.production.example` y `docs/documentation/hostinger-vps-phase8.md` documentan la topologia real de despliegue.~~
 
 ### Paso 8.2 Base de datos independiente para n8n
 ~~Implementar `n8n_postgres` separado de `radiochi_postgres`.~~
@@ -905,10 +907,10 @@ Avance validado en esta iteracion:
 
 ## Incidencia post-plan: rendimiento del backoffice
 
-- **Estado:** `Mitigacion aplicada y verificacion inicial completada`
-- **Avance de la incidencia:** `85%`
+- **Estado:** `Mitigacion validada y cerrada`
+- **Avance de la incidencia:** `100%`
 - ~~Auditoria runtime del login y del backoffice completada sin tocar funcionalidad de negocio.~~
 - ~~Causa raiz principal localizada en el runtime local Docker/PHP sobre bind mount host, especialmente en el arbol `vendor`, no en los payloads CRUD/dashboard.~~
 - ~~Mitigacion aplicada con volumen Docker nativo para `vendor` y caches oficiales de Laravel calentadas para recortar bootstrap/I/O por request.~~
 - ~~Verificacion inicial positiva: la carga de `/backoffice/login` cae de varios segundos a ~2.9 s observados desde cliente y a cientos de ms dentro del kernel PHP.~~
-- Validacion final pendiente en navegacion autenticada real entre modulos del backoffice.
+- ~~Validacion final completada con confirmacion manual de mejora sustancial en navegador real tras el ajuste de runtime Docker/PHP.~~

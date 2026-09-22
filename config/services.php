@@ -40,6 +40,11 @@ return [
         'token' => env('INSTAGRAM_ACCESS_TOKEN'),
     ],
 
+    'ga4' => [
+        'measurement_id' => env('GA4_MEASUREMENT_ID'),
+        'enabled' => filter_var(env('GA4_ENABLED', false), FILTER_VALIDATE_BOOL),
+    ],
+
     'n8n' => [
         'webhook_base_url' => env('N8N_WEBHOOK_BASE_URL'),
         'api_key' => env('N8N_API_KEY'),

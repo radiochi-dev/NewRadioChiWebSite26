@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\PublicSite\BuildPublicHomePayloadAction;
+use App\Actions\PublicSite\ResolvePublicAnalyticsConfigAction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
@@ -13,7 +14,11 @@ class PublicHomeController extends Controller
 {
     private const LOCALES = ['es', 'en', 'ca', 'fr', 'it', 'de'];
 
-    public function index(Request $request, BuildPublicHomePayloadAction $payload): Response|RedirectResponse
+    public function index(
+        Request $request,
+        BuildPublicHomePayloadAction $payload,
+        ResolvePublicAnalyticsConfigAction $analyticsConfig,
+    ): Response|RedirectResponse
     {
         $preferredLocale = $request->cookie('radiochi_locale');
 
@@ -21,17 +26,27 @@ class PublicHomeController extends Controller
             return redirect('/'.$preferredLocale);
         }
 
-        return $this->renderHome('es', $request, $payload);
+        return $this->renderHome('es', $request, $payload, $analyticsConfig);
     }
 
-    public function localized(string $locale, Request $request, BuildPublicHomePayloadAction $payload): Response
+    public function localized(
+        string $locale,
+        Request $request,
+        BuildPublicHomePayloadAction $payload,
+        ResolvePublicAnalyticsConfigAction $analyticsConfig,
+    ): Response
     {
         abort_unless(in_array($locale, self::LOCALES, true), 404);
 
-        return $this->renderHome($locale, $request, $payload);
+        return $this->renderHome($locale, $request, $payload, $analyticsConfig);
     }
 
-    private function renderHome(string $locale, Request $request, BuildPublicHomePayloadAction $payload): Response
+    private function renderHome(
+        string $locale,
+        Request $request,
+        BuildPublicHomePayloadAction $payload,
+        ResolvePublicAnalyticsConfigAction $analyticsConfig,
+    ): Response
     {
         app()->setLocale($locale);
         $baseUrl = rtrim(config('app.url', $request->getSchemeAndHttpHost()), '/');
@@ -49,6 +64,7 @@ class PublicHomeController extends Controller
             'contactData' => $homePayload['contactData'],
             'events' => $homePayload['events'],
             'seo' => $homePayload['seo'],
+            'analytics' => $analyticsConfig->execute(),
         ]);
     }
 }

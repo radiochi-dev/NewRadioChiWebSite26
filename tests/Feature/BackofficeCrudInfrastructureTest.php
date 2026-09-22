@@ -77,10 +77,12 @@ class BackofficeCrudInfrastructureTest extends TestCase
     {
         $editor = User::factory()->create();
         $editor->assignRole(Role::findOrCreate('editor', 'web'));
+        $token = 'csrf-token-backoffice-crud';
 
         $this->actingAs($editor)
+            ->withSession(['_token' => $token])
             ->from('/backoffice/newsletter-campaigns/create')
-            ->post('/backoffice/newsletter-campaigns/draft', [])
+            ->post('/backoffice/newsletter-campaigns/draft', ['_token' => $token])
             ->assertRedirect('/backoffice/newsletter-campaigns/create')
             ->assertSessionHasErrors(['name', 'subject', 'html_body']);
     }
@@ -89,6 +91,7 @@ class BackofficeCrudInfrastructureTest extends TestCase
     {
         $editor = User::factory()->create();
         $editor->assignRole(Role::findOrCreate('editor', 'web'));
+        $token = 'csrf-token-backoffice-actions';
         $campaign = NewsletterCampaign::query()->create([
             'name' => 'Infra Queue',
             'subject' => 'Infra Queue Subject',
@@ -97,8 +100,10 @@ class BackofficeCrudInfrastructureTest extends TestCase
         ]);
 
         $this->actingAs($editor)
+            ->withSession(['_token' => $token])
             ->from('/backoffice/newsletter-campaigns/'.$campaign->id.'/edit')
             ->post('/backoffice/newsletter-campaigns/actions/queue-campaign', [
+                '_token' => $token,
                 'confirmation' => 'ENCOLAR',
                 'record' => (string) $campaign->id,
             ])
@@ -107,4 +112,3 @@ class BackofficeCrudInfrastructureTest extends TestCase
             ->assertSessionHas('success');
     }
 }
-

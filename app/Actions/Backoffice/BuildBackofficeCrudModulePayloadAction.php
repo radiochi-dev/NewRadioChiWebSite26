@@ -41,13 +41,6 @@ class BuildBackofficeCrudModulePayloadAction
                     'variant' => 'primary',
                     'visible' => $user->canManageBackofficeContent(),
                 ],
-                [
-                    'label' => 'Ver contrato Fase 1',
-                    'href' => 'file:///c:/Users/fernandocardona/Documents/ContentWorkPC26/FCT_MASTER_PLATAFORM/NewRadiochiWebsite26/FASE1_BACKOFFICE_CONTRATO_PARIDAD.md',
-                    'variant' => 'ghost',
-                    'visible' => true,
-                    'external' => true,
-                ],
             ],
             'summaryCards' => [
                 ['label' => 'Columnas', 'value' => (string) count($blueprint['columns']), 'tone' => 'cyan'],
