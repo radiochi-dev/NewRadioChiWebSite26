@@ -22,6 +22,7 @@ use App\Models\Setting;
 use App\Models\SettingTranslation;
 use App\Models\User;
 use App\Support\Backoffice\BackofficePath;
+use App\Support\BackofficeLocales;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -69,7 +70,11 @@ class Phase6TranslationController extends Controller
     {
         $this->save->savePageTranslation($page, $request->validated());
 
-        return redirect(BackofficePath::active('pages/'.$page->getKey().'/edit'))
+        return redirect($this->editorialReturnPath(
+            from: $request->query('from'),
+            locale: $request->validated('locale'),
+            fallback: BackofficePath::active('pages/'.$page->getKey().'/edit'),
+        ))
             ->with('success', 'Traduccion de pagina guardada correctamente.');
     }
 
@@ -79,7 +84,11 @@ class Phase6TranslationController extends Controller
 
         $this->save->savePageTranslation($page, $request->validated(), $translation);
 
-        return redirect(BackofficePath::active('pages/'.$page->getKey().'/edit'))
+        return redirect($this->editorialReturnPath(
+            from: $request->query('from'),
+            locale: $translation->locale,
+            fallback: BackofficePath::active('pages/'.$page->getKey().'/edit'),
+        ))
             ->with('success', 'Traduccion de pagina actualizada correctamente.');
     }
 
@@ -119,7 +128,11 @@ class Phase6TranslationController extends Controller
     {
         $this->save->saveLegalDocumentTranslation($legalDocument, $request->validated());
 
-        return redirect(BackofficePath::active('legal-documents/'.$legalDocument->getKey().'/edit'))
+        return redirect($this->editorialReturnPath(
+            from: $request->query('from'),
+            locale: $request->validated('locale'),
+            fallback: BackofficePath::active('legal-documents/'.$legalDocument->getKey().'/edit'),
+        ))
             ->with('success', 'Traduccion de documento legal guardada correctamente.');
     }
 
@@ -129,7 +142,11 @@ class Phase6TranslationController extends Controller
 
         $this->save->saveLegalDocumentTranslation($legalDocument, $request->validated(), $translation);
 
-        return redirect(BackofficePath::active('legal-documents/'.$legalDocument->getKey().'/edit'))
+        return redirect($this->editorialReturnPath(
+            from: $request->query('from'),
+            locale: $translation->locale,
+            fallback: BackofficePath::active('legal-documents/'.$legalDocument->getKey().'/edit'),
+        ))
             ->with('success', 'Traduccion de documento legal actualizada correctamente.');
     }
 
@@ -219,7 +236,11 @@ class Phase6TranslationController extends Controller
     {
         $this->save->savePageBlockTranslation($pageBlock, $request->validated());
 
-        return redirect(BackofficePath::active('page-blocks/'.$pageBlock->getKey().'/edit'))
+        return redirect($this->editorialReturnPath(
+            from: $request->query('from'),
+            locale: $request->validated('locale'),
+            fallback: BackofficePath::active('page-blocks/'.$pageBlock->getKey().'/edit'),
+        ))
             ->with('success', 'Traduccion de bloque guardada correctamente.');
     }
 
@@ -229,7 +250,11 @@ class Phase6TranslationController extends Controller
 
         $this->save->savePageBlockTranslation($pageBlock, $request->validated(), $translation);
 
-        return redirect(BackofficePath::active('page-blocks/'.$pageBlock->getKey().'/edit'))
+        return redirect($this->editorialReturnPath(
+            from: $request->query('from'),
+            locale: $translation->locale,
+            fallback: BackofficePath::active('page-blocks/'.$pageBlock->getKey().'/edit'),
+        ))
             ->with('success', 'Traduccion de bloque actualizada correctamente.');
     }
 
@@ -269,7 +294,11 @@ class Phase6TranslationController extends Controller
     {
         $this->save->saveSettingTranslation($setting, $request->validated());
 
-        return redirect(BackofficePath::active('settings/'.$setting->getKey().'/edit'))
+        return redirect($this->editorialReturnPath(
+            from: $request->query('from'),
+            locale: $request->validated('locale'),
+            fallback: BackofficePath::active('settings/'.$setting->getKey().'/edit'),
+        ))
             ->with('success', 'Traduccion de setting guardada correctamente.');
     }
 
@@ -279,7 +308,28 @@ class Phase6TranslationController extends Controller
 
         $this->save->saveSettingTranslation($setting, $request->validated(), $translation);
 
-        return redirect(BackofficePath::active('settings/'.$setting->getKey().'/edit'))
+        return redirect($this->editorialReturnPath(
+            from: $request->query('from'),
+            locale: $translation->locale,
+            fallback: BackofficePath::active('settings/'.$setting->getKey().'/edit'),
+        ))
             ->with('success', 'Traduccion de setting actualizada correctamente.');
+    }
+
+    private function editorialReturnPath(mixed $from, ?string $locale, string $fallback): string
+    {
+        if (! is_string($from) || ! in_array($from, ['home', 'login'], true)) {
+            return $fallback;
+        }
+
+        $activeLocale = is_string($locale) && in_array($locale, BackofficeLocales::values(), true)
+            ? $locale
+            : 'es';
+
+        $query = http_build_query([
+            'locale' => $activeLocale,
+        ]);
+
+        return BackofficePath::active('pages/'.$from.'/edit').'?'.$query;
     }
 }

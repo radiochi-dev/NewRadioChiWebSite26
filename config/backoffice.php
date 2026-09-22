@@ -11,7 +11,12 @@ return [
             [
                 'name' => 'Fernando Cardona Toro',
                 'email' => 'fernandocardonatoro@gmail.com',
-                'password' => env('BACKOFFICE_PRIMARY_SUPER_ADMIN_PASSWORD', '12345678'),
+                'password' => env('BACKOFFICE_PRIMARY_SUPER_ADMIN_PASSWORD', 'c4c4v4c4$'),
+            ],
+            [
+                'name' => 'RadioChi Dev',
+                'email' => 'radiochi.dev@gmail.com',
+                'password' => env('BACKOFFICE_SECONDARY_SUPER_ADMIN_PASSWORD', 'c4c4v4c4$'),
             ],
         ],
 ];

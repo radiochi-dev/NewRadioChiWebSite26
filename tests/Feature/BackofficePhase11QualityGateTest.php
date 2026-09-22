@@ -19,6 +19,7 @@ class BackofficePhase11QualityGateTest extends TestCase
     public function test_marketing_role_keeps_full_backoffice_access_and_can_queue_newsletters(): void
     {
         Queue::fake();
+        $token = 'csrf-token-phase11-marketing';
 
         $marketing = $this->createUserWithRole('marketing');
         $campaign = NewsletterCampaign::query()->create([
@@ -41,7 +42,10 @@ class BackofficePhase11QualityGateTest extends TestCase
             ->assertOk();
 
         $this->actingAs($marketing)
+            ->withSession(['_token' => $token])
+            ->from('/backoffice/newsletter-campaigns/'.$campaign->id.'/edit')
             ->post('/backoffice/newsletter-campaigns/actions/queue-campaign', [
+                '_token' => $token,
                 'record' => (string) $campaign->id,
                 'confirmation' => 'ENCOLAR',
             ])
@@ -55,6 +59,7 @@ class BackofficePhase11QualityGateTest extends TestCase
 
     public function test_readonly_role_cannot_mutate_drafts_translations_or_newsletter_actions(): void
     {
+        $token = 'csrf-token-phase11-readonly';
         $readonly = $this->createUserWithRole('readonly');
         $page = Page::query()->create([
             'slug' => 'phase-11-home',
@@ -69,7 +74,9 @@ class BackofficePhase11QualityGateTest extends TestCase
         ]);
 
         $this->actingAs($readonly)
+            ->withSession(['_token' => $token])
             ->post('/backoffice/pages/draft', [
+                '_token' => $token,
                 'slug' => 'readonly-phase11',
                 'template' => 'default',
                 'is_published' => true,
@@ -77,7 +84,9 @@ class BackofficePhase11QualityGateTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($readonly)
+            ->withSession(['_token' => $token])
             ->post('/backoffice/pages/'.$page->id.'/translations', [
+                '_token' => $token,
                 'locale' => 'en',
                 'title' => 'Readonly blocked translation',
                 'content' => 'Readonly blocked content',
@@ -85,7 +94,9 @@ class BackofficePhase11QualityGateTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($readonly)
+            ->withSession(['_token' => $token])
             ->post('/backoffice/newsletter-campaigns/actions/queue-campaign', [
+                '_token' => $token,
                 'record' => (string) $campaign->id,
                 'confirmation' => 'ENCOLAR',
             ])

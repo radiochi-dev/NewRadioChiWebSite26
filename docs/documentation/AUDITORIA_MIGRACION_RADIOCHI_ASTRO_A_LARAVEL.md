@@ -12,10 +12,16 @@
 >
 > Regla de uso segura:
 > - usar este archivo solo como baseline historico y mapa de brechas antiguas,
-> - no usar sus estados `PENDIENTE` / `PARCIAL` como backlog operativo actual sin contrastarlos antes con `PLAN-REMAKE.md`, `docs/plans/PLAN_BACKEND_React_inertia_Tailwind.md` y la documentacion `FASE*.md`.
+> - no usar sus estados `PENDIENTE` / `PARCIAL` como backlog operativo actual sin contrastarlos antes con `docs/plans/PLAN-REMAKE.md`, `docs/plans/PLAN_BACKEND_React_inertia_Tailwind.md` y la documentacion `FASE*.md`.
 >
 > Siguiente punto seguro de implementacion tras esta alineacion:
 > - `GA4 + eventos de navegacion y conversion del frontend publico`, de forma aditiva, condicionada por `env/settings` y sin tocar la maquetacion.
+>
+> Cierre documental 2026-09-22:
+> - la importacion masiva legacy/i18n ya esta implementada mediante `legacy:import-content` y validada por `Phase5LegacyImportTest`,
+> - la base de automatizacion `n8n/Ollama` ya esta implementada con servicios Docker, acciones firmadas, webhooks internos y `Phase8ProductionAutomationTest`,
+> - el hardening base del backoffice ya quedo cerrado en `FASE11_BACKOFFICE_QA_SEGURIDAD_DOD.md`,
+> - los pendientes reales previos a produccion deben leerse desde `docs/plans/Recordar_antes_Depoly _Produccion.md`.
 
 ## 1) Objetivo del documento
 

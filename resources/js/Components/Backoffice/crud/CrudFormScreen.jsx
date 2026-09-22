@@ -124,8 +124,8 @@ export default function CrudFormScreen({
 
                     {form.relationManagers.length ? (
                         <Panel
-                            title="Relaciones y traducciones"
-                            description="Patron reusable para relation managers, bloques hijos y traducciones por locale."
+                            title={form.relationManagersTitle ?? 'Relaciones y traducciones'}
+                            description={form.relationManagersDescription ?? 'Patron reusable para relation managers, bloques hijos y traducciones por locale.'}
                         >
                             <div className="grid gap-4 xl:grid-cols-2">
                                 {form.relationManagers.map((item) => (
@@ -176,27 +176,16 @@ export default function CrudFormScreen({
                         </Panel>
                     ) : null}
 
-                    <Panel
-                        title="Checklist de pruebas del modulo"
-                        description="Base minima que cada modulo migrado debera cubrir al aterrizar la persistencia real."
-                    >
-                        <div className="space-y-3">
-                            {form.testChecklist.map((item) => (
-                                <div key={item} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/70">
-                                    {item}
-                                </div>
-                            ))}
-                        </div>
-                    </Panel>
-
-                    <section className="flex flex-wrap items-center justify-end gap-3">
-                        <Button href={breadcrumbs[breadcrumbs.length - 2]?.href} variant="ghost">
-                            Cancelar
-                        </Button>
-                        <Button type="submit" variant="primary" disabled={!capabilities.canSubmit || inertiaForm.processing}>
-                            {inertiaForm.processing ? 'Guardando...' : form.submitLabel ?? 'Guardar'}
-                        </Button>
-                    </section>
+                    {!form.hideSubmit ? (
+                        <section className="flex flex-wrap items-center justify-end gap-3">
+                            <Button href={breadcrumbs[breadcrumbs.length - 2]?.href} variant="ghost">
+                                Cancelar
+                            </Button>
+                            <Button type="submit" variant="primary" disabled={!capabilities.canSubmit || inertiaForm.processing}>
+                                {inertiaForm.processing ? 'Guardando...' : form.submitLabel ?? 'Guardar'}
+                            </Button>
+                        </section>
+                    ) : null}
                 </form>
             </div>
         </BackofficeLayout>

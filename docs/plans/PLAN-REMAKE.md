@@ -12,8 +12,8 @@
 
 **Estado:** COMPLETADA
 
-- [x] ~~Corregir la referencia documental de `PLAN-REMAKE.md` al path real de `PLAN_BACKEND_React_inertia_Tailwind.md`.~~
-- [x] ~~Alinear `AUDITORIA_MIGRACION_RADIOCHI_ASTRO_A_LARAVEL.md` con el estado real del repo para no reabrir decisiones ya cerradas.~~
+- [x] ~~Corregir la referencia documental de `docs/plans/PLAN-REMAKE.md` al path real de `docs/plans/PLAN_BACKEND_React_inertia_Tailwind.md`.~~
+- [x] ~~Alinear `docs/documentation/AUDITORIA_MIGRACION_RADIOCHI_ASTRO_A_LARAVEL.md` con el estado real del repo para no reabrir decisiones ya cerradas.~~
 - [x] ~~Resolver la configuracion publica GA4 por `env` y `settings`, sin hardcodes.~~
 - [x] ~~Bloquear la carga real del script fuera de produccion y cuando no exista `measurement_id`.~~
 - [x] ~~Disparar `page_view` por ruta/locale del frontend publico.~~
@@ -31,11 +31,20 @@
 - [x] ~~Validar en navegador real local que, con la compuerta cerrada, no se inyecta `gtag.js` ni aparecen requests a Google Analytics/Tag Manager.~~
 - [x] ~~Alinear dinamicamente el contenido legal de privacidad/cookies/terminos con el estado real del tracking para evitar textos falsos cuando GA4 quede activado.~~
 - [x] ~~Validar por tests que la parte legal sigue diciendo "sin tracking" cuando GA4 no esta activo y cambia a texto compatible con Google Analytics 4 cuando la activacion es real.~~
-- [x] ~~Documentar en `Recordar_antes_Depoly _Produccion.md` los pendientes obligatorios antes del despliegue real a produccion para que no se olvide la activacion final de GA4.~~
+- [x] ~~Documentar en `docs/plans/Recordar_antes_Depoly _Produccion.md` los pendientes obligatorios antes del despliegue real a produccion para que no se olvide la activacion final de GA4.~~
 - [ ] Definir el `GA4_MEASUREMENT_ID` real de produccion.
 - [ ] Actualizar el texto legal/cookies antes de encender tracking real en produccion.
 - [ ] Validar en navegador real la emision de `page_view`, `hero_cta_click`, `event_ticket_click`, `youtube_channel_click` y `social_click` con una propiedad GA4 real o de staging.
 - [ ] Crear el commit de cierre de esta activacion controlada cuando los puntos anteriores queden realmente cerrados.
+
+### Fase post-plan. Consolidacion de pendientes reales
+
+**Estado:** COMPLETADA
+
+- [x] ~~Confirmar por tests que la importacion masiva legacy/i18n ya esta implementada y no debe seguir tratandose como pendiente operativo.~~
+- [x] ~~Confirmar por tests que la base de automatizacion `n8n/Ollama` ya esta implementada en repo y no debe seguir tratandose como pendiente de implementacion base.~~
+- [x] ~~Corregir la suite de QA de Fase 11 para que los POST autenticados validen el contrato real con CSRF explicito.~~
+- [x] ~~Centralizar en `docs/plans/Recordar_antes_Depoly _Produccion.md` los pendientes reales de release, operacion y rendimiento que siguen abiertos fuera de GA4.~~
 
 ## Objetivo
 
@@ -96,7 +105,7 @@ Llevar el proyecto actual a un estado que cumpla de forma verificable estos requ
 
 ## Auditoria base de documentos guia
 
-### Hallazgos trasladados desde `MASTER_ARCHITECTURE_PLAN.md`
+### Hallazgos trasladados desde `docs/documentation/MASTER_ARCHITECTURE_PLAN.md`
 
 1. El documento sigue orientado a una estrategia dual RadioChi + Neway en el mismo VPS. Para este repo, el plan operativo debe centrarse primero en RadioChi y dejar cualquier coexistencia multiapp como capacidad futura, no como eje del remake.
 2. El documento sigue mencionando Laravel 12 como stack objetivo de RadioChi. Debe alinearse a Laravel 13.
@@ -107,7 +116,7 @@ Llevar el proyecto actual a un estado que cumpla de forma verificable estos requ
    - politicas de seguridad para esas integraciones.
 4. El documento habla de CMS minimo viable, pero el requisito actual es CMS completo administrable al 100%.
 
-### Hallazgos trasladados desde `RADIOCHI_TECHNICAL_BLUEPRINT.md`
+### Hallazgos trasladados desde `docs/documentation/RADIOCHI_TECHNICAL_BLUEPRINT.md`
 
 1. El blueprint sigue anclado a Laravel 12 y debe corregirse a Laravel 13.
 2. El blueprint reconoce preparacion n8n/Ollama como pendiente, pero no la desarrolla en un plan de infraestructura y aplicacion.

@@ -45,7 +45,7 @@ export default function Login({ title, description, footer }) {
                 </div>
 
                 <div className="relative z-10 flex min-h-screen flex-col">
-                    <main className="flex flex-1 items-center justify-center px-5 py-8">
+                    <main className="flex flex-1 items-center justify-center px-5 py-8 pb-24 lg:pb-32">
                         <div className="w-full max-w-2xl">
                             <div className="mx-auto max-w-xl text-center">
                                 <img

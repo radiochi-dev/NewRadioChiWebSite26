@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Event;
+use App\Models\LegalDocument;
 use App\Models\Page;
 use App\Models\PageBlock;
 use App\Models\SeoMeta;
@@ -70,7 +71,10 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleIndex')
                 ->where('title', 'Paginas')
-                ->has('table.rows', 1));
+                ->where('capabilities.canCreate', false)
+                ->has('table.rows', 2)
+                ->where('table.rows.0.cells.0.value', 'Home')
+                ->where('table.rows.1.cells.0.value', 'Login'));
 
         $this->actingAs($editor)
             ->get('/backoffice/page-blocks')
@@ -130,8 +134,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
     {
         $editor = $this->createUserWithRole('editor');
 
-        $this->actingAs($editor)
-            ->post('/backoffice/events/draft', [
+        $this->postWithCsrf($editor, '/backoffice/events/draft', [
                 'slug' => 'phase6-event',
                 'title' => 'Phase 6 Event',
                 'location' => 'Barcelona',
@@ -149,8 +152,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             'location' => 'Barcelona',
         ]);
 
-        $this->actingAs($editor)
-            ->post('/backoffice/events/draft/'.$event->id, [
+        $this->postWithCsrf($editor, '/backoffice/events/draft/'.$event->id, [
                 'slug' => 'phase6-event',
                 'title' => 'Phase 6 Event Updated',
                 'location' => 'Madrid',
@@ -170,8 +172,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
     {
         $editor = $this->createUserWithRole('editor');
 
-        $this->actingAs($editor)
-            ->post('/backoffice/pages/draft', [
+        $this->postWithCsrf($editor, '/backoffice/pages/draft', [
                 'slug' => 'phase6-page',
                 'template' => 'home',
                 'is_published' => true,
@@ -180,15 +181,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
 
         $page = Page::query()->where('slug', 'phase6-page')->firstOrFail();
 
-        $this->actingAs($editor)
-            ->get('/backoffice/pages/'.$page->id.'/edit')
-            ->assertOk()
-            ->assertInertia(fn (Assert $inertia) => $inertia
-                ->component('Backoffice/Preview/ModuleForm')
-                ->has('form.relationManagers', 2));
-
-        $this->actingAs($editor)
-            ->post('/backoffice/pages/'.$page->id.'/translations', [
+        $this->postWithCsrf($editor, '/backoffice/pages/'.$page->id.'/translations', [
                 'locale' => 'es',
                 'title' => 'Pagina Phase 6',
                 'meta_title' => 'Meta fase 6',
@@ -206,8 +199,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             'title' => 'Pagina Phase 6',
         ]);
 
-        $this->actingAs($editor)
-            ->post('/backoffice/pages/'.$page->id.'/translations/'.$translation->id, [
+        $this->postWithCsrf($editor, '/backoffice/pages/'.$page->id.'/translations/'.$translation->id, [
                 'title' => 'Pagina Phase 6 Updated',
                 'meta_title' => 'Meta fase 6 updated',
                 'meta_description' => 'Descripcion actualizada',
@@ -221,6 +213,131 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
         ]);
     }
 
+    public function test_page_translation_forms_expose_locale_buttons_and_prefill_requested_locale(): void
+    {
+        $editor = $this->createUserWithRole('editor');
+        $page = Page::query()->create([
+            'slug' => 'phase6-multilang-page',
+            'template' => 'home',
+            'is_published' => true,
+        ]);
+
+        $translation = $page->translations()->create([
+            'locale' => 'es',
+            'title' => 'Pagina ES',
+            'content' => ['headline' => 'Hola'],
+        ]);
+
+        $this->actingAs($editor)
+            ->get('/backoffice/pages/'.$page->id.'/translations/create?locale=fr')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.defaults.locale', 'fr')
+                ->missing('form.testChecklist')
+                ->has('actions', 7));
+
+        $this->actingAs($editor)
+            ->get('/backoffice/pages/'.$page->id.'/translations/'.$translation->id.'/edit')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.defaults.locale', 'es')
+                ->where('actions.1.label', 'ES')
+                ->where('actions.2.label', 'EN +'));
+    }
+
+    public function test_home_editor_lists_editorial_sections_instead_of_technical_relations(): void
+    {
+        $editor = $this->createUserWithRole('editor');
+
+        foreach (['home', 'about', 'music', 'calendar', 'media', 'contact'] as $slug) {
+            Page::query()->create([
+                'slug' => $slug,
+                'template' => $slug,
+                'is_published' => true,
+            ]);
+        }
+
+        Setting::query()->create(['group' => 'header', 'key' => 'open_menu', 'type' => 'json', 'is_translatable' => true, 'is_public' => true]);
+        Setting::query()->create(['group' => 'header', 'key' => 'menu', 'type' => 'json', 'is_translatable' => true, 'is_public' => true]);
+        Setting::query()->create(['group' => 'intro', 'key' => 'welcome', 'type' => 'json', 'is_translatable' => true, 'is_public' => true]);
+        Setting::query()->create(['group' => 'footer', 'key' => 'credits', 'type' => 'json', 'is_translatable' => true, 'is_public' => true]);
+        Setting::query()->create(['group' => 'legal', 'key' => 'buttons', 'type' => 'json', 'is_translatable' => true, 'is_public' => true]);
+        Setting::query()->create(['group' => 'media', 'key' => 'youtube_channel_url', 'type' => 'json', 'is_translatable' => true, 'is_public' => true]);
+
+        foreach (['terms', 'privacy', 'cookies'] as $position => $slug) {
+            LegalDocument::query()->create([
+                'slug' => $slug,
+                'document_type' => $slug,
+                'position' => $position + 1,
+                'is_published' => true,
+            ]);
+        }
+
+        $home = Page::query()->where('slug', 'home')->firstOrFail();
+
+        $this->actingAs($editor)
+            ->get('/backoffice/pages/'.$home->id.'/edit?locale=en')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('title', 'Editar Home')
+                ->where('form.hideSubmit', true)
+                ->where('form.relationManagers.0.label', 'Hero / Home')
+                ->where('form.relationManagers.1.label', 'About')
+                ->where('form.relationManagers.6.label', 'Navegacion y footer')
+                ->where('form.relationManagers.7.label', 'Modales legales')
+                ->has('actions', 7));
+    }
+
+    public function test_hero_block_translation_form_exposes_typed_fields_and_shared_assets(): void
+    {
+        $editor = $this->createUserWithRole('editor');
+        $page = Page::query()->create([
+            'slug' => 'home',
+            'template' => 'home',
+            'is_published' => true,
+        ]);
+
+        $block = PageBlock::query()->create([
+            'page_id' => $page->id,
+            'key' => 'hero-slide-01',
+            'type' => 'hero_slide',
+            'position' => 1,
+            'is_active' => true,
+            'settings' => [
+                'logo' => '/logo.svg',
+                'logoPosition' => 'left',
+                'personImage' => '/person.webp',
+                'elipseImage' => '/elipse.webp',
+            ],
+        ]);
+
+        $translation = $block->translations()->create([
+            'locale' => 'es',
+            'content' => [
+                'title' => 'Bienvenidos',
+                'subtitle' => 'Subtitulo',
+                'description' => 'Descripcion',
+                'buttonText' => 'Escuchar',
+                'link' => 'https://example.com',
+                'event' => '2026-06-03',
+            ],
+        ]);
+
+        $this->actingAs($editor)
+            ->get('/backoffice/page-blocks/'.$block->id.'/translations/'.$translation->id.'/edit?locale=es&from=home')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.defaults.title', 'Bienvenidos')
+                ->where('form.defaults.button_text', 'Escuchar')
+                ->where('form.defaults.person_image', '/person.webp')
+                ->where('form.defaults.logo_position', 'left')
+                ->missing('form.testChecklist'));
+    }
+
     public function test_editor_can_create_page_block_and_manage_translation_from_backoffice_preview(): void
     {
         $editor = $this->createUserWithRole('editor');
@@ -229,8 +346,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             'template' => 'about',
         ]);
 
-        $this->actingAs($editor)
-            ->post('/backoffice/page-blocks/draft', [
+        $this->postWithCsrf($editor, '/backoffice/page-blocks/draft', [
                 'page_id' => $page->id,
                 'key' => 'about-step-01',
                 'type' => 'about_step',
@@ -242,8 +358,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
 
         $block = PageBlock::query()->where('key', 'about-step-01')->firstOrFail();
 
-        $this->actingAs($editor)
-            ->post('/backoffice/page-blocks/'.$block->id.'/translations', [
+        $this->postWithCsrf($editor, '/backoffice/page-blocks/'.$block->id.'/translations', [
                 'locale' => 'en',
                 'content' => json_encode(['title' => 'About step'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             ])
@@ -262,8 +377,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
     {
         $editor = $this->createUserWithRole('editor');
 
-        $this->actingAs($editor)
-            ->post('/backoffice/settings/draft', [
+        $this->postWithCsrf($editor, '/backoffice/settings/draft', [
                 'group' => 'footer',
                 'key' => 'credits',
                 'type' => 'json',
@@ -276,8 +390,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
 
         $setting = Setting::query()->where('group', 'footer')->where('key', 'credits')->firstOrFail();
 
-        $this->actingAs($editor)
-            ->post('/backoffice/settings/'.$setting->id.'/translations', [
+        $this->postWithCsrf($editor, '/backoffice/settings/'.$setting->id.'/translations', [
                 'locale' => 'it',
                 'value' => json_encode(['label' => 'Crediti'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             ])
@@ -296,8 +409,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
     {
         $editor = $this->createUserWithRole('editor');
 
-        $this->actingAs($editor)
-            ->post('/backoffice/seo-metas/draft', [
+        $this->postWithCsrf($editor, '/backoffice/seo-metas/draft', [
                 'entity_type' => 'page',
                 'entity_id' => 1,
                 'locale' => 'es',
@@ -310,8 +422,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->actingAs($editor)
-            ->post('/backoffice/seo-metas/draft', [
+        $this->postWithCsrf($editor, '/backoffice/seo-metas/draft', [
                 'entity_type' => 'page',
                 'entity_id' => 1,
                 'locale' => 'es',
@@ -340,5 +451,16 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
 
         return $user;
     }
-}
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function postWithCsrf(User $user, string $uri, array $data = [])
+    {
+        $token = 'csrf-backoffice-phase6-test';
+
+        return $this->actingAs($user)
+            ->withSession(['_token' => $token])
+            ->post($uri, array_merge(['_token' => $token], $data));
+    }
+}

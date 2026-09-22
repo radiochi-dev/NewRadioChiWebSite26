@@ -103,8 +103,14 @@ class SaveBackofficePhase6ModuleAction
      */
     public function savePageBlockTranslation(PageBlock $block, array $data, ?PageBlockTranslation $translation = null): PageBlockTranslation
     {
+        if (array_key_exists('settings', $data) && is_array($data['settings'])) {
+            $block->update([
+                'settings' => $data['settings'],
+            ]);
+        }
+
         if ($translation instanceof PageBlockTranslation) {
-            $translation->update(Arr::except($data, ['locale']));
+            $translation->update(Arr::except($data, ['locale', 'settings']));
 
             /** @var PageBlockTranslation $translation */
             return $translation->fresh();
@@ -113,7 +119,7 @@ class SaveBackofficePhase6ModuleAction
         /** @var PageBlockTranslation $translation */
         $translation = $block->translations()->updateOrCreate(
             ['locale' => $data['locale']],
-            Arr::except($data, ['locale']),
+            Arr::except($data, ['locale', 'settings']),
         );
 
         return $translation;

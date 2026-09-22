@@ -51,7 +51,7 @@ Esta planificacion se apoya en:
 
 ## Fuentes de verdad del proyecto
 
-- `PLAN-REMAKE.md`
+- `docs/plans/PLAN-REMAKE.md`
 - este archivo `PLAN_BACKEND_React_inertia_Tailwind.md`
 
 ## Criterio de paridad exacta

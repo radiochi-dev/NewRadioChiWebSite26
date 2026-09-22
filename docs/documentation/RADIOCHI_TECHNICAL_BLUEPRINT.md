@@ -3,6 +3,14 @@
 
 Este documento define, paso por paso, la creación de New RadioChi desde cero en un repositorio independiente, sin afectar el proyecto Astro actual.
 
+> Actualizacion operativa 2026-09-22:
+> este blueprint queda como documento historico de diseño.
+> El estado real actual del repo ya no coincide con varios estados parciales aqui descritos:
+> - la importacion masiva legacy/i18n ya esta implementada mediante `legacy:import-content`,
+> - la base de automatizacion `n8n/Ollama` ya esta implementada y validada por tests,
+> - el hardening base y QA de cierre del backoffice ya quedaron cerrados en `docs/documentation/FASE11_BACKOFFICE_QA_SEGURIDAD_DOD.md`,
+> - los pendientes reales previos a produccion quedan centralizados en `docs/plans/Recordar_antes_Depoly _Produccion.md`.
+
 ---
 
 ## 1. Objetivo de esta guía

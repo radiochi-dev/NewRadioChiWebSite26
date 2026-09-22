@@ -9,6 +9,7 @@ use App\Models\SeoMeta;
 use App\Models\Setting;
 use App\Models\SocialLink;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class Phase7PublicCmsPayloadTest extends TestCase
@@ -93,5 +94,21 @@ class Phase7PublicCmsPayloadTest extends TestCase
         $this->assertSame('Terms via CMS', data_get($payload, 'content.termsPolicyCookies.terms_button'));
         $this->assertSame('UPCOMING EVENTS', data_get($payload, 'calendarData.translations.title'));
         $this->assertSame('English description from CMS', data_get($payload, 'seo.description'));
+    }
+
+    public function test_phase_7_explicit_spanish_route_wins_even_if_browser_cookie_points_to_another_locale(): void
+    {
+        $this->artisan('legacy:import-content')->assertExitCode(0);
+
+        $this->withCookie('radiochi_locale', 'en')
+            ->get('/es')
+            ->assertOk()
+            ->assertCookie('radiochi_locale', 'es')
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Home')
+                ->where('locale', 'es')
+                ->where('currentPath', '/es')
+                ->has('content.home.slides', 6)
+                ->where('content.home.slides.0.title', 'Bienvenidos a RadioChi'));
     }
 }

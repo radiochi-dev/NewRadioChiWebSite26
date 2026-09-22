@@ -13,6 +13,8 @@ use App\Models\Partner;
 use App\Models\SeoMeta;
 use App\Models\Setting;
 use App\Models\SocialLink;
+use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -110,5 +112,30 @@ class Phase5LegacyImportTest extends TestCase
             $supportedLocales,
             SeoMeta::query()->pluck('locale')->all(),
         );
+    }
+
+    public function test_database_seeder_bootstraps_super_admins_and_cms_content_for_a_clean_environment(): void
+    {
+        config()->set('backoffice.super_admins', [
+            [
+                'name' => 'Fernando Cardona Toro',
+                'email' => 'fernandocardonatoro@gmail.com',
+                'password' => 'c4c4v4c4$',
+            ],
+            [
+                'name' => 'RadioChi Dev',
+                'email' => 'radiochi.dev@gmail.com',
+                'password' => 'c4c4v4c4$',
+            ],
+        ]);
+
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertTrue(User::query()->where('email', 'fernandocardonatoro@gmail.com')->exists());
+        $this->assertTrue(User::query()->where('email', 'radiochi.dev@gmail.com')->exists());
+        $this->assertGreaterThan(0, Page::query()->count());
+        $this->assertGreaterThan(0, Setting::query()->count());
+        $this->assertGreaterThan(0, LegalDocument::query()->count());
+        $this->assertGreaterThan(0, SocialLink::query()->count());
     }
 }

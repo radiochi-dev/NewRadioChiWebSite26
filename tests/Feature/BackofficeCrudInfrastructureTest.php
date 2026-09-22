@@ -31,7 +31,7 @@ class BackofficeCrudInfrastructureTest extends TestCase
                 ->where('filters.0.key', 'location')
                 ->has('table.bulkActions', 0)
                 ->has('table.pagination')
-                ->has('testChecklist', 5));
+                ->missing('testChecklist'));
     }
 
     public function test_readonly_can_view_crud_index_preview_but_without_bulk_actions(): void
@@ -60,17 +60,17 @@ class BackofficeCrudInfrastructureTest extends TestCase
         $editor->assignRole(Role::findOrCreate('editor', 'web'));
 
         $this->actingAs($editor)
-            ->get('/backoffice/pages/create')
+            ->get('/backoffice/events/create')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Backoffice/Preview/ModuleForm')
-                ->where('form.action', '/backoffice/pages/draft')
+                ->where('form.action', '/backoffice/events/draft')
                 ->has('form.sections')
-                ->has('form.relationManagers', 2)
+                ->has('form.relationManagers', 0)
                 ->has('form.specialActions', 0)
                 ->has('form.dangerousActions', 0)
                 ->has('form.validationSummary')
-                ->has('form.testChecklist', 6));
+                ->missing('form.testChecklist'));
     }
 
     public function test_crud_draft_preview_uses_form_request_validation_and_returns_errors(): void

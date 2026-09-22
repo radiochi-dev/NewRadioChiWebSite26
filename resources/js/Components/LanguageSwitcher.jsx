@@ -2,10 +2,9 @@ import { Link } from '@inertiajs/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 function localePath(locale, currentPath) {
-    const cleanedPath = currentPath.replace(/^\/(es|en|ca|fr|it|de)/, '') || '/'
-    if (locale === 'es') {
-        return cleanedPath
-    }
+    const normalizedPath = typeof currentPath === 'string' && currentPath.trim() !== '' ? currentPath : '/'
+    const cleanedPath = normalizedPath.replace(/^\/(es|en|ca|fr|it|de)(?=\/|$)/, '') || '/'
+
     return `/${locale}${cleanedPath === '/' ? '' : cleanedPath}`
 }
 

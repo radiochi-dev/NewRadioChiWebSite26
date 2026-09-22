@@ -60,12 +60,6 @@ class AuthenticateBackofficeUserAction
             return;
         }
 
-        $user = User::query()->where('email', $configuredSuperAdmin['email'])->first();
-
-        if ($user instanceof User) {
-            return;
-        }
-
         $data = [
             'email' => $configuredSuperAdmin['email'],
             'name' => $configuredSuperAdmin['name'],
@@ -77,6 +71,9 @@ class AuthenticateBackofficeUserAction
             $data['role'] = 'SuperAdmin';
         }
 
-        User::query()->create($data);
+        User::query()->updateOrCreate(
+            ['email' => $configuredSuperAdmin['email']],
+            $data,
+        );
     }
 }

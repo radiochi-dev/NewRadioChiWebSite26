@@ -51,6 +51,8 @@ class BuildBackofficeAuthFooterPayloadAction
             'socialLinks' => $socialLinks
                 ->map(fn (SocialLink $socialLink): array => [
                     'label' => $socialLink->label ?: ucfirst($socialLink->platform),
+                    'platform' => $socialLink->platform,
+                    'iconKey' => $socialLink->icon_key,
                     'url' => $socialLink->url,
                 ])
                 ->values()

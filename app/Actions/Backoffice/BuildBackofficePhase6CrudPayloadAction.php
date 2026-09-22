@@ -24,6 +24,7 @@ use App\Models\SettingTranslation;
 use App\Models\SocialLink;
 use App\Models\User;
 use App\Support\Backoffice\BackofficePath;
+use App\Support\BackofficeLocales;
 use App\Support\Backoffice\Phase6ModuleCatalog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -38,6 +39,10 @@ class BuildBackofficePhase6CrudPayloadAction
      */
     public function index(User $user, string $slug, array $query = []): array
     {
+        if ($slug === 'pages') {
+            return $this->editorialPagesIndex($user, $query);
+        }
+
         $module = $this->module($slug);
         $filters = $this->filtersFor($slug, $module['filters']);
         $normalized = $this->normalizeIndexQuery($module, $filters, $query);
@@ -100,7 +105,6 @@ class BuildBackofficePhase6CrudPayloadAction
                 'canDelete' => false,
                 'canView' => $user->canViewBackofficeContent(),
             ],
-            'testChecklist' => Phase6ModuleCatalog::testChecklist($slug),
         ];
 
         return $payload;
@@ -112,6 +116,12 @@ class BuildBackofficePhase6CrudPayloadAction
      */
     public function form(User $user, string $slug, string $mode, ?string $record = null, array $oldInput = []): array
     {
+        if ($slug === 'pages') {
+            abort_if($mode !== 'edit' || ! is_string($record) || trim($record) === '', 404);
+
+            return $this->editorialPageForm($user, $record, request()->query('locale'));
+        }
+
         $module = $this->module($slug);
         $recordModel = $record ? $this->resolveRecord($slug, $record) : null;
         $readOnly = Phase6ModuleCatalog::isReadOnly($slug);
@@ -138,6 +148,7 @@ class BuildBackofficePhase6CrudPayloadAction
                     'variant' => 'ghost',
                     'visible' => true,
                 ],
+                ...$this->localeHeaderActionsFor($slug, $recordModel),
             ],
             'summaryCards' => [
                 ['label' => 'Modo', 'value' => strtoupper($mode), 'tone' => 'cyan'],
@@ -155,7 +166,6 @@ class BuildBackofficePhase6CrudPayloadAction
                 'specialActions' => $this->specialActions($slug, $recordModel),
                 'dangerousActions' => [],
                 'validationSummary' => $this->validationSummary($slug),
-                'testChecklist' => Phase6ModuleCatalog::testChecklist($slug),
             ],
             'capabilities' => [
                 'canSubmit' => ! $readOnly && $user->canManageBackofficeContent(),
@@ -170,40 +180,41 @@ class BuildBackofficePhase6CrudPayloadAction
      */
     public function pageTranslationForm(User $user, Page $page, ?PageTranslation $translation, array $oldInput = []): array
     {
+        $schema = $this->pageTranslationSchema($page);
+
         return $this->translationFormPayload(
             user: $user,
             title: $translation ? 'Editar traduccion de pagina' : 'Crear traduccion de pagina',
-            description: 'Paridad React/Inertia del relation manager de traducciones de paginas.',
-            action: BackofficePath::active('pages/'.$page->getKey().'/translations'.($translation ? '/'.$translation->getKey() : '')),
-            defaults: $this->translationDefaults(
-                Phase6ModuleCatalog::pageTranslationForm()['fields'],
-                $translation,
-                $oldInput,
+            description: $schema['description'],
+            action: $this->withEditorQuery(
+                BackofficePath::active('pages/'.$page->getKey().'/translations'.($translation ? '/'.$translation->getKey() : '')),
+                $translation?->locale ?? request()->query('locale'),
+                request()->query('from'),
             ),
-            fields: $this->translationFields(
-                Phase6ModuleCatalog::pageTranslationForm()['fields'],
-                $translation !== null,
-            ),
+            defaults: $this->translationDefaults($schema['fields'], $translation, $oldInput, request()->query('locale')),
+            fields: $this->translationFields($schema['fields'], $translation !== null),
             breadcrumbs: [
                 ['label' => 'Backoffice', 'href' => BackofficePath::active()],
                 ['label' => 'Paginas', 'href' => BackofficePath::active('pages')],
-                ['label' => 'Editar Pagina', 'href' => BackofficePath::active('pages/'.$page->getKey().'/edit')],
+                ['label' => 'Editar Pagina', 'href' => BackofficePath::active('pages/'.$page->getKey().'/edit').'?locale='.($translation?->locale ?? request()->query('locale', 'es'))],
                 ['label' => $translation ? 'Editar traduccion' : 'Nueva traduccion', 'href' => null],
             ],
             relationManagers: [
                 [
                     'label' => 'Pagina propietaria',
-                    'description' => 'La traduccion se guarda mediante `updateOrCreate` por `page_id + locale`, igual que el flujo legacy y Filament.',
+                    'description' => 'La traduccion se guarda sobre `page_translations` sin romper el contrato actual del frontend publico.',
                     'items' => [
                         [
                             'id' => 'page-'.$page->getKey(),
                             'label' => $page->slug,
                             'meta' => 'Template: '.$page->template,
-                            'href' => BackofficePath::active('pages/'.$page->getKey().'/edit'),
+                            'href' => BackofficePath::active('pages/'.$page->getKey().'/edit').'?locale='.($translation?->locale ?? request()->query('locale', 'es')),
                         ],
                     ],
                 ],
             ],
+            actions: $this->pageTranslationHeaderActions($page, $translation),
+            validationSummary: $schema['validationSummary'],
         );
     }
 
@@ -213,20 +224,23 @@ class BuildBackofficePhase6CrudPayloadAction
      */
     public function pageBlockTranslationForm(User $user, PageBlock $block, ?PageBlockTranslation $translation, array $oldInput = []): array
     {
+        if ($translation instanceof PageBlockTranslation) {
+            $translation->setRelation('pageBlock', $block);
+        }
+
+        $schema = $this->pageBlockTranslationSchema($block);
+
         return $this->translationFormPayload(
             user: $user,
             title: $translation ? 'Editar traduccion de bloque' : 'Crear traduccion de bloque',
-            description: 'Paridad React/Inertia del relation manager de traducciones de bloques editoriales.',
-            action: BackofficePath::active('page-blocks/'.$block->getKey().'/translations'.($translation ? '/'.$translation->getKey() : '')),
-            defaults: $this->translationDefaults(
-                Phase6ModuleCatalog::pageBlockTranslationForm()['fields'],
-                $translation,
-                $oldInput,
+            description: $schema['description'],
+            action: $this->withEditorQuery(
+                BackofficePath::active('page-blocks/'.$block->getKey().'/translations'.($translation ? '/'.$translation->getKey() : '')),
+                $translation?->locale ?? request()->query('locale'),
+                request()->query('from'),
             ),
-            fields: $this->translationFields(
-                Phase6ModuleCatalog::pageBlockTranslationForm()['fields'],
-                $translation !== null,
-            ),
+            defaults: $this->translationDefaults($schema['fields'], $translation, $oldInput, request()->query('locale')),
+            fields: $this->translationFields($schema['fields'], $translation !== null),
             breadcrumbs: [
                 ['label' => 'Backoffice', 'href' => BackofficePath::active()],
                 ['label' => 'Bloques de pagina', 'href' => BackofficePath::active('page-blocks')],
@@ -236,7 +250,7 @@ class BuildBackofficePhase6CrudPayloadAction
             relationManagers: [
                 [
                     'label' => 'Bloque propietario',
-                    'description' => 'La traduccion se guarda mediante `updateOrCreate` por `page_block_id + locale`.',
+                    'description' => 'El formulario separa texto traducible y assets compartidos del bloque sin cambiar el modelo `page_blocks` + `page_block_translations`.',
                     'items' => [
                         [
                             'id' => 'block-'.$block->getKey(),
@@ -247,6 +261,7 @@ class BuildBackofficePhase6CrudPayloadAction
                     ],
                 ],
             ],
+            validationSummary: $schema['validationSummary'],
         );
     }
 
@@ -256,20 +271,19 @@ class BuildBackofficePhase6CrudPayloadAction
      */
     public function settingTranslationForm(User $user, Setting $setting, ?SettingTranslation $translation, array $oldInput = []): array
     {
+        $schema = $this->settingTranslationSchema($setting);
+
         return $this->translationFormPayload(
             user: $user,
             title: $translation ? 'Editar traduccion de setting' : 'Crear traduccion de setting',
-            description: 'Paridad React/Inertia del relation manager de traducciones de settings.',
-            action: BackofficePath::active('settings/'.$setting->getKey().'/translations'.($translation ? '/'.$translation->getKey() : '')),
-            defaults: $this->translationDefaults(
-                Phase6ModuleCatalog::settingTranslationForm()['fields'],
-                $translation,
-                $oldInput,
+            description: $schema['description'],
+            action: $this->withEditorQuery(
+                BackofficePath::active('settings/'.$setting->getKey().'/translations'.($translation ? '/'.$translation->getKey() : '')),
+                $translation?->locale ?? request()->query('locale'),
+                request()->query('from'),
             ),
-            fields: $this->translationFields(
-                Phase6ModuleCatalog::settingTranslationForm()['fields'],
-                $translation !== null,
-            ),
+            defaults: $this->translationDefaults($schema['fields'], $translation, $oldInput, request()->query('locale')),
+            fields: $this->translationFields($schema['fields'], $translation !== null),
             breadcrumbs: [
                 ['label' => 'Backoffice', 'href' => BackofficePath::active()],
                 ['label' => 'Settings', 'href' => BackofficePath::active('settings')],
@@ -279,7 +293,7 @@ class BuildBackofficePhase6CrudPayloadAction
             relationManagers: [
                 [
                     'label' => 'Setting propietario',
-                    'description' => 'La traduccion se guarda mediante `updateOrCreate` por `setting_id + locale`.',
+                    'description' => 'El formulario tipado escribe sobre `settings_translations.value` sin introducir otro almacenamiento paralelo.',
                     'items' => [
                         [
                             'id' => 'setting-'.$setting->getKey(),
@@ -290,6 +304,7 @@ class BuildBackofficePhase6CrudPayloadAction
                     ],
                 ],
             ],
+            validationSummary: $schema['validationSummary'],
         );
     }
 
@@ -346,7 +361,11 @@ class BuildBackofficePhase6CrudPayloadAction
             user: $user,
             title: $translation ? 'Editar traduccion de documento legal' : 'Crear traduccion de documento legal',
             description: 'Paridad React/Inertia del relation manager de traducciones de documentos legales.',
-            action: BackofficePath::active('legal-documents/'.$document->getKey().'/translations'.($translation ? '/'.$translation->getKey() : '')),
+            action: $this->withEditorQuery(
+                BackofficePath::active('legal-documents/'.$document->getKey().'/translations'.($translation ? '/'.$translation->getKey() : '')),
+                $translation?->locale ?? request()->query('locale'),
+                request()->query('from'),
+            ),
             defaults: $this->translationDefaults(
                 Phase6ModuleCatalog::legalDocumentTranslationForm()['fields'],
                 $translation,
@@ -1089,6 +1108,920 @@ class BuildBackofficePhase6CrudPayloadAction
     }
 
     /**
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function editorialPagesIndex(User $user, array $query): array
+    {
+        $homePage = Page::query()
+            ->where('slug', 'home')
+            ->withCount([
+                'translations',
+                'blocks as active_blocks_count' => fn (Builder $builder) => $builder->where('is_active', true),
+            ])
+            ->first();
+
+        $rows = [];
+
+        if ($homePage instanceof Page) {
+            $rows[] = [
+                'id' => (string) $homePage->getKey(),
+                'cells' => [
+                    ['key' => 'page', 'value' => 'Home', 'badge' => false, 'align' => 'left'],
+                    ['key' => 'surface', 'value' => 'Onepage publico', 'badge' => true, 'align' => 'left'],
+                    ['key' => 'sections', 'value' => '8', 'badge' => false, 'align' => 'right'],
+                    ['key' => 'locales', 'value' => (string) $homePage->translations_count, 'badge' => false, 'align' => 'right'],
+                    ['key' => 'updated_at', 'value' => $homePage->updated_at?->format('d/m/Y H:i') ?? '—', 'badge' => false, 'align' => 'left'],
+                ],
+                'actions' => [[
+                    'label' => 'Editar',
+                    'variant' => 'ghost',
+                    'enabled' => $user->canManageBackofficeContent(),
+                    'href' => BackofficePath::active('pages/'.$homePage->getKey().'/edit').'?locale=es',
+                ]],
+            ];
+        }
+
+        $rows[] = [
+            'id' => 'login',
+            'cells' => [
+                ['key' => 'page', 'value' => 'Login', 'badge' => false, 'align' => 'left'],
+                ['key' => 'surface', 'value' => 'Acceso backoffice', 'badge' => true, 'align' => 'left'],
+                ['key' => 'sections', 'value' => '3', 'badge' => false, 'align' => 'right'],
+                ['key' => 'locales', 'value' => (string) count(BackofficeLocales::values()), 'badge' => false, 'align' => 'right'],
+                ['key' => 'updated_at', 'value' => 'Vivo', 'badge' => false, 'align' => 'left'],
+            ],
+            'actions' => [[
+                'label' => 'Editar',
+                'variant' => 'ghost',
+                'enabled' => $user->canManageBackofficeContent(),
+                'href' => BackofficePath::active('pages/login/edit').'?locale=es',
+            ]],
+        ];
+
+        return [
+            'mode' => 'index',
+            'module' => [
+                'slug' => 'pages',
+                'title' => 'Paginas',
+                'singular' => 'Pagina',
+                'group' => 'Editorial',
+                'description' => 'Superficie editorial onepage: `Home` agrupa las secciones publicas y `Login` centraliza el acceso privado, footer y modales legales.',
+            ],
+            'title' => 'Paginas',
+            'description' => 'Superficie editorial real del proyecto. El onepage se gobierna desde `Home` y el acceso privado desde `Login`.',
+            'breadcrumbs' => [
+                ['label' => 'Backoffice', 'href' => BackofficePath::active()],
+                ['label' => 'Editorial', 'href' => null],
+                ['label' => 'Paginas', 'href' => BackofficePath::active('pages')],
+            ],
+            'actions' => [],
+            'summaryCards' => [
+                ['label' => 'Paginas reales', 'value' => (string) count($rows), 'tone' => 'cyan'],
+                ['label' => 'Modo editorial', 'value' => 'ONEPAGE', 'tone' => 'fuchsia'],
+                ['label' => 'Lectura real', 'value' => 'DB', 'tone' => 'emerald'],
+                ['label' => 'Locale base', 'value' => 'ES', 'tone' => 'amber'],
+            ],
+            'filters' => [],
+            'table' => [
+                'path' => BackofficePath::active('pages'),
+                'query' => $this->editorialIndexQueryState($query, max(1, count($rows))),
+                'columns' => [
+                    ['key' => 'page', 'label' => 'Pagina', 'sortable' => false, 'badge' => false, 'align' => 'left'],
+                    ['key' => 'surface', 'label' => 'Superficie', 'sortable' => false, 'badge' => false, 'align' => 'left'],
+                    ['key' => 'sections', 'label' => 'Secciones', 'sortable' => false, 'badge' => false, 'align' => 'right'],
+                    ['key' => 'locales', 'label' => 'Idiomas', 'sortable' => false, 'badge' => false, 'align' => 'right'],
+                    ['key' => 'updated_at', 'label' => 'Actualizada', 'sortable' => false, 'badge' => false, 'align' => 'left'],
+                ],
+                'rows' => $rows,
+                'emptyState' => [
+                    'title' => 'Sin paginas editoriales',
+                    'description' => 'El bootstrap del CMS debe exponer al menos `Home` y la superficie de `Login`.',
+                    'ctaLabel' => null,
+                    'ctaHref' => null,
+                ],
+                'bulkActions' => [],
+                'sort' => ['column' => '', 'direction' => 'asc'],
+                'pagination' => [
+                    'currentPage' => 1,
+                    'perPage' => max(1, count($rows)),
+                    'total' => count($rows),
+                    'totalPages' => 1,
+                ],
+            ],
+            'capabilities' => [
+                'canCreate' => false,
+                'canEdit' => $user->canManageBackofficeContent(),
+                'canDelete' => false,
+                'canView' => $user->canViewBackofficeContent(),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function editorialPageForm(User $user, string $record, ?string $locale): array
+    {
+        $activeLocale = $this->normalizeLocale($locale);
+
+        if ($record === 'login') {
+            return $this->loginEditorialPageForm($user, $activeLocale);
+        }
+
+        $page = Page::query()
+            ->when(
+                $record === 'home',
+                fn (Builder $builder) => $builder->where('slug', 'home'),
+                fn (Builder $builder) => $builder->whereKey($record),
+            )
+            ->where('slug', 'home')
+            ->firstOrFail();
+
+        $sections = $this->homeEditorialSections($activeLocale);
+
+        return [
+            'mode' => 'edit',
+            'module' => [
+                'slug' => 'pages',
+                'title' => 'Paginas',
+                'singular' => 'Pagina',
+                'group' => 'Editorial',
+                'description' => 'Editor onepage centrado en pagina y secciones.',
+            ],
+            'recordLabel' => 'Home',
+            'title' => 'Editar Home',
+            'description' => 'Desde aqui se gobiernan las secciones reales del onepage publico sin exponer CRUD tecnico ni JSON crudo.',
+            'breadcrumbs' => [
+                ['label' => 'Backoffice', 'href' => BackofficePath::active()],
+                ['label' => 'Paginas', 'href' => BackofficePath::active('pages')],
+                ['label' => 'Home', 'href' => null],
+            ],
+            'actions' => [
+                [
+                    'label' => 'Volver a paginas',
+                    'href' => BackofficePath::active('pages'),
+                    'variant' => 'ghost',
+                    'visible' => true,
+                ],
+                ...$this->editorialPageLocaleActions((string) $page->getKey(), $activeLocale),
+            ],
+            'summaryCards' => [
+                ['label' => 'Pagina', 'value' => 'HOME', 'tone' => 'cyan'],
+                ['label' => 'Locale activo', 'value' => mb_strtoupper($activeLocale), 'tone' => 'fuchsia'],
+                ['label' => 'Secciones', 'value' => (string) count($sections), 'tone' => 'emerald'],
+                ['label' => 'Persistencia', 'value' => 'REAL', 'tone' => 'amber'],
+            ],
+            'form' => [
+                'action' => BackofficePath::active('pages/'.$page->getKey().'/edit').'?locale='.$activeLocale,
+                'method' => 'post',
+                'submitLabel' => null,
+                'defaults' => [],
+                'sections' => [],
+                'relationManagersTitle' => 'Secciones y componentes administrables',
+                'relationManagersDescription' => 'Cada tarjeta abre el editor tipado del componente real que alimenta el onepage para el idioma seleccionado.',
+                'relationManagers' => $sections,
+                'specialActions' => [],
+                'dangerousActions' => [],
+                'validationSummary' => [],
+                'hideSubmit' => true,
+            ],
+            'capabilities' => [
+                'canSubmit' => false,
+                'canView' => $user->canViewBackofficeContent(),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function loginEditorialPageForm(User $user, string $locale): array
+    {
+        return [
+            'mode' => 'edit',
+            'module' => [
+                'slug' => 'pages',
+                'title' => 'Paginas',
+                'singular' => 'Pagina',
+                'group' => 'Editorial',
+                'description' => 'Editor onepage centrado en pagina y secciones.',
+            ],
+            'recordLabel' => 'Login',
+            'title' => 'Editar Login',
+            'description' => 'Superficie editorial del acceso privado: footer, enlaces sociales y modales legales compartidos con el login.',
+            'breadcrumbs' => [
+                ['label' => 'Backoffice', 'href' => BackofficePath::active()],
+                ['label' => 'Paginas', 'href' => BackofficePath::active('pages')],
+                ['label' => 'Login', 'href' => null],
+            ],
+            'actions' => [
+                [
+                    'label' => 'Volver a paginas',
+                    'href' => BackofficePath::active('pages'),
+                    'variant' => 'ghost',
+                    'visible' => true,
+                ],
+                ...$this->editorialPageLocaleActions('login', $locale),
+            ],
+            'summaryCards' => [
+                ['label' => 'Pagina', 'value' => 'LOGIN', 'tone' => 'cyan'],
+                ['label' => 'Locale activo', 'value' => mb_strtoupper($locale), 'tone' => 'fuchsia'],
+                ['label' => 'Secciones', 'value' => '3', 'tone' => 'emerald'],
+                ['label' => 'Persistencia', 'value' => 'REAL', 'tone' => 'amber'],
+            ],
+            'form' => [
+                'action' => BackofficePath::active('pages/login/edit').'?locale='.$locale,
+                'method' => 'post',
+                'submitLabel' => null,
+                'defaults' => [],
+                'sections' => [],
+                'relationManagersTitle' => 'Secciones y componentes administrables',
+                'relationManagersDescription' => 'El login comparte footer, redes y modales legales con el resto del proyecto. Aqui se accede a esos editores reales.',
+                'relationManagers' => $this->loginEditorialSections($locale),
+                'specialActions' => [],
+                'dangerousActions' => [],
+                'validationSummary' => [],
+                'hideSubmit' => true,
+            ],
+            'capabilities' => [
+                'canSubmit' => false,
+                'canView' => $user->canViewBackofficeContent(),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function homeEditorialSections(string $locale): array
+    {
+        $pages = Page::query()
+            ->whereIn('slug', ['home', 'about', 'music', 'calendar', 'media', 'contact'])
+            ->with([
+                'translations' => fn ($query) => $query->where('locale', $locale),
+                'blocks.translations' => fn ($query) => $query->where('locale', $locale),
+            ])
+            ->get()
+            ->keyBy('slug');
+
+        $settings = Setting::query()
+            ->whereIn('group', ['header', 'intro', 'footer', 'legal', 'media'])
+            ->orWhere(fn (Builder $builder) => $builder->where('group', 'contact')->where('key', 'marquee_rows'))
+            ->with(['translations' => fn ($query) => $query->where('locale', $locale)])
+            ->get()
+            ->keyBy(fn (Setting $setting) => $setting->group.'.'.$setting->key);
+
+        $legalDocuments = LegalDocument::query()
+            ->whereIn('slug', ['terms', 'privacy', 'cookies'])
+            ->with(['translations' => fn ($query) => $query->where('locale', $locale)])
+            ->orderBy('position')
+            ->get()
+            ->keyBy('slug');
+
+        /** @var Page|null $home */
+        $home = $pages->get('home');
+        /** @var Page|null $about */
+        $about = $pages->get('about');
+        /** @var Page|null $music */
+        $music = $pages->get('music');
+        /** @var Page|null $calendar */
+        $calendar = $pages->get('calendar');
+        /** @var Page|null $media */
+        $media = $pages->get('media');
+        /** @var Page|null $contact */
+        $contact = $pages->get('contact');
+
+        return [
+            [
+                'label' => 'Hero / Home',
+                'description' => 'Edita el copy base del home y cada slide del hero para el idioma seleccionado.',
+                'items' => array_values(array_filter([
+                    $this->pageTranslationItem($home, $locale, 'Pagina Home', 'home'),
+                    ...$this->pageBlockItems($home?->blocks?->where('type', 'hero_slide')->values()->all() ?? [], $locale, 'Slide', 'home'),
+                ])),
+            ],
+            [
+                'label' => 'About',
+                'description' => 'Edita la pagina about y sus pasos de scrollytelling con imagenes compartidas.',
+                'items' => array_values(array_filter([
+                    $this->pageTranslationItem($about, $locale, 'Pagina About', 'home'),
+                    ...$this->pageBlockItems($about?->blocks?->where('type', 'about_step')->values()->all() ?? [], $locale, 'Paso', 'home'),
+                ])),
+            ],
+            [
+                'label' => 'Music',
+                'description' => 'Edita los textos del bloque de musica y accede al catalogo real de tracks.',
+                'items' => array_values(array_filter([
+                    $this->pageTranslationItem($music, $locale, 'Pagina Music', 'home'),
+                    $this->linkItem(
+                        'music-index',
+                        'Tracks musicales',
+                        'Portadas, SoundCloud, orden editorial y traducciones musicales.',
+                        BackofficePath::active('music-tracks')
+                    ),
+                ])),
+            ],
+            [
+                'label' => 'Calendar',
+                'description' => 'Edita los textos del calendario y el listado real de eventos con ticket URLs.',
+                'items' => array_values(array_filter([
+                    $this->pageTranslationItem($calendar, $locale, 'Pagina Calendar', 'home'),
+                    $this->linkItem(
+                        'events-index',
+                        'Eventos',
+                        'Fechas, carteles, ubicacion y enlaces de compra.',
+                        BackofficePath::active('events')
+                    ),
+                ])),
+            ],
+            [
+                'label' => 'Media',
+                'description' => 'Edita los labels del bloque media, el canal de YouTube y el catalogo tecnico de assets.',
+                'items' => array_values(array_filter([
+                    $this->pageTranslationItem($media, $locale, 'Pagina Media', 'home'),
+                    $this->settingTranslationItem($settings->get('media.youtube_channel_url'), $locale, 'Canal de YouTube', 'home'),
+                    $this->linkItem(
+                        'media-assets-index',
+                        'Assets multimedia',
+                        'Fotos, videos y metadata tecnica del catalogo multimedia.',
+                        BackofficePath::active('media-assets')
+                    ),
+                ])),
+            ],
+            [
+                'label' => 'Contact',
+                'description' => 'Edita el copy de contacto, las lineas marquee y los modulos operativos de redes y sponsors.',
+                'items' => array_values(array_filter([
+                    $this->pageTranslationItem($contact, $locale, 'Pagina Contact', 'home'),
+                    ...$this->pageBlockItems($contact?->blocks?->where('type', 'contact_marquee')->values()->all() ?? [], $locale, 'Marquee', 'home'),
+                    $this->linkItem(
+                        'social-links-index',
+                        'Redes sociales',
+                        'Enlaces sociales de footer y contacto.',
+                        BackofficePath::active('social-links')
+                    ),
+                    $this->linkItem(
+                        'partners-index',
+                        'Sponsors',
+                        'Logos y enlaces de sponsors del carrusel.',
+                        BackofficePath::active('partners')
+                    ),
+                ])),
+            ],
+            [
+                'label' => 'Navegacion y footer',
+                'description' => 'Agrupa header, intro y footer compartidos por el onepage y el login.',
+                'items' => array_values(array_filter([
+                    $this->settingTranslationItem($settings->get('header.open_menu'), $locale, 'Label abrir menu', 'home'),
+                    $this->settingTranslationItem($settings->get('header.menu'), $locale, 'Menu de navegacion', 'home'),
+                    $this->settingTranslationItem($settings->get('intro.welcome'), $locale, 'Texto de bienvenida', 'home'),
+                    $this->settingTranslationItem($settings->get('footer.credits'), $locale, 'Creditos del footer', 'home'),
+                ])),
+            ],
+            [
+                'label' => 'Modales legales',
+                'description' => 'Botones del footer y contenido de terminos, privacidad y cookies.',
+                'items' => array_values(array_filter([
+                    $this->settingTranslationItem($settings->get('legal.buttons'), $locale, 'Botones legales', 'home'),
+                    $this->legalTranslationItem($legalDocuments->get('terms'), $locale, 'Terminos y condiciones', 'home'),
+                    $this->legalTranslationItem($legalDocuments->get('privacy'), $locale, 'Politica de privacidad', 'home'),
+                    $this->legalTranslationItem($legalDocuments->get('cookies'), $locale, 'Politica de cookies', 'home'),
+                ])),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function loginEditorialSections(string $locale): array
+    {
+        $settings = Setting::query()
+            ->whereIn('group', ['footer', 'legal'])
+            ->with(['translations' => fn ($query) => $query->where('locale', $locale)])
+            ->get()
+            ->keyBy(fn (Setting $setting) => $setting->group.'.'.$setting->key);
+
+        $legalDocuments = LegalDocument::query()
+            ->whereIn('slug', ['terms', 'privacy', 'cookies'])
+            ->with(['translations' => fn ($query) => $query->where('locale', $locale)])
+            ->orderBy('position')
+            ->get()
+            ->keyBy('slug');
+
+        return [
+            [
+                'label' => 'Footer',
+                'description' => 'Creditos visibles en desktop y mobile dentro del login.',
+                'items' => array_values(array_filter([
+                    $this->settingTranslationItem($settings->get('footer.credits'), $locale, 'Creditos del footer', 'login'),
+                ])),
+            ],
+            [
+                'label' => 'Redes sociales',
+                'description' => 'Enlaces sociales visibles en el footer del login.',
+                'items' => [
+                    $this->linkItem(
+                        'social-links-index',
+                        'Redes sociales',
+                        'Gestion centralizada de Facebook, Instagram, SoundCloud y Spotify.',
+                        BackofficePath::active('social-links')
+                    ),
+                ],
+            ],
+            [
+                'label' => 'Modales legales',
+                'description' => 'Botones y contenido legal compartidos con el footer publico.',
+                'items' => array_values(array_filter([
+                    $this->settingTranslationItem($settings->get('legal.buttons'), $locale, 'Botones legales', 'login'),
+                    $this->legalTranslationItem($legalDocuments->get('terms'), $locale, 'Terminos y condiciones', 'login'),
+                    $this->legalTranslationItem($legalDocuments->get('privacy'), $locale, 'Politica de privacidad', 'login'),
+                    $this->legalTranslationItem($legalDocuments->get('cookies'), $locale, 'Politica de cookies', 'login'),
+                ])),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pageTranslationSchema(Page $page): array
+    {
+        return match ($page->slug) {
+            'home' => [
+                'description' => 'Editor tipado del contenido base de `home`. Los slides del hero se editan desde sus propios bloques.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('title', 'Titulo interno', 'text', true),
+                    $this->editorField('meta_title', 'Meta title'),
+                    $this->editorField('meta_description', 'Meta description', 'textarea'),
+                    $this->editorField('home_name', 'Nombre de marca', 'text', false, [], 'Se guarda en `content.name`.', ['contentKey' => 'name']),
+                    $this->editorField('home_title', 'Titulo principal', 'text', false, [], 'Se guarda en `content.title`.', ['contentKey' => 'title']),
+                    $this->editorField('home_satisfied_customers', 'Texto clientes satisfechos', 'textarea', false, [], 'Se guarda en `content.satisfied_customers`.', ['contentKey' => 'satisfied_customers']),
+                    $this->editorField('home_watch_resume', 'CTA ver CV', 'text', false, [], 'Se guarda en `content.watch_resume`.', ['contentKey' => 'watch_resume']),
+                ],
+                'validationSummary' => [
+                    'Los campos tipados se serializan dentro de `page_translations.content`.',
+                    'Los slides del hero mantienen su propia edicion por bloque.',
+                ],
+            ],
+            'music' => [
+                'description' => 'Editor tipado del bloque `music` para el locale seleccionado.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('title', 'Titulo interno', 'text', true),
+                    $this->editorField('meta_title', 'Meta title'),
+                    $this->editorField('meta_description', 'Meta description', 'textarea'),
+                    $this->editorField('music_title', 'Titulo visible', 'text', false, [], 'Se guarda en `content.title`.', ['contentKey' => 'title']),
+                    $this->editorField('music_subtitle', 'Subtitulo', 'text', false, [], 'Se guarda en `content.subtitle`.', ['contentKey' => 'subtitle']),
+                    $this->editorField('music_description', 'Descripcion', 'textarea', false, [], 'Se guarda en `content.description`.', ['contentKey' => 'description']),
+                ],
+                'validationSummary' => [
+                    'El copy de la seccion musical se guarda en `page_translations.content`.',
+                    'Los tracks mantienen su catalogo independiente en `music_tracks`.',
+                ],
+            ],
+            'calendar' => [
+                'description' => 'Editor tipado del bloque `calendar` para labels y textos del calendario.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('title', 'Titulo interno', 'text', true),
+                    $this->editorField('meta_title', 'Meta title'),
+                    $this->editorField('meta_description', 'Meta description', 'textarea'),
+                    $this->editorField('calendar_title', 'Titulo visible', 'text', false, [], 'Se guarda en `content.title`.', ['contentKey' => 'title']),
+                    $this->editorField('calendar_buy_tickets', 'CTA comprar entradas', 'text', false, [], 'Se guarda en `content.buyTickets`.', ['contentKey' => 'buyTickets']),
+                    $this->editorField('calendar_view_all', 'CTA ver todos los eventos', 'text', false, [], 'Se guarda en `content.viewAllEvents`.', ['contentKey' => 'viewAllEvents']),
+                    $this->editorField('calendar_no_events', 'Texto sin eventos', 'textarea', false, [], 'Se guarda en `content.noEvents`.', ['contentKey' => 'noEvents']),
+                ],
+                'validationSummary' => [
+                    'Los labels del calendario se guardan en `page_translations.content`.',
+                    'Los eventos concretos se editan desde el modulo `events`.',
+                ],
+            ],
+            'media' => [
+                'description' => 'Editor tipado del bloque `media` y de sus labels visibles.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('title', 'Titulo interno', 'text', true),
+                    $this->editorField('meta_title', 'Meta title'),
+                    $this->editorField('meta_description', 'Meta description', 'textarea'),
+                    $this->editorField('media_title', 'Titulo visible', 'text', false, [], 'Se guarda en `content.title`.', ['contentKey' => 'title']),
+                    $this->editorField('media_photos', 'Label fotos', 'text', false, [], 'Se guarda en `content.photos`.', ['contentKey' => 'photos']),
+                    $this->editorField('media_videos', 'Label videos', 'text', false, [], 'Se guarda en `content.videos`.', ['contentKey' => 'videos']),
+                    $this->editorField('media_photo_label', 'Label tarjeta foto', 'text', false, [], 'Se guarda en `content.photoLabel`.', ['contentKey' => 'photoLabel']),
+                    $this->editorField('media_video_label', 'Label tarjeta video', 'text', false, [], 'Se guarda en `content.videoLabel`.', ['contentKey' => 'videoLabel']),
+                    $this->editorField('media_youtube_cta', 'CTA YouTube', 'text', false, [], 'Se guarda en `content.viewMoreOnYoutube`.', ['contentKey' => 'viewMoreOnYoutube']),
+                ],
+                'validationSummary' => [
+                    'Los labels visibles del media se guardan en `page_translations.content`.',
+                    'El canal YouTube compartido se edita como setting independiente.',
+                ],
+            ],
+            'contact' => [
+                'description' => 'Editor tipado del bloque `contact` para el locale seleccionado.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('title', 'Titulo interno', 'text', true),
+                    $this->editorField('meta_title', 'Meta title'),
+                    $this->editorField('meta_description', 'Meta description', 'textarea'),
+                    $this->editorField('contact_title', 'Titulo visible', 'text', false, [], 'Se guarda en `content.title`.', ['contentKey' => 'title']),
+                    $this->editorField('contact_subtitle', 'Subtitulo', 'textarea', false, [], 'Se guarda en `content.subtitle`.', ['contentKey' => 'subtitle']),
+                    $this->editorField('contact_email_label', 'Label email', 'text', false, [], 'Se guarda en `content.email_label`.', ['contentKey' => 'email_label']),
+                    $this->editorField('contact_phone_label', 'Label telefono', 'text', false, [], 'Se guarda en `content.phone_label`.', ['contentKey' => 'phone_label']),
+                    $this->editorField('contact_get_direction', 'CTA obtener direccion', 'text', false, [], 'Se guarda en `content.get_direction`.', ['contentKey' => 'get_direction']),
+                    $this->editorField('contact_form_title', 'Titulo del formulario', 'textarea', false, [], 'Se guarda en `content.form.title`.', ['contentKey' => 'form.title']),
+                    $this->editorField('contact_submit_button', 'Texto boton enviar', 'text', false, [], 'Se guarda en `content.form.submit_button`.', ['contentKey' => 'form.submit_button']),
+                    $this->editorField('contact_success_message', 'Mensaje de exito', 'textarea', false, [], 'Se guarda en `content.form.success_message`.', ['contentKey' => 'form.success_message']),
+                    $this->editorField('contact_error_message', 'Mensaje de error', 'textarea', false, [], 'Se guarda en `content.form.error_message`.', ['contentKey' => 'form.error_message']),
+                ],
+                'validationSummary' => [
+                    'El copy del bloque de contacto se guarda en `page_translations.content`.',
+                    'Las redes, sponsors y filas marquee mantienen sus propios editores o modulos asociados.',
+                ],
+            ],
+            default => [
+                'description' => 'Editor tipado de la traduccion de pagina sobre el contrato existente del CMS.',
+                'fields' => Phase6ModuleCatalog::pageTranslationForm()['fields'],
+                'validationSummary' => [
+                    'Locale: required, fijo en edit.',
+                    'La traduccion se persiste sobre `page_translations`.',
+                ],
+            ],
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pageBlockTranslationSchema(PageBlock $block): array
+    {
+        return match ($block->type) {
+            'hero_slide' => [
+                'description' => 'Editor tipado de un slide del hero. El texto cambia por idioma y las imagenes se comparten entre todos los idiomas.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('title', 'Titulo', 'text', false, [], 'Se guarda en `content.title`.', ['contentKey' => 'title']),
+                    $this->editorField('subtitle', 'Subtitulo', 'text', false, [], 'Se guarda en `content.subtitle`.', ['contentKey' => 'subtitle']),
+                    $this->editorField('description', 'Descripcion', 'textarea', false, [], 'Se guarda en `content.description`.', ['contentKey' => 'description']),
+                    $this->editorField('button_text', 'Texto del boton', 'text', false, [], 'Se guarda en `content.buttonText`.', ['contentKey' => 'buttonText']),
+                    $this->editorField('link', 'URL del boton', 'url', false, [], 'Se guarda en `content.link`.', ['contentKey' => 'link']),
+                    $this->editorField('event', 'Fecha o evento', 'text', false, [], 'Se guarda en `content.event`.', ['contentKey' => 'event']),
+                    $this->editorField('logo', 'Ruta logo', 'text', false, [], 'Se guarda en `page_blocks.settings.logo`.', ['settingsKey' => 'logo']),
+                    $this->editorField('logo_position', 'Posicion del logo', 'select', false, [
+                        ['value' => 'left', 'label' => 'left'],
+                        ['value' => 'top', 'label' => 'top'],
+                    ], 'Se guarda en `page_blocks.settings.logoPosition`.', ['settingsKey' => 'logoPosition']),
+                    $this->editorField('person_image', 'Imagen principal', 'text', false, [], 'Se guarda en `page_blocks.settings.personImage`.', ['settingsKey' => 'personImage']),
+                    $this->editorField('elipse_image', 'Imagen elipse', 'text', false, [], 'Se guarda en `page_blocks.settings.elipseImage`.', ['settingsKey' => 'elipseImage']),
+                ],
+                'validationSummary' => [
+                    'Los textos del slide se guardan en `page_block_translations.content`.',
+                    'Las imagenes y assets del slide se guardan en `page_blocks.settings`.',
+                ],
+            ],
+            'about_step' => [
+                'description' => 'Editor tipado de un paso del scrollytelling `about`.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('title', 'Titulo', 'text', false, [], 'Se guarda en `content.title`.', ['contentKey' => 'title']),
+                    $this->editorField('subtitle', 'Subtitulo', 'text', false, [], 'Se guarda en `content.subtitle`.', ['contentKey' => 'subtitle']),
+                    $this->editorField('content_text', 'Contenido', 'textarea', false, [], 'Se guarda en `content.content`.', ['contentKey' => 'content']),
+                    $this->editorField('chart_title', 'Chart title', 'text', false, [], 'Se guarda en `content.chartTitle`.', ['contentKey' => 'chartTitle']),
+                    $this->editorField('chart_subtitle', 'Chart subtitle', 'text', false, [], 'Se guarda en `content.chartSubtitle`.', ['contentKey' => 'chartSubtitle']),
+                    $this->editorField('image', 'Imagen principal', 'text', false, [], 'Se guarda en `page_blocks.settings.image`.', ['settingsKey' => 'image']),
+                    $this->editorField('image_secondary', 'Imagen secundaria', 'text', false, [], 'Se guarda en `page_blocks.settings.image2`.', ['settingsKey' => 'image2']),
+                ],
+                'validationSummary' => [
+                    'El copy traducido se guarda en `page_block_translations.content`.',
+                    'Las imagenes compartidas se guardan en `page_blocks.settings`.',
+                ],
+            ],
+            'contact_marquee' => [
+                'description' => 'Editor tipado de una fila marquee del bloque contacto.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('words_text', 'Palabras de la fila', 'textarea', false, [], 'Una palabra o frase por linea. Se guarda en `content.words`.', ['contentKey' => 'words']),
+                ],
+                'validationSummary' => [
+                    'Cada linea se transforma en un array `content.words`.',
+                    'La direccion del marquee sigue siendo un asset compartido del bloque.',
+                ],
+            ],
+            default => [
+                'description' => 'Editor de traduccion del bloque sobre el contrato actual del CMS.',
+                'fields' => Phase6ModuleCatalog::pageBlockTranslationForm()['fields'],
+                'validationSummary' => [
+                    'Locale: required, fijo en edit.',
+                    'La traduccion se persiste sobre `page_block_translations`.',
+                ],
+            ],
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function settingTranslationSchema(Setting $setting): array
+    {
+        return match ($setting->group.'.'.$setting->key) {
+            'header.open_menu' => [
+                'description' => 'Editor tipado del label de apertura del menu.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('label', 'Label', 'text', false, [], 'Se guarda en `value.label`.', ['valueKey' => 'label']),
+                ],
+                'validationSummary' => ['El valor traducido se serializa en `settings_translations.value.label`.'],
+            ],
+            'header.menu' => [
+                'description' => 'Editor tipado del menu principal de navegacion.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('menu_home', 'Home', 'text', false, [], 'Se guarda en `value.items.home`.', ['valueKey' => 'items.home']),
+                    $this->editorField('menu_about', 'About', 'text', false, [], 'Se guarda en `value.items.about`.', ['valueKey' => 'items.about']),
+                    $this->editorField('menu_music', 'Music', 'text', false, [], 'Se guarda en `value.items.music`.', ['valueKey' => 'items.music']),
+                    $this->editorField('menu_media', 'Media', 'text', false, [], 'Se guarda en `value.items.media`.', ['valueKey' => 'items.media']),
+                    $this->editorField('menu_calendar', 'Calendar', 'text', false, [], 'Se guarda en `value.items.calendarEvents`.', ['valueKey' => 'items.calendarEvents']),
+                    $this->editorField('menu_contact', 'Contact', 'text', false, [], 'Se guarda en `value.items.contact`.', ['valueKey' => 'items.contact']),
+                ],
+                'validationSummary' => ['Los labels se guardan dentro de `settings_translations.value.items`.'],
+            ],
+            'intro.welcome' => [
+                'description' => 'Editor tipado del texto de bienvenida de la intro.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('label', 'Texto de bienvenida', 'text', false, [], 'Se guarda en `value.label`.', ['valueKey' => 'label']),
+                ],
+                'validationSummary' => ['El valor traducido se serializa en `settings_translations.value.label`.'],
+            ],
+            'footer.credits' => [
+                'description' => 'Editor tipado del footer compartido por home y login.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('copyright', 'Copyright', 'text', false, [], 'Se guarda en `value.copyright`.', ['valueKey' => 'copyright']),
+                    $this->editorField('rights', 'Texto derecho', 'text', false, [], 'Se guarda en `value.rights`.', ['valueKey' => 'rights']),
+                ],
+                'validationSummary' => ['Los creditos se guardan en `settings_translations.value`.'],
+            ],
+            'legal.buttons' => [
+                'description' => 'Editor tipado de los botones de modales legales.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('terms_button', 'Boton terminos', 'text', false, [], 'Se guarda en `value.terms_button`.', ['valueKey' => 'terms_button']),
+                    $this->editorField('privacy_button', 'Boton privacidad', 'text', false, [], 'Se guarda en `value.privacy_button`.', ['valueKey' => 'privacy_button']),
+                    $this->editorField('cookies_button', 'Boton cookies', 'text', false, [], 'Se guarda en `value.cookies_button`.', ['valueKey' => 'cookies_button']),
+                ],
+                'validationSummary' => ['Los labels legales se guardan en `settings_translations.value`.'],
+            ],
+            'media.youtube_channel_url' => [
+                'description' => 'Editor tipado de la URL compartida del canal de YouTube.',
+                'fields' => [
+                    $this->editorField('locale', 'Idioma', 'select', true, Phase6ModuleCatalog::localeOptions()),
+                    $this->editorField('value', 'URL YouTube', 'url', false, [], 'Se guarda en `value.value`.', ['valueKey' => 'value']),
+                ],
+                'validationSummary' => ['La URL del canal se serializa en `settings_translations.value.value`.'],
+            ],
+            default => [
+                'description' => 'Editor de traduccion de setting sobre el contrato actual del CMS.',
+                'fields' => Phase6ModuleCatalog::settingTranslationForm()['fields'],
+                'validationSummary' => [
+                    'Locale: required, fijo en edit.',
+                    'La traduccion se persiste sobre `settings_translations`.',
+                ],
+            ],
+        };
+    }
+
+    /**
+     * @param  array<int, PageBlock>  $blocks
+     * @return array<int, array<string, mixed>>
+     */
+    private function pageBlockItems(array $blocks, string $locale, string $prefix, ?string $from = null): array
+    {
+        return collect($blocks)
+            ->values()
+            ->map(function (PageBlock $block, int $index) use ($locale, $prefix, $from): array {
+                /** @var PageBlockTranslation|null $translation */
+                $translation = $block->translations->firstWhere('locale', $locale);
+                $title = data_get($translation?->content, 'title');
+
+                return [
+                    'id' => 'block-'.$block->getKey(),
+                    'label' => sprintf('%s %02d', $prefix, $index + 1),
+                    'meta' => trim(($title ?: $block->key).' · '.($translation instanceof PageBlockTranslation ? 'traduccion '.$locale : 'sin traduccion '.$locale)),
+                    'href' => $this->pageBlockTranslationHref($block, $locale, $from),
+                ];
+            })
+            ->all();
+    }
+
+    private function pageTranslationItem(?Page $page, string $locale, string $label, ?string $from = null): ?array
+    {
+        if (! $page instanceof Page) {
+            return null;
+        }
+
+        /** @var PageTranslation|null $translation */
+        $translation = $page->translations->firstWhere('locale', $locale);
+
+        return [
+            'id' => 'page-'.$page->getKey(),
+            'label' => $label,
+            'meta' => $translation instanceof PageTranslation
+                ? ($translation->title ?: 'Traduccion '.$locale)
+                : 'Sin traduccion '.mb_strtoupper($locale),
+            'href' => $this->pageTranslationHref($page, $locale, $from),
+        ];
+    }
+
+    private function settingTranslationItem(?Setting $setting, string $locale, string $label, ?string $from = null): ?array
+    {
+        if (! $setting instanceof Setting) {
+            return null;
+        }
+
+        /** @var SettingTranslation|null $translation */
+        $translation = $setting->translations->firstWhere('locale', $locale);
+
+        return [
+            'id' => 'setting-'.$setting->getKey(),
+            'label' => $label,
+            'meta' => $translation instanceof SettingTranslation
+                ? 'Traduccion '.mb_strtoupper($locale).' disponible'
+                : 'Sin traduccion '.mb_strtoupper($locale),
+            'href' => $this->settingTranslationHref($setting, $locale, $from),
+        ];
+    }
+
+    private function legalTranslationItem(?LegalDocument $document, string $locale, string $label, ?string $from = null): ?array
+    {
+        if (! $document instanceof LegalDocument) {
+            return null;
+        }
+
+        /** @var LegalDocumentTranslation|null $translation */
+        $translation = $document->translations->firstWhere('locale', $locale);
+
+        return [
+            'id' => 'legal-'.$document->getKey(),
+            'label' => $label,
+            'meta' => $translation instanceof LegalDocumentTranslation
+                ? ($translation->title ?: 'Traduccion '.mb_strtoupper($locale))
+                : 'Sin traduccion '.mb_strtoupper($locale),
+            'href' => $this->legalTranslationHref($document, $locale, $from),
+        ];
+    }
+
+    private function linkItem(string $id, string $label, string $meta, string $href): array
+    {
+        return [
+            'id' => $id,
+            'label' => $label,
+            'meta' => $meta,
+            'href' => $href,
+        ];
+    }
+
+    private function pageTranslationHref(Page $page, string $locale, ?string $from = null): string
+    {
+        /** @var PageTranslation|null $translation */
+        $translation = $page->translations->firstWhere('locale', $locale);
+
+        return $this->withEditorQuery(
+            $translation instanceof PageTranslation
+                ? BackofficePath::active('pages/'.$page->getKey().'/translations/'.$translation->getKey().'/edit')
+                : BackofficePath::active('pages/'.$page->getKey().'/translations/create'),
+            $locale,
+            $from,
+        );
+    }
+
+    private function pageBlockTranslationHref(PageBlock $block, string $locale, ?string $from = null): string
+    {
+        /** @var PageBlockTranslation|null $translation */
+        $translation = $block->translations->firstWhere('locale', $locale);
+
+        return $this->withEditorQuery(
+            $translation instanceof PageBlockTranslation
+                ? BackofficePath::active('page-blocks/'.$block->getKey().'/translations/'.$translation->getKey().'/edit')
+                : BackofficePath::active('page-blocks/'.$block->getKey().'/translations/create'),
+            $locale,
+            $from,
+        );
+    }
+
+    private function settingTranslationHref(Setting $setting, string $locale, ?string $from = null): string
+    {
+        /** @var SettingTranslation|null $translation */
+        $translation = $setting->translations->firstWhere('locale', $locale);
+
+        return $this->withEditorQuery(
+            $translation instanceof SettingTranslation
+                ? BackofficePath::active('settings/'.$setting->getKey().'/translations/'.$translation->getKey().'/edit')
+                : BackofficePath::active('settings/'.$setting->getKey().'/translations/create'),
+            $locale,
+            $from,
+        );
+    }
+
+    private function legalTranslationHref(LegalDocument $document, string $locale, ?string $from = null): string
+    {
+        /** @var LegalDocumentTranslation|null $translation */
+        $translation = $document->translations->firstWhere('locale', $locale);
+
+        return $this->withEditorQuery(
+            $translation instanceof LegalDocumentTranslation
+                ? BackofficePath::active('legal-documents/'.$document->getKey().'/translations/'.$translation->getKey().'/edit')
+                : BackofficePath::active('legal-documents/'.$document->getKey().'/translations/create'),
+            $locale,
+            $from,
+        );
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function editorialPageLocaleActions(string $record, string $activeLocale): array
+    {
+        return collect(BackofficeLocales::values())
+            ->map(fn (string $locale): array => [
+                'label' => mb_strtoupper($locale),
+                'href' => BackofficePath::active('pages/'.$record.'/edit').'?locale='.$locale,
+                'variant' => $locale === $activeLocale ? 'primary' : 'secondary',
+                'visible' => true,
+            ])
+            ->all();
+    }
+
+    private function normalizeLocale(?string $locale): string
+    {
+        return is_string($locale) && in_array($locale, BackofficeLocales::values(), true)
+            ? $locale
+            : 'es';
+    }
+
+    private function mappedArrayValue(mixed $payload, string $key): mixed
+    {
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        if (array_key_exists($key, $payload)) {
+            return $payload[$key];
+        }
+
+        return data_get($payload, $key);
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function editorialIndexQueryState(array $query, int $perPage): array
+    {
+        return [
+            'search' => is_string($query['search'] ?? null) ? $query['search'] : '',
+            'sort' => is_string($query['sort'] ?? null) ? $query['sort'] : '',
+            'direction' => in_array($query['direction'] ?? null, ['asc', 'desc'], true) ? $query['direction'] : 'desc',
+            'perPage' => (int) ($query['perPage'] ?? $perPage),
+            'page' => (int) ($query['page'] ?? 1),
+            'filters' => is_array($query['filters'] ?? null) ? $query['filters'] : [],
+        ];
+    }
+
+    private function withEditorQuery(string $href, ?string $locale = null, mixed $from = null): string
+    {
+        $query = array_filter([
+            'locale' => is_string($locale) && $locale !== '' ? $locale : null,
+            'from' => is_string($from) && $from !== '' ? $from : null,
+        ], fn (mixed $value): bool => $value !== null);
+
+        if ($query === []) {
+            return $href;
+        }
+
+        return $href.'?'.http_build_query($query);
+    }
+
+    /**
+     * @param  array<int, array<string, string>>  $options
+     * @param  array<string, mixed>  $extra
+     * @return array<string, mixed>
+     */
+    private function editorField(string $key, string $label, string $type = 'text', bool $required = false, array $options = [], string $help = '', array $extra = []): array
+    {
+        return array_merge([
+            'key' => $key,
+            'label' => $label,
+            'type' => $type,
+            'surface' => 'input',
+            'required' => $required,
+            'options' => $options,
+            'help' => $help !== '' ? $help : 'Campo tipado alineado con la persistencia real del CMS.',
+        ], $extra);
+    }
+
+    /**
      * @return array<int, string>
      */
     private function validationSummary(string $slug): array
@@ -1288,7 +2221,49 @@ class BuildBackofficePhase6CrudPayloadAction
 
     private function canCreateFor(string $slug, User $user): bool
     {
-        return ! Phase6ModuleCatalog::isReadOnly($slug) && $user->canManageBackofficeContent();
+        return $slug !== 'pages'
+            && ! Phase6ModuleCatalog::isReadOnly($slug)
+            && $user->canManageBackofficeContent();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function localeHeaderActionsFor(string $slug, ?Model $record): array
+    {
+        if ($slug !== 'pages' || ! $record instanceof Page) {
+            return [];
+        }
+
+        return $this->pageTranslationHeaderActions($record, null);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function pageTranslationHeaderActions(Page $page, ?PageTranslation $currentTranslation): array
+    {
+        $translations = $page->translations()
+            ->get()
+            ->keyBy('locale');
+
+        return collect(BackofficeLocales::values())
+            ->map(function (string $locale) use ($page, $translations, $currentTranslation): array {
+                /** @var PageTranslation|null $translation */
+                $translation = $translations->get($locale);
+                $isActive = $currentTranslation?->locale === $locale;
+
+                return [
+                    'label' => mb_strtoupper($locale).($translation instanceof PageTranslation ? '' : ' +'),
+                    'href' => $translation instanceof PageTranslation
+                        ? BackofficePath::active('pages/'.$page->getKey().'/translations/'.$translation->getKey().'/edit')
+                        : BackofficePath::active('pages/'.$page->getKey().'/translations/create').'?locale='.$locale,
+                    'variant' => $isActive ? 'primary' : ($translation instanceof PageTranslation ? 'secondary' : 'ghost'),
+                    'visible' => true,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function canOpenRecord(string $slug, User $user): bool
@@ -1313,21 +2288,38 @@ class BuildBackofficePhase6CrudPayloadAction
      * @param  array<string, mixed>  $oldInput
      * @return array<string, mixed>
      */
-    private function translationDefaults(array $fields, ?Model $translation, array $oldInput): array
+    private function translationDefaults(array $fields, ?Model $translation, array $oldInput, ?string $preferredLocale = null): array
     {
         $defaults = [];
 
         foreach ($fields as $field) {
-            $value = $translation?->getAttribute($field['key']);
+            $value = match (true) {
+                isset($field['contentKey']) => $this->mappedArrayValue($translation?->getAttribute('content') ?? [], $field['contentKey']),
+                isset($field['valueKey']) => $this->mappedArrayValue($translation?->getAttribute('value') ?? [], $field['valueKey']),
+                isset($field['settingsKey']) => $this->mappedArrayValue($translation instanceof PageBlockTranslation ? ($translation->pageBlock?->settings ?? []) : [], $field['settingsKey']),
+                default => $translation?->getAttribute($field['key']),
+            };
+
+            if (($field['contentKey'] ?? null) === 'words' && is_array($value)) {
+                $value = implode(PHP_EOL, $value);
+            }
 
             if (is_array($value)) {
-                $value = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $value = $field['type'] === 'json'
+                    ? json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                    : implode(PHP_EOL, $value);
             }
 
             $defaults[$field['key']] = $value ?? ($field['type'] === 'json' ? '' : '');
         }
 
-        return array_merge($defaults, Arr::except($oldInput, ['_token']));
+        $defaults = array_merge($defaults, Arr::except($oldInput, ['_token']));
+
+        if (($defaults['locale'] ?? '') === '' && $translation === null && is_string($preferredLocale) && in_array($preferredLocale, BackofficeLocales::values(), true)) {
+            $defaults['locale'] = $preferredLocale;
+        }
+
+        return $defaults;
     }
 
     /**
@@ -1361,6 +2353,8 @@ class BuildBackofficePhase6CrudPayloadAction
         array $fields,
         array $breadcrumbs,
         array $relationManagers,
+        array $actions = [],
+        array $validationSummary = [],
     ): array {
         return [
             'mode' => 'edit',
@@ -1382,6 +2376,7 @@ class BuildBackofficePhase6CrudPayloadAction
                     'variant' => 'ghost',
                     'visible' => true,
                 ],
+                ...$actions,
             ],
             'summaryCards' => [
                 ['label' => 'Persistencia', 'value' => 'REAL', 'tone' => 'emerald'],
@@ -1399,14 +2394,12 @@ class BuildBackofficePhase6CrudPayloadAction
                 'relationManagers' => $relationManagers,
                 'specialActions' => [],
                 'dangerousActions' => [],
-                'validationSummary' => [
-                    'Locale: required, fijo en edit.',
-                    'Payload JSON: se decodifica y valida en servidor antes de persistir.',
-                ],
-                'testChecklist' => [
-                    'Feature test de create/edit del equivalente al relation manager.',
-                    'Validacion de locale unico por propietario.',
-                ],
+                'validationSummary' => $validationSummary !== []
+                    ? $validationSummary
+                    : [
+                        'Locale: required, fijo en edit.',
+                        'La traduccion se decodifica y valida en servidor antes de persistir.',
+                    ],
             ],
             'capabilities' => [
                 'canSubmit' => $user->canManageBackofficeContent(),
