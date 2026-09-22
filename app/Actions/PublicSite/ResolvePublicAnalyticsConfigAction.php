@@ -21,15 +21,15 @@ class ResolvePublicAnalyticsConfigAction
         $measurementId = $this->normalizeString(data_get($settingValue, 'measurement_id'))
             ?? $this->normalizeString(config('services.ga4.measurement_id'));
 
-        $enabled = $this->toBoolean(
-            data_get($settingValue, 'enabled', config('services.ga4.enabled', false))
-        );
+        $enabled = $this->toBoolean(config('services.ga4.enabled', false));
+        $legalApproved = $this->toBoolean(config('services.ga4.legal_approved', false));
 
         return [
             'ga4' => [
                 'enabled' => $enabled,
+                'legalApproved' => $legalApproved,
                 'measurementId' => $measurementId,
-                'loadScript' => app()->environment('production') && $enabled && $measurementId !== null,
+                'loadScript' => app()->environment('production') && $enabled && $legalApproved && $measurementId !== null,
             ],
         ];
     }

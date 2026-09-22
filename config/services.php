@@ -43,6 +43,7 @@ return [
     'ga4' => [
         'measurement_id' => env('GA4_MEASUREMENT_ID'),
         'enabled' => filter_var(env('GA4_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'legal_approved' => filter_var(env('GA4_LEGAL_APPROVED', false), FILTER_VALIDATE_BOOL),
     ],
 
     'n8n' => [
