@@ -3,6 +3,7 @@ import PublicLayout from '../Layouts/PublicLayout'
 import LegacyHeader from '../Components/legacy/LegacyHeader'
 import LegacyIntro from '../Components/legacy/LegacyIntro'
 import LegacyStarshine from '../Components/legacy/LegacyStarshine'
+import { trackPublicEvent } from '../lib/publicAnalytics'
 import { AiFillInstagram } from 'react-icons/ai'
 import { FaFacebookSquare, FaSpotify } from 'react-icons/fa'
 import { ImSoundcloud2 } from 'react-icons/im'
@@ -100,7 +101,7 @@ const MediaCarouselRow = ({
     </div>
 )
 
-export default function Home({ locale, locales, currentPath, events, seo, content, calendarData, mediaData, contactData }) {
+export default function Home({ locale, locales, currentPath, events, seo, content, calendarData, mediaData, contactData, analytics }) {
     const legacy = content ?? {}
     const [activeSectionIndex, setActiveSectionIndex] = useState(() => {
         if (typeof window === 'undefined') {
@@ -174,6 +175,24 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
     const activeAboutStep = aboutSteps[aboutTextIndex]
     const policyContent = legacy.termsPolicyCookies ?? {}
     const findSocialLink = (links, platform) => links.find((link) => link.platform === platform) ?? { url: '#', label: platform }
+    const trackAnalytics = (eventName, params = {}) => {
+        trackPublicEvent(analytics, eventName, {
+            locale,
+            ...params,
+        })
+    }
+    const openExternalLink = (url, eventName, params = {}) => {
+        if (!url) {
+            return
+        }
+
+        trackAnalytics(eventName, {
+            destination_url: url,
+            ...params,
+        })
+
+        window.open(url, '_blank', 'noopener,noreferrer')
+    }
     const clearSectionAnimationTimeouts = () => {
         sectionAnimationTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId))
         sectionAnimationTimeoutsRef.current = []
@@ -211,14 +230,15 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
     const goNextTrack = () => {
         setCurrentTrack((prev) => (prev < tracks.length - 1 ? prev + 1 : 0))
     }
-    const openTrackLink = (url) => {
-        if (!url) {
-            return
-        }
-        window.open(url, '_blank', 'noopener,noreferrer')
-    }
+    const openTrackLink = (url, params = {}) => openExternalLink(url, 'music_link_click', params)
     const handleShareTrack = () => {
         const shareUrl = activeTrack?.soundcloudUrl || 'https://soundcloud.com/mrchi1'
+        trackAnalytics('track_share_click', {
+            section: 'music',
+            platform: 'whatsapp',
+            track_title: activeTrack?.title,
+            destination_url: shareUrl,
+        })
         window.open(`https://wa.me/?text=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer')
     }
     const openLegalModal = (type) => {
@@ -697,6 +717,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
 
         const currentIndex = activeSectionIndexRef.current
         const distance = Math.abs(idx - currentIndex)
+        const currentSection = sectionIds[currentIndex]
 
         const goDirect = (nextIndex) => {
             setActiveSectionIndex(nextIndex)
@@ -705,6 +726,13 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
             if (sectionIds[nextIndex] === 'calendar' && calendarScrollRef.current) {
                 calendarScrollRef.current.scrollTop = 0
             }
+        }
+
+        if (currentSection !== id) {
+            trackAnalytics('section_navigation', {
+                source_section: currentSection,
+                destination_section: id,
+            })
         }
 
         if (distance <= 1) {
@@ -798,7 +826,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
     }, [policyModal])
 
     return (
-        <PublicLayout title={legacy.home?.name ?? 'RadioChi'} locale={locale} locales={locales} currentPath={currentPath} menu={legacy.header?.menu ?? {}} seo={seo} hideNav>
+        <PublicLayout title={legacy.home?.name ?? 'RadioChi'} locale={locale} locales={locales} currentPath={currentPath} menu={legacy.header?.menu ?? {}} seo={seo} analytics={analytics} hideNav>
             <LegacyIntro
                 locale={locale}
                 locales={locales}
@@ -859,7 +887,18 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                                     <h2>{slide.subtitle}</h2>
                                     <p>{slide.description}</p>
                                     {slide.buttonText && slide.link && (
-                                        <a href={slide.link} target="_blank" rel="noreferrer" className="legacy-btn">
+                                        <a
+                                            href={slide.link}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="legacy-btn"
+                                            onClick={() => trackAnalytics('hero_cta_click', {
+                                                section: 'home',
+                                                slide_title: slide.title,
+                                                cta_label: slide.buttonText,
+                                                destination_url: slide.link,
+                                            })}
+                                        >
                                             {slide.buttonText}
                                         </a>
                                     )}
@@ -953,12 +992,12 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                                                             </svg>
                                                         )}
                                                     </button>
-                                                    <button onClick={() => openTrackLink(activeTrack.soundcloudUrl)} aria-label="Abrir track en SoundCloud">
+                                                    <button onClick={() => openTrackLink(activeTrack.soundcloudUrl, { section: 'music', platform: 'soundcloud', action: 'track_open', track_title: activeTrack.title })} aria-label="Abrir track en SoundCloud">
                                                         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                                             <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54Z" />
                                                         </svg>
                                                     </button>
-                                                    <button onClick={() => openTrackLink(findSocialLink(contactSocialLinks, 'soundcloud').url)} aria-label="Seguir en SoundCloud">
+                                                    <button onClick={() => openTrackLink(findSocialLink(contactSocialLinks, 'soundcloud').url, { section: 'music', platform: 'soundcloud', action: 'profile_follow' })} aria-label="Seguir en SoundCloud">
                                                         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                                             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z" />
                                                         </svg>
@@ -1011,12 +1050,12 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                                                     </button>
                                                 </div>
                                                 <div className="legacy-player-mobile-actions">
-                                                    <button onClick={() => openTrackLink(activeTrack.soundcloudUrl)} aria-label="Abrir track en SoundCloud">
+                                                    <button onClick={() => openTrackLink(activeTrack.soundcloudUrl, { section: 'music', platform: 'soundcloud', action: 'track_open', track_title: activeTrack.title })} aria-label="Abrir track en SoundCloud">
                                                         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                                             <path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54Z" />
                                                         </svg>
                                                     </button>
-                                                    <button onClick={() => openTrackLink(findSocialLink(contactSocialLinks, 'soundcloud').url)} aria-label="Seguir en SoundCloud">
+                                                    <button onClick={() => openTrackLink(findSocialLink(contactSocialLinks, 'soundcloud').url, { section: 'music', platform: 'soundcloud', action: 'profile_follow' })} aria-label="Seguir en SoundCloud">
                                                         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                                             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z" />
                                                         </svg>
@@ -1101,7 +1140,17 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                                             <p>{event.dateStart || event.dateEnd ? `${event.dateStart} - ${event.dateEnd}` : calendarData.translations?.datesComingSoon}</p>
                                             <p>{event.location}, {calendarData.translations?.country?.[event.country] ?? event.country}</p>
                                         </div>
-                                        <a href={event.linkEvent} target="_blank" rel="noreferrer" className="legacy-btn small">
+                                        <a
+                                            href={event.linkEvent}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="legacy-btn small"
+                                            onClick={() => trackAnalytics('event_ticket_click', {
+                                                section: 'calendar',
+                                                event_title: event.title,
+                                                destination_url: event.linkEvent,
+                                            })}
+                                        >
                                             {calendarData.translations?.buyTickets ?? 'Buy Tickets'}
                                         </a>
                                     </article>
@@ -1141,6 +1190,10 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                                         target="_blank"
                                         rel="noreferrer"
                                         className="legacy-media-cta"
+                                        onClick={() => trackAnalytics('youtube_channel_click', {
+                                            section: 'media',
+                                            destination_url: legacy.media?.youtubeChannelUrl ?? 'https://www.youtube.com/channel/TUCANALAQUI',
+                                        })}
                                     >
                                         <svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
                                             <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
@@ -1157,16 +1210,16 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                         <div className="legacy-contact-bg" />
                         <div className="legacy-contact-content">
                             <div className="legacy-social">
-                                <a href={findSocialLink(contactSocialLinks, 'facebook').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'facebook').label ?? 'Facebook'}>
+                                <a href={findSocialLink(contactSocialLinks, 'facebook').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'facebook').label ?? 'Facebook'} onClick={() => trackAnalytics('social_click', { section: 'contact', platform: 'facebook', destination_url: findSocialLink(contactSocialLinks, 'facebook').url })}>
                                     <FaFacebookSquare />
                                 </a>
-                                <a href={findSocialLink(contactSocialLinks, 'instagram').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'instagram').label ?? 'Instagram'}>
+                                <a href={findSocialLink(contactSocialLinks, 'instagram').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'instagram').label ?? 'Instagram'} onClick={() => trackAnalytics('social_click', { section: 'contact', platform: 'instagram', destination_url: findSocialLink(contactSocialLinks, 'instagram').url })}>
                                     <AiFillInstagram />
                                 </a>
-                                <a href={findSocialLink(contactSocialLinks, 'soundcloud').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'soundcloud').label ?? 'SoundCloud'}>
+                                <a href={findSocialLink(contactSocialLinks, 'soundcloud').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'soundcloud').label ?? 'SoundCloud'} onClick={() => trackAnalytics('social_click', { section: 'contact', platform: 'soundcloud', destination_url: findSocialLink(contactSocialLinks, 'soundcloud').url })}>
                                     <ImSoundcloud2 />
                                 </a>
-                                <a href={findSocialLink(contactSocialLinks, 'spotify').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'spotify').label ?? 'Spotify'}>
+                                <a href={findSocialLink(contactSocialLinks, 'spotify').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'spotify').label ?? 'Spotify'} onClick={() => trackAnalytics('social_click', { section: 'contact', platform: 'spotify', destination_url: findSocialLink(contactSocialLinks, 'spotify').url })}>
                                     <FaSpotify />
                                 </a>
                             </div>
@@ -1208,10 +1261,10 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                     </button>
                 </div>
                 <div className="legacy-fixed-footer-right">
-                    <a href={findSocialLink(footerSocialLinks, 'facebook').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'facebook').label ?? 'Facebook'}><FaFacebookSquare /></a>
-                    <a href={findSocialLink(footerSocialLinks, 'instagram').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'instagram').label ?? 'Instagram'}><AiFillInstagram /></a>
-                    <a href={findSocialLink(footerSocialLinks, 'soundcloud').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'soundcloud').label ?? 'SoundCloud'}><ImSoundcloud2 /></a>
-                    <a href={findSocialLink(footerSocialLinks, 'spotify').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'spotify').label ?? 'Spotify'}><FaSpotify /></a>
+                    <a href={findSocialLink(footerSocialLinks, 'facebook').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'facebook').label ?? 'Facebook'} onClick={() => trackAnalytics('social_click', { section: 'footer', platform: 'facebook', destination_url: findSocialLink(footerSocialLinks, 'facebook').url })}><FaFacebookSquare /></a>
+                    <a href={findSocialLink(footerSocialLinks, 'instagram').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'instagram').label ?? 'Instagram'} onClick={() => trackAnalytics('social_click', { section: 'footer', platform: 'instagram', destination_url: findSocialLink(footerSocialLinks, 'instagram').url })}><AiFillInstagram /></a>
+                    <a href={findSocialLink(footerSocialLinks, 'soundcloud').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'soundcloud').label ?? 'SoundCloud'} onClick={() => trackAnalytics('social_click', { section: 'footer', platform: 'soundcloud', destination_url: findSocialLink(footerSocialLinks, 'soundcloud').url })}><ImSoundcloud2 /></a>
+                    <a href={findSocialLink(footerSocialLinks, 'spotify').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(footerSocialLinks, 'spotify').label ?? 'Spotify'} onClick={() => trackAnalytics('social_click', { section: 'footer', platform: 'spotify', destination_url: findSocialLink(footerSocialLinks, 'spotify').url })}><FaSpotify /></a>
                 </div>
             </footer>
 

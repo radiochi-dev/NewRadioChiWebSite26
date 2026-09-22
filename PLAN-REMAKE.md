@@ -1,6 +1,25 @@
 # PLAN REMAKE
 
-> Nota: este documento queda como roadmap historico general del proyecto. El estado real y cerrado del backoffice actual se sigue en `docs/documentation/PLAN_BACKEND_React_inertia_Tailwind.md`.
+> Nota: este documento queda como roadmap historico general del proyecto. El estado real y cerrado del backoffice actual se sigue en `docs/plans/PLAN_BACKEND_React_inertia_Tailwind.md`.
+
+## Seguimiento post-backoffice
+
+- **Estado del backoffice React/Inertia**: `CERRADO Y VALIDADO`
+- **Siguiente fase segura activa**: `Analitica publica GA4`
+- **Avance de la fase actual**: `100%`
+
+### Fase post-plan. Analitica publica GA4
+
+**Estado:** COMPLETADA
+
+- [x] ~~Corregir la referencia documental de `PLAN-REMAKE.md` al path real de `PLAN_BACKEND_React_inertia_Tailwind.md`.~~
+- [x] ~~Alinear `AUDITORIA_MIGRACION_RADIOCHI_ASTRO_A_LARAVEL.md` con el estado real del repo para no reabrir decisiones ya cerradas.~~
+- [x] ~~Resolver la configuracion publica GA4 por `env` y `settings`, sin hardcodes.~~
+- [x] ~~Bloquear la carga real del script fuera de produccion y cuando no exista `measurement_id`.~~
+- [x] ~~Disparar `page_view` por ruta/locale del frontend publico.~~
+- [x] ~~Instrumentar solo eventos clave de conversion/navegacion: hero CTA, tickets, YouTube, SoundCloud/Spotify/redes y navegacion por secciones.~~
+- [x] ~~Mantener la maquetacion publica intacta, sin redisenos ni cambios creativos.~~
+- [x] ~~Validar la superficie publica con tests sin degradar SEO ni seguridad base.~~
 
 ## Objetivo
 

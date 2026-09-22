@@ -1,7 +1,27 @@
 import { Head } from '@inertiajs/react'
+import { useEffect, useRef } from 'react'
 import LanguageSwitcher from '../Components/LanguageSwitcher'
+import { trackPublicPageView } from '../lib/publicAnalytics'
 
-export default function PublicLayout({ title, locale, locales, currentPath, menu, seo, hideNav = false, children }) {
+export default function PublicLayout({ title, locale, locales, currentPath, menu, seo, analytics, hideNav = false, children }) {
+    const lastTrackedPageRef = useRef(null)
+
+    useEffect(() => {
+        const trackingKey = `${currentPath}:${locale}:${title}`
+
+        if (lastTrackedPageRef.current === trackingKey) {
+            return
+        }
+
+        trackPublicPageView(analytics, {
+            title,
+            path: currentPath,
+            locale,
+        })
+
+        lastTrackedPageRef.current = trackingKey
+    }, [analytics, currentPath, locale, title])
+
     return (
         <>
             <Head title={title}>

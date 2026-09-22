@@ -1,6 +1,22 @@
 # Auditoría Exhaustiva y Plan de Cierre de Migración
 ## RadioChi Astro Legacy -> Laravel 12 + React + Inertia + Tailwind + Framer
 
+> Actualizacion operativa 2026-09-22:
+> este documento queda como auditoria historica de baseline y ya no refleja por si solo el estado real del repo.
+> El estado correcto hoy es:
+> - stack base en `Laravel 13`,
+> - frontend publico servido desde payload CMS/BD,
+> - backoffice oficial completado en `React + Inertia + Tailwind` bajo `/backoffice/*`,
+> - automatizacion/produccion base de Fase 8 ya implementada en repo,
+> - QA/cierre del backoffice documentado en `docs/documentation/FASE11_BACKOFFICE_QA_SEGURIDAD_DOD.md`.
+>
+> Regla de uso segura:
+> - usar este archivo solo como baseline historico y mapa de brechas antiguas,
+> - no usar sus estados `PENDIENTE` / `PARCIAL` como backlog operativo actual sin contrastarlos antes con `PLAN-REMAKE.md`, `docs/plans/PLAN_BACKEND_React_inertia_Tailwind.md` y la documentacion `FASE*.md`.
+>
+> Siguiente punto seguro de implementacion tras esta alineacion:
+> - `GA4 + eventos de navegacion y conversion del frontend publico`, de forma aditiva, condicionada por `env/settings` y sin tocar la maquetacion.
+
 ## 1) Objetivo del documento
 
 Definir, con criterio técnico y operativo, el estado real actual de `NewRadiochiWebsite26` frente al baseline `RadioChi-Website-2025` y detallar los pasos faltantes para lograr clonación funcional/visual completa y continuar con la implementación premium definida en el plan maestro.
