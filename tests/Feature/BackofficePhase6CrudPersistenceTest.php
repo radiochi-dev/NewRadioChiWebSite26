@@ -78,11 +78,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
 
         $this->actingAs($editor)
             ->get('/backoffice/page-blocks')
-            ->assertOk()
-            ->assertInertia(fn (Assert $inertia) => $inertia
-                ->component('Backoffice/Preview/ModuleIndex')
-                ->where('title', 'Bloques de pagina')
-                ->has('table.rows', 1));
+            ->assertRedirect('/backoffice/pages');
 
         $this->actingAs($editor)
             ->get('/backoffice/settings')
@@ -108,7 +104,6 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
         foreach ([
             '/backoffice/events',
             '/backoffice/pages',
-            '/backoffice/page-blocks',
             '/backoffice/settings',
             '/backoffice/seo-metas',
         ] as $url) {
@@ -120,7 +115,6 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
         foreach ([
             '/backoffice/events/create',
             '/backoffice/pages/create',
-            '/backoffice/page-blocks/create',
             '/backoffice/settings/create',
             '/backoffice/seo-metas/create',
         ] as $url) {
@@ -128,6 +122,14 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
                 ->get($url)
                 ->assertForbidden();
         }
+
+        $this->actingAs($readonly)
+            ->get('/backoffice/page-blocks')
+            ->assertRedirect('/backoffice/pages');
+
+        $this->actingAs($readonly)
+            ->get('/backoffice/page-blocks/create')
+            ->assertRedirect('/backoffice/pages');
     }
 
     public function test_editor_can_create_and_update_event_from_backoffice_preview(): void
@@ -177,18 +179,18 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
                 'template' => 'home',
                 'is_published' => true,
             ])
-            ->assertRedirect();
+            ->assertRedirect('/backoffice/pages/phase6-page/edit');
 
         $page = Page::query()->where('slug', 'phase6-page')->firstOrFail();
 
-        $this->postWithCsrf($editor, '/backoffice/pages/'.$page->id.'/translations', [
+        $this->postWithCsrf($editor, '/backoffice/pages/'.$page->slug.'/translations', [
                 'locale' => 'es',
                 'title' => 'Pagina Phase 6',
                 'meta_title' => 'Meta fase 6',
                 'meta_description' => 'Descripcion fase 6',
                 'content' => json_encode(['headline' => 'Hola'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             ])
-            ->assertRedirect('/backoffice/pages/'.$page->id.'/edit');
+            ->assertRedirect('/backoffice/pages/'.$page->slug.'/edit');
 
         $translation = $page->translations()->firstOrFail();
 
@@ -199,13 +201,13 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             'title' => 'Pagina Phase 6',
         ]);
 
-        $this->postWithCsrf($editor, '/backoffice/pages/'.$page->id.'/translations/'.$translation->id, [
+        $this->postWithCsrf($editor, '/backoffice/pages/'.$page->slug.'/translations/'.$translation->id, [
                 'title' => 'Pagina Phase 6 Updated',
                 'meta_title' => 'Meta fase 6 updated',
                 'meta_description' => 'Descripcion actualizada',
                 'content' => json_encode(['headline' => 'Hola de nuevo'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             ])
-            ->assertRedirect('/backoffice/pages/'.$page->id.'/edit');
+            ->assertRedirect('/backoffice/pages/'.$page->slug.'/edit');
 
         $this->assertDatabaseHas('page_translations', [
             'id' => $translation->id,
@@ -229,7 +231,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
         ]);
 
         $this->actingAs($editor)
-            ->get('/backoffice/pages/'.$page->id.'/translations/create?locale=fr')
+            ->get('/backoffice/pages/'.$page->slug.'/translations/create?locale=fr')
             ->assertOk()
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleForm')
@@ -238,7 +240,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
                 ->has('actions', 7));
 
         $this->actingAs($editor)
-            ->get('/backoffice/pages/'.$page->id.'/translations/'.$translation->id.'/edit')
+            ->get('/backoffice/pages/'.$page->slug.'/translations/'.$translation->id.'/edit')
             ->assertOk()
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleForm')
@@ -247,7 +249,30 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
                 ->where('actions.2.label', 'EN +'));
     }
 
-    public function test_home_editor_lists_editorial_sections_instead_of_technical_relations(): void
+    public function test_legacy_numeric_page_translation_edit_url_still_resolves_after_slug_cutover(): void
+    {
+        $editor = $this->createUserWithRole('editor');
+        $page = Page::query()->create([
+            'slug' => 'legacy-page-route',
+            'template' => 'home',
+            'is_published' => true,
+        ]);
+
+        $translation = $page->translations()->create([
+            'locale' => 'es',
+            'title' => 'Legacy translation',
+            'content' => ['headline' => 'Hola'],
+        ]);
+
+        $this->actingAs($editor)
+            ->get('/backoffice/pages/'.$page->id.'/translations/'.$translation->id.'/edit?from='.$page->id.'&locale=es')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.defaults.locale', 'es'));
+    }
+
+    public function test_home_editor_lists_only_home_components_instead_of_other_pages(): void
     {
         $editor = $this->createUserWithRole('editor');
 
@@ -278,16 +303,15 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
         $home = Page::query()->where('slug', 'home')->firstOrFail();
 
         $this->actingAs($editor)
-            ->get('/backoffice/pages/'.$home->id.'/edit?locale=en')
+            ->get('/backoffice/pages/'.$home->slug.'/edit?locale=en')
             ->assertOk()
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleForm')
                 ->where('title', 'Editar Home')
                 ->where('form.hideSubmit', true)
+                ->where('form.relationManagersTitle', 'Componentes administrables de la pagina')
+                ->has('form.relationManagers', 1)
                 ->where('form.relationManagers.0.label', 'Hero / Home')
-                ->where('form.relationManagers.1.label', 'About')
-                ->where('form.relationManagers.6.label', 'Navegacion y footer')
-                ->where('form.relationManagers.7.label', 'Modales legales')
                 ->has('actions', 7));
     }
 
@@ -327,7 +351,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
         ]);
 
         $this->actingAs($editor)
-            ->get('/backoffice/page-blocks/'.$block->id.'/translations/'.$translation->id.'/edit?locale=es&from=home')
+            ->get('/backoffice/pages/home/components/hero-slide-01/edit?locale=es&from=home')
             ->assertOk()
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleForm')
@@ -335,7 +359,44 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
                 ->where('form.defaults.button_text', 'Escuchar')
                 ->where('form.defaults.person_image', '/person.webp')
                 ->where('form.defaults.logo_position', 'left')
+                ->where('form.sections.0.fields.7.type', 'image')
+                ->where('form.sections.0.fields.9.type', 'image')
+                ->where('form.sections.0.fields.10.type', 'image')
+                ->has('form.mediaLibrary')
+                ->where('form.mediaUploadUrl', '/backoffice/media-assets/uploads/images')
                 ->missing('form.testChecklist'));
+    }
+
+    public function test_component_editor_submits_without_numeric_page_block_urls(): void
+    {
+        $editor = $this->createUserWithRole('editor');
+        $page = Page::query()->create([
+            'slug' => 'home',
+            'template' => 'home',
+            'is_published' => true,
+        ]);
+
+        $block = PageBlock::query()->create([
+            'page_id' => $page->id,
+            'key' => 'hero-slide-01',
+            'type' => 'hero_slide',
+            'position' => 1,
+            'is_active' => true,
+            'settings' => [],
+        ]);
+
+        $this->postWithCsrf($editor, '/backoffice/pages/home/components/hero-slide-01?locale=es', [
+                'locale' => 'es',
+                'title' => 'Hero principal',
+                'subtitle' => 'Subtitulo hero',
+                'description' => 'Descripcion hero',
+            ])
+            ->assertRedirect('/backoffice/pages/home/components/hero-slide-01/edit?locale=es');
+
+        $this->assertDatabaseHas('page_block_translations', [
+            'page_block_id' => $block->id,
+            'locale' => 'es',
+        ]);
     }
 
     public function test_editor_can_create_page_block_and_manage_translation_from_backoffice_preview(): void
@@ -362,7 +423,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
                 'locale' => 'en',
                 'content' => json_encode(['title' => 'About step'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             ])
-            ->assertRedirect('/backoffice/page-blocks/'.$block->id.'/edit');
+            ->assertRedirect('/backoffice/pages/about/components/about-step-01/edit?locale=en');
 
         $translation = $block->translations()->firstOrFail();
 

@@ -1,13 +1,13 @@
 import { Link } from '@inertiajs/react'
 import { FiChevronRight } from 'react-icons/fi'
 
-export default function BackofficeBreadcrumbs({ items = [] }) {
+export default function BackofficeBreadcrumbs({ items = [], className = 'mb-4 flex flex-wrap items-center gap-2 text-sm text-white/60' }) {
     if (!items.length) {
         return null
     }
 
     return (
-        <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-2 text-sm text-white/60">
+        <nav aria-label="Breadcrumb" className={className}>
             {items.map((item, index) => {
                 const isLast = index === items.length - 1
 

@@ -36,7 +36,7 @@ class Phase7PublicCmsPayloadTest extends TestCase
         $youtubeSetting->update(['value' => ['value' => 'https://youtube.com/@cms-channel']]);
 
         SocialLink::query()
-            ->where('location', 'contact')
+            ->where('location', 'global')
             ->where('platform', 'soundcloud')
             ->firstOrFail()
             ->update(['url' => 'https://soundcloud.com/cms-profile']);
@@ -57,6 +57,7 @@ class Phase7PublicCmsPayloadTest extends TestCase
         $this->assertSame('CMS Rights', data_get($payload, 'content.footer.rights'));
         $this->assertSame('https://youtube.com/@cms-channel', data_get($payload, 'content.media.youtubeChannelUrl'));
         $this->assertSame('https://soundcloud.com/cms-profile', collect(data_get($payload, 'contactData.socialLinks'))->firstWhere('platform', 'soundcloud')['url']);
+        $this->assertSame('https://soundcloud.com/cms-profile', collect(data_get($payload, 'contactData.footerSocialLinks'))->firstWhere('platform', 'soundcloud')['url']);
         $this->assertSame('/assets/img/logos/ibc+blue+logo+mk.webp', data_get($payload, 'calendarData.events.0.logo'));
         $this->assertSame('USA', data_get($payload, 'calendarData.events.0.country'));
         $this->assertSame('Descripcion SEO desde CMS', data_get($payload, 'seo.description'));

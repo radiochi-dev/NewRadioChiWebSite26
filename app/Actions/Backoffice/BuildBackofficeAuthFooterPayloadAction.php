@@ -34,7 +34,7 @@ class BuildBackofficeAuthFooterPayloadAction
 
         $socialLinks = SocialLink::query()
             ->where('is_active', true)
-            ->where('location', 'footer')
+            ->where('location', 'global')
             ->orderBy('position')
             ->get();
 

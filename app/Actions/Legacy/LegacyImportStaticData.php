@@ -49,14 +49,10 @@ class LegacyImportStaticData
     public static function socialLinks(): array
     {
         return [
-            ['platform' => 'facebook', 'label' => 'Facebook', 'url' => 'https://www.facebook.com/fernandocardonatoro', 'icon_key' => 'facebook', 'location' => 'contact'],
-            ['platform' => 'instagram', 'label' => 'Instagram', 'url' => 'https://www.instagram.com/mrchiloveyou/', 'icon_key' => 'instagram', 'location' => 'contact'],
-            ['platform' => 'soundcloud', 'label' => 'SoundCloud', 'url' => 'https://soundcloud.com/mrchi1', 'icon_key' => 'soundcloud', 'location' => 'contact'],
-            ['platform' => 'spotify', 'label' => 'Spotify', 'url' => 'https://open.spotify.com/', 'icon_key' => 'spotify', 'location' => 'contact'],
-            ['platform' => 'facebook', 'label' => 'Facebook', 'url' => 'https://www.facebook.com/fernandocardonatoro', 'icon_key' => 'facebook', 'location' => 'footer'],
-            ['platform' => 'instagram', 'label' => 'Instagram', 'url' => 'https://www.instagram.com/mrchiloveyou/', 'icon_key' => 'instagram', 'location' => 'footer'],
-            ['platform' => 'soundcloud', 'label' => 'SoundCloud', 'url' => 'https://soundcloud.com/mrchi1', 'icon_key' => 'soundcloud', 'location' => 'footer'],
-            ['platform' => 'spotify', 'label' => 'Spotify', 'url' => 'https://open.spotify.com/', 'icon_key' => 'spotify', 'location' => 'footer'],
+            ['platform' => 'facebook', 'label' => 'Facebook', 'url' => 'https://www.facebook.com/fernandocardonatoro', 'icon_key' => 'facebook', 'location' => 'global'],
+            ['platform' => 'instagram', 'label' => 'Instagram', 'url' => 'https://www.instagram.com/mrchiloveyou/', 'icon_key' => 'instagram', 'location' => 'global'],
+            ['platform' => 'soundcloud', 'label' => 'SoundCloud', 'url' => 'https://soundcloud.com/mrchi1', 'icon_key' => 'soundcloud', 'location' => 'global'],
+            ['platform' => 'spotify', 'label' => 'Spotify', 'url' => 'https://open.spotify.com/', 'icon_key' => 'spotify', 'location' => 'global'],
         ];
     }
 

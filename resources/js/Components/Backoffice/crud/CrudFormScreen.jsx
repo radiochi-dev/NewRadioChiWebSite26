@@ -116,6 +116,8 @@ export default function CrudFormScreen({
                                         field={field}
                                         form={inertiaForm}
                                         disabled={!capabilities.canSubmit}
+                                        mediaLibrary={form.mediaLibrary ?? []}
+                                        mediaUploadUrl={form.mediaUploadUrl ?? null}
                                     />
                                 ))}
                             </div>

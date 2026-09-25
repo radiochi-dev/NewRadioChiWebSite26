@@ -20,15 +20,15 @@ class BackofficeCrudInfrastructureTest extends TestCase
         $editor->assignRole(Role::findOrCreate('editor', 'web'));
 
         $this->actingAs($editor)
-            ->get('/backoffice/social-links?search=footer&sort=label&direction=asc&page=1&perPage=2&filters[location]=footer')
+            ->get('/backoffice/social-links?search=spotify&sort=label&direction=asc&page=1&perPage=10')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Backoffice/Preview/ModuleIndex')
                 ->where('title', 'Redes sociales')
                 ->where('table.query.sort', 'label')
                 ->where('table.query.direction', 'asc')
-                ->where('table.query.perPage', 2)
-                ->where('filters.0.key', 'location')
+                ->where('table.query.perPage', 10)
+                ->where('filters.0.key', 'is_active')
                 ->has('table.bulkActions', 0)
                 ->has('table.pagination')
                 ->missing('testChecklist'));

@@ -24,6 +24,7 @@ use App\Models\SettingTranslation;
 use App\Models\SocialLink;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
 class SaveBackofficePhase6ModuleAction
 {
@@ -313,6 +314,8 @@ class SaveBackofficePhase6ModuleAction
     private function saveSocialLink(array $data, ?string $record): SocialLink
     {
         $socialLink = $record ? SocialLink::query()->findOrFail($record) : new SocialLink();
+        $data['platform'] = Str::lower(trim((string) ($data['platform'] ?? '')));
+        $data['location'] = 'global';
         $socialLink->fill($data);
         $socialLink->save();
 

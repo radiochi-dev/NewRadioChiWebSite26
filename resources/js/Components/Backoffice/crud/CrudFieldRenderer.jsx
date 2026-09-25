@@ -1,3 +1,4 @@
+import ImageField from './ImageField'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
 import Textarea from '../ui/Textarea'
@@ -11,7 +12,7 @@ function PanelField({ field }) {
     )
 }
 
-export default function CrudFieldRenderer({ field, form, disabled = false }) {
+export default function CrudFieldRenderer({ field, form, disabled = false, mediaLibrary = [], mediaUploadUrl = null }) {
     const common = {
         label: field.label,
         hint: field.help,
@@ -81,6 +82,10 @@ export default function CrudFieldRenderer({ field, form, disabled = false }) {
                 {form.errors[field.key] ? <span className="block text-xs text-rose-200">{form.errors[field.key]}</span> : null}
             </label>
         )
+    }
+
+    if (field.type === 'image') {
+        return <ImageField field={field} form={form} disabled={disabled} library={mediaLibrary} uploadUrl={mediaUploadUrl} />
     }
 
     return (

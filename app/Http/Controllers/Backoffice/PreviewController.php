@@ -11,8 +11,10 @@ use App\Http\Requests\Backoffice\BackofficePreviewActionRequest;
 use App\Http\Requests\Backoffice\BackofficePreviewDraftRequest;
 use App\Http\Requests\Backoffice\BackofficePreviewIndexRequest;
 use App\Models\NewsletterCampaign;
+use App\Models\Page;
 use App\Support\Backoffice\BackofficePath;
 use App\Support\Backoffice\Phase6ModuleCatalog;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -27,10 +29,14 @@ class PreviewController extends Controller
     ) {
     }
 
-    public function index(BackofficePreviewIndexRequest $request, string $module): Response
+    public function index(BackofficePreviewIndexRequest $request, string $module): Response|RedirectResponse
     {
         /** @var User $user */
         $user = $request->user();
+
+        if ($module === 'page-blocks') {
+            return redirect(BackofficePath::active('pages'));
+        }
 
         $payload = Phase6ModuleCatalog::supports($module)
             ? $this->phase6Payload->index($user, $module, $request->validated())
@@ -39,10 +45,14 @@ class PreviewController extends Controller
         return Inertia::render('Backoffice/Preview/ModuleIndex', $payload);
     }
 
-    public function create(Request $request, string $module): Response
+    public function create(Request $request, string $module): Response|RedirectResponse
     {
         /** @var User $user */
         $user = $request->user();
+
+        if ($module === 'page-blocks') {
+            return redirect(BackofficePath::active('pages'));
+        }
 
         abort_unless($user->canManageBackofficeContent(), 403);
         abort_if(Phase6ModuleCatalog::supports($module) && Phase6ModuleCatalog::isReadOnly($module), 403);
@@ -98,7 +108,11 @@ class PreviewController extends Controller
 
             $saved = $this->savePhase6Module->execute($module, $request->validated(), $record);
 
-            return redirect(BackofficePath::active($module.'/'.$saved->getKey().'/edit'))
+            $redirectPath = $module === 'pages' && $saved instanceof Page
+                ? BackofficePath::active($module.'/'.$saved->slug.'/edit')
+                : BackofficePath::active($module.'/'.$saved->getKey().'/edit');
+
+            return redirect($redirectPath)
                 ->with('success', $record
                     ? Phase6ModuleCatalog::module($module)['singular'].' actualizado correctamente.'
                     : Phase6ModuleCatalog::module($module)['singular'].' creado correctamente.');

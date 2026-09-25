@@ -11,8 +11,9 @@
 - [x] ~~Corregir el bootstrap persistente de super admins del backoffice (`fernandocardonatoro@gmail.com`, `radiochi.dev@gmail.com`).~~
 - [x] ~~Implementar el primer avance UX del CMS multidioma: botones por locale en cabecera para abrir o crear la traduccion de pagina correspondiente.~~
 - [x] ~~Eliminar el bloque visual de checklist tecnico del backoffice porque no aportaba nada operativo al editor.~~
-- [x] ~~Reconducir `Paginas` a una superficie editorial real del onepage (`Home` + `Login`) en lugar de exponer CRUD tecnico de `pages/page_blocks`.~~
-- [x] ~~Implementar la base del nuevo editor multidioma por pagina en backoffice con retorno al flujo editorial (`Home/Login` -> seccion -> formulario tipado).~~
+- [x] ~~Reconducir `Paginas` a una superficie editorial real page-centric en lugar de exponer CRUD tecnico de `pages/page_blocks`.~~
+- [x] ~~Implementar la base del nuevo editor multidioma por pagina en backoffice con retorno al flujo editorial (`Paginas` -> `Pagina` -> `Componente` -> formulario tipado).~~
+- [x] ~~Consolidar `Redes sociales` como fuente comun unica para contacto, footer y login, sin duplicados editoriales por localizacion.~~
 - [ ] Completar la cobertura tipada de todos los formularios secundarios restantes del CMS onepage.
 - [ ] Validar integralmente frontend publico + backoffice editorial con pruebas y navegador.
 
@@ -41,7 +42,7 @@ Resultado restaurado:
 - `events`: 3
 - `media_assets`: 19
 - `partners`: 5
-- `social_links`: 8
+- `social_links`: 4
 - `legal_documents`: 3
 - `legal_document_translations`: 18
 - `settings`: 11
@@ -78,6 +79,40 @@ La edición multidioma ya tiene un primer punto de entrada usable:
 - si no existe, abre el formulario de alta con el locale prefijado
 
 Esto no es aun el editor page-centric final, pero ya evita navegar a ciegas por relation managers sin contexto de idioma.
+
+### 5. Ajuste visual puntual del shell del backoffice
+
+Se ha corregido el shell visual del dashboard/admin en los puntos pedidos durante la auditoria de maquetacion:
+
+- sidebar y topbar con cabeceras a la misma altura para evitar descuadres de la linea horizontal;
+- eliminacion del logo diminuto del topbar;
+- uso del logo real en la cabecera del sidebar con presencia visible;
+- reordenacion del menu lateral en el orden operativo solicitado;
+- descripciones de items ocultas por defecto y visibles solo en item activo o hover.
+- ocultacion de la barra de scroll del sidebar y estilizado del scroll del contenido con track transparente acorde al layout oscuro del backoffice.
+
+### 6. Correccion del flujo editorial page-centric
+
+Se ha corregido la mezcla incorrecta entre paginas y bloques tecnicos:
+
+- `Bloques de pagina` deja de exponerse como punto de entrada principal en sidebar y accesos rapidos;
+- el acceso directo a `/backoffice/page-blocks` redirige a `Paginas`;
+- `Paginas` lista ahora las paginas reales del CMS;
+- al abrir una pagina solo se muestran sus componentes propios;
+- al abrir un componente se entra en su editor tipado independiente;
+- al guardar una traduccion de pagina o bloque se retorna a la pagina propietaria, no al CRUD tecnico de bloques.
+- las URLs editoriales de pagina dejan de exponer IDs numericos y pasan a usar `slug` (`/backoffice/pages/home/edit?locale=es`);
+- la apertura de componentes usa una ruta descriptiva por pagina y clave de componente (`/backoffice/pages/home/components/hero-slide-01/edit?locale=es`);
+- se elimina el bloque visual `Resumen de validacion servidor` de los formularios de traduccion porque no aporta valor operativo al editor.
+- los campos reales de imagen del backoffice dejan de mostrarse como inputs de ruta y pasan a usar preview con miniatura, hover con blur y accion de limpieza;
+- esos mismos campos exponen botones para subir imagen nueva o seleccionar una existente desde la galeria de assets del backoffice;
+- el backoffice incorpora un endpoint de upload de imagen que registra automaticamente el asset en `media_assets` y lo deja disponible en la galeria reutilizable.
+- el modulo `Assets` deja de renderizarse como tabla tecnica y pasa a una galeria visual con grid de tarjetas;
+- el filtrado de `Assets` se limita a nombre del archivo, pagina donde esta asignado y formato (`Imagenes`, `Videos`, `PDF`);
+- cada tarjeta de asset muestra preview, nombre, tamano, formato, dimensiones, fecha de actualizacion y paginas donde esta siendo usada dentro del CMS.
+- `Redes sociales` pasa a una fuente comun unica: se elimina la separacion editorial `contact/footer` y cada red se crea una sola vez para reutilizarse en todas las superficies compartidas;
+- la lectura publica y el footer de login consumen ahora la misma coleccion `global` de redes sociales;
+- una migracion de consolidacion deduplica los registros legacy y deja un unico registro por plataforma en `social_links`.
 
 ## Auditoria del estado actual del CMS multidioma
 

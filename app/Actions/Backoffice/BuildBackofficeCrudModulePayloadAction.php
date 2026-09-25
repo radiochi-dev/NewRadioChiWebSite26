@@ -150,7 +150,7 @@ class BuildBackofficeCrudModulePayloadAction
             'sort' => $sort,
             'direction' => Arr::get($query, 'direction') === 'asc' ? 'asc' : 'desc',
             'page' => max(1, (int) Arr::get($query, 'page', 1)),
-            'perPage' => max(1, min(25, (int) Arr::get($query, 'perPage', 2))),
+            'perPage' => max(1, min(50, (int) Arr::get($query, 'perPage', 10))),
             'filters' => collect($blueprint['filters'])
                 ->mapWithKeys(fn (array $filter): array => [
                     $filter['key'] => (string) Arr::get($query, 'filters.'.$filter['key'], ''),

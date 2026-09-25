@@ -250,7 +250,7 @@ class Phase4RemainingContentSchemaTest extends TestCase
             'label' => 'Instagram',
             'url' => 'https://instagram.com/radiochi',
             'icon_key' => 'instagram',
-            'location' => 'footer',
+            'location' => 'global',
             'position' => 1,
             'is_active' => true,
             'settings' => ['target' => '_blank'],
@@ -297,7 +297,7 @@ class Phase4RemainingContentSchemaTest extends TestCase
 
         $this->assertSame($block->id, $downloadableFile->attachable->id);
         $this->assertSame($partner->id, $automationLog->reference->id);
-        $this->assertSame('footer', $socialLink->location);
+        $this->assertSame('global', $socialLink->location);
         $this->assertSame(301, $redirectRule->http_status);
     }
 

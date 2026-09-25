@@ -150,8 +150,8 @@ final class Phase6ModuleCatalog
                         'fields' => [
                             self::text('slug', 'Slug', true),
                             self::select('platform', 'Plataforma', true, self::musicPlatformOptions()),
-                            self::text('label_image_path', 'Ruta label image'),
-                            self::text('cover_image_path', 'Ruta cover image'),
+                            self::image('label_image_path', 'Imagen label'),
+                            self::image('cover_image_path', 'Imagen cover'),
                             self::url('stream_url', 'URL stream'),
                             self::url('external_url', 'URL externa'),
                             self::text('genre', 'Genero'),
@@ -229,7 +229,7 @@ final class Phase6ModuleCatalog
                             self::text('name', 'Nombre', true),
                             self::select('partner_type', 'Tipo', true, self::partnerTypeOptions()),
                             self::url('website_url', 'URL web'),
-                            self::text('logo_path', 'Ruta logo'),
+                            self::image('logo_path', 'Logo'),
                             self::number('position', 'Posicion'),
                             self::toggle('is_active', 'Activo'),
                             self::json('settings', 'Settings JSON'),
@@ -242,19 +242,17 @@ final class Phase6ModuleCatalog
                 'title' => 'Redes sociales',
                 'singular' => 'Red social',
                 'group' => 'Contacto',
-                'description' => 'Gestion real de enlaces sociales por ubicacion, iconografia y estado activo.',
+                'description' => 'Fuente comun de enlaces sociales reutilizada en contacto, footer y superficies compartidas del proyecto.',
                 'defaultSort' => 'position',
                 'defaultDirection' => 'asc',
                 'columns' => [
                     self::column('label', 'Etiqueta'),
                     self::column('platform', 'Plataforma', badge: true),
-                    self::column('location', 'Ubicacion', badge: true),
                     self::column('url', 'URL'),
                     self::column('position', 'Posicion', align: 'right'),
                     self::column('is_active', 'Activo', badge: true),
                 ],
                 'filters' => [
-                    self::selectFilter('location', 'Ubicacion', self::socialLocationOptions()),
                     self::ternaryFilter('is_active', 'Activo'),
                 ],
                 'formSections' => [
@@ -265,7 +263,6 @@ final class Phase6ModuleCatalog
                             self::text('label', 'Etiqueta'),
                             self::url('url', 'URL', true),
                             self::text('icon_key', 'Icon key'),
-                            self::select('location', 'Ubicacion', true, self::socialLocationOptions()),
                             self::number('position', 'Posicion'),
                             self::toggle('is_active', 'Activo'),
                             self::json('settings', 'Settings JSON'),
@@ -808,8 +805,6 @@ final class Phase6ModuleCatalog
     {
         return [
             ['value' => 'global', 'label' => 'Global'],
-            ['value' => 'contact', 'label' => 'Contact'],
-            ['value' => 'footer', 'label' => 'Footer'],
         ];
     }
 
@@ -979,6 +974,14 @@ final class Phase6ModuleCatalog
     private static function url(string $key, string $label, bool $required = false): array
     {
         return self::field($key, $label, 'url', $required);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function image(string $key, string $label, bool $required = false): array
+    {
+        return self::field($key, $label, 'image', $required);
     }
 
     /**

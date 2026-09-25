@@ -1,6 +1,5 @@
 import { Head, usePage } from '@inertiajs/react'
 import { useMemo, useState } from 'react'
-import BackofficeBreadcrumbs from '../Components/Backoffice/BackofficeBreadcrumbs'
 import BackofficeFlashMessages from '../Components/Backoffice/BackofficeFlashMessages'
 import BackofficeSidebar from '../Components/Backoffice/BackofficeSidebar'
 import BackofficeTopbar from '../Components/Backoffice/BackofficeTopbar'
@@ -15,9 +14,9 @@ function SummaryCard({ card }) {
     }
 
     return (
-        <article className={`rounded-[28px] border border-white/10 bg-gradient-to-br p-5 ${tones[card.tone] ?? tones.cyan}`}>
+        <article className={`rounded-[22px] border border-white/10 bg-gradient-to-br px-4 py-3 ${tones[card.tone] ?? tones.cyan}`}>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/45">{card.label}</p>
-            <p className="mt-4 text-3xl font-semibold text-white">{card.value}</p>
+            <p className="mt-2 text-2xl font-semibold text-white">{card.value}</p>
         </article>
     )
 }
@@ -28,6 +27,7 @@ export default function BackofficeLayout({
     breadcrumbs = [],
     actions = [],
     summaryCards = [],
+    headerContent = null,
     children,
 }) {
     const { props } = usePage()
@@ -49,6 +49,7 @@ export default function BackofficeLayout({
 
                 <div className="relative flex h-full min-h-0">
                     <BackofficeSidebar
+                        branding={props.backoffice?.branding}
                         navigation={props.backoffice?.navigation ?? []}
                         isOpen={isSidebarOpen}
                         onClose={() => setIsSidebarOpen(false)}
@@ -59,22 +60,19 @@ export default function BackofficeLayout({
                             branding={props.backoffice?.branding}
                             auth={props.auth}
                             title={title}
+                            breadcrumbs={breadcrumbs}
                             onMenuClick={() => setIsSidebarOpen(true)}
                         />
 
-                        <main className="min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-6 lg:px-8">
+                        <main className="backoffice-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-6 lg:px-8">
                             <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6">
                                 <BackofficeFlashMessages flash={props.flash} />
-                                <BackofficeBreadcrumbs items={breadcrumbs} />
 
-                                <section className="flex flex-col gap-5 rounded-[32px] border border-white/10 bg-black/20 p-6 shadow-[0_25px_80px_rgba(0,0,0,0.35)]">
+                                <section className="flex flex-col gap-4 rounded-[32px] border border-white/10 bg-black/20 p-6 shadow-[0_25px_80px_rgba(0,0,0,0.35)]">
                                     <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                                         <div className="max-w-3xl">
-                                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-300/75">
-                                                RadioChi Admin Next
-                                            </p>
-                                            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-4xl">{title}</h1>
-                                            {description ? <p className="mt-3 text-base leading-7 text-white/60">{description}</p> : null}
+                                            <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">{title}</h1>
+                                            {description ? <p className="mt-2 text-base leading-7 text-white/60">{description}</p> : null}
                                         </div>
 
                                         {visibleActions.length ? (
@@ -95,12 +93,14 @@ export default function BackofficeLayout({
                                     </div>
 
                                     {summaryCards.length ? (
-                                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                                             {summaryCards.map((card) => (
                                                 <SummaryCard key={`${card.label}-${card.value}`} card={card} />
                                             ))}
                                         </div>
                                     ) : null}
+
+                                    {headerContent ? <div>{headerContent}</div> : null}
                                 </section>
 
                                 <section className="min-h-0">{children}</section>

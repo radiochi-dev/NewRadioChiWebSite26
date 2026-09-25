@@ -20,10 +20,9 @@ export default function CrudIndexScreen({
             breadcrumbs={breadcrumbs}
             actions={actions}
             summaryCards={summaryCards}
+            headerContent={<FilterBar path={table.path} filters={filters} sortFields={table.columns} query={table.query} compact />}
         >
             <div className="space-y-6">
-                <FilterBar path={table.path} filters={filters} sortFields={table.columns} query={table.query} />
-
                 {!capabilities.canEdit ? (
                     <section className="rounded-[28px] border border-amber-400/20 bg-amber-400/10 px-5 py-4 text-sm text-amber-100">
                         Tu rol actual es de solo lectura. Puedes validar indices, filtros, payload y navegacion, pero las acciones de mutacion permanecen bloqueadas.

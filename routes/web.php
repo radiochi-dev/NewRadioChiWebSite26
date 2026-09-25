@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Backoffice\DashboardController as BackofficeDashboardController;
+use App\Http\Controllers\Backoffice\MediaAssetLibraryController;
 use App\Http\Controllers\Backoffice\PreviewController;
 use App\Http\Controllers\Backoffice\Phase6TranslationController;
 use App\Http\Controllers\Backoffice\AuthController as BackofficeAuthController;
@@ -23,6 +24,7 @@ Route::post(BackofficePath::official('login'), [BackofficeAuthController::class,
 Route::post(BackofficePath::official('logout'), [BackofficeAuthController::class, 'destroy'])->middleware('auth')->name('filament.backoffice.auth.logout');
 
 $registerBackofficeModuleRoutes = function (): void {
+    Route::post('/media-assets/uploads/images', [MediaAssetLibraryController::class, 'uploadImage']);
     Route::get('/legal-documents/{legalDocument}/translations/create', [Phase6TranslationController::class, 'createLegalDocument']);
     Route::post('/legal-documents/{legalDocument}/translations', [Phase6TranslationController::class, 'storeLegalDocument']);
     Route::get('/legal-documents/{legalDocument}/translations/{translation}/edit', [Phase6TranslationController::class, 'editLegalDocument']);
@@ -35,6 +37,8 @@ $registerBackofficeModuleRoutes = function (): void {
     Route::post('/pages/{page}/translations', [Phase6TranslationController::class, 'storePage']);
     Route::get('/pages/{page}/translations/{translation}/edit', [Phase6TranslationController::class, 'editPage']);
     Route::post('/pages/{page}/translations/{translation}', [Phase6TranslationController::class, 'updatePage']);
+    Route::get('/pages/{page}/components/{component}/edit', [Phase6TranslationController::class, 'editPageComponent']);
+    Route::post('/pages/{page}/components/{component}', [Phase6TranslationController::class, 'upsertPageComponent']);
     Route::get('/page-blocks/{pageBlock}/translations/create', [Phase6TranslationController::class, 'createPageBlock']);
     Route::post('/page-blocks/{pageBlock}/translations', [Phase6TranslationController::class, 'storePageBlock']);
     Route::get('/page-blocks/{pageBlock}/translations/{translation}/edit', [Phase6TranslationController::class, 'editPageBlock']);

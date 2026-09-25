@@ -14,6 +14,7 @@ use App\Support\Backoffice\CrudModuleBlueprintFactory;
 use App\Support\Backoffice\Phase6ModuleCatalog;
 use App\Support\BackofficeLocales;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -156,11 +157,10 @@ class BackofficePreviewDraftRequest extends FormRequest
                 'notes' => ['nullable', 'string'],
             ],
             'social-links' => [
-                'platform' => ['required', 'string', 'max:120'],
+                'platform' => ['required', 'string', 'max:120', Rule::unique('social_links', 'platform')->ignore($record)],
                 'label' => ['nullable', 'string', 'max:255'],
                 'url' => ['required', 'url', 'max:65535'],
                 'icon_key' => ['nullable', 'string', 'max:120'],
-                'location' => ['required', 'string', Rule::in(array_column(Phase6ModuleCatalog::socialLocationOptions(), 'value'))],
                 'position' => ['nullable', 'integer', 'min:0'],
                 'is_active' => ['nullable', 'boolean'],
                 'settings' => ['nullable', 'array'],
@@ -259,6 +259,8 @@ class BackofficePreviewDraftRequest extends FormRequest
                 'is_active' => $this->boolean('is_active'),
             ],
             'social-links' => [
+                'platform' => Str::lower(trim((string) $this->input('platform'))),
+                'location' => 'global',
                 'position' => $this->filled('position') ? (int) $this->input('position') : 0,
                 'is_active' => $this->boolean('is_active'),
                 'settings' => $this->decodeJsonField('settings'),

@@ -85,7 +85,7 @@ class BackofficePhase11QualityGateTest extends TestCase
 
         $this->actingAs($readonly)
             ->withSession(['_token' => $token])
-            ->post('/backoffice/pages/'.$page->id.'/translations', [
+            ->post('/backoffice/pages/'.$page->slug.'/translations', [
                 '_token' => $token,
                 'locale' => 'en',
                 'title' => 'Readonly blocked translation',

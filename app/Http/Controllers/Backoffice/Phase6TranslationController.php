@@ -66,6 +66,60 @@ class Phase6TranslationController extends Controller
         ));
     }
 
+    public function editPageComponent(Page $page, string $component): Response
+    {
+        /** @var User $user */
+        $user = request()->user();
+
+        abort_unless($user->canManageBackofficeContent(), 403);
+
+        $pageBlock = $page->blocks()
+            ->with(['page', 'translations'])
+            ->where('key', $component)
+            ->firstOrFail();
+
+        $locale = request()->query('locale');
+        $translation = is_string($locale) && $locale !== ''
+            ? $pageBlock->translations->firstWhere('locale', $locale)
+            : null;
+
+        abort_if($translation !== null && ! $translation instanceof PageBlockTranslation, 404);
+
+        return Inertia::render('Backoffice/Preview/ModuleForm', $this->payload->pageBlockTranslationForm(
+            $user,
+            $pageBlock,
+            $translation,
+            request()->session()->getOldInput(),
+        ));
+    }
+
+    public function upsertPageComponent(BackofficePageBlockTranslationUpsertRequest $request, Page $page, string $component)
+    {
+        $pageBlock = $page->blocks()
+            ->with(['page', 'translations'])
+            ->where('key', $component)
+            ->firstOrFail();
+
+        $data = $request->validated();
+        $locale = is_string($data['locale'] ?? null) && $data['locale'] !== ''
+            ? $data['locale']
+            : (is_string($request->query('locale')) ? $request->query('locale') : 'es');
+
+        /** @var PageBlockTranslation|null $translation */
+        $translation = $pageBlock->translations->firstWhere('locale', $locale);
+
+        $savedTranslation = $this->save->savePageBlockTranslation($pageBlock, $data, $translation);
+
+        return redirect($this->editorialReturnPath(
+            from: $request->query('from'),
+            locale: $savedTranslation->locale,
+            fallback: $this->pageComponentEditPath($pageBlock, $savedTranslation->locale),
+        ))
+            ->with('success', $translation instanceof PageBlockTranslation
+                ? 'Traduccion de bloque actualizada correctamente.'
+                : 'Traduccion de bloque guardada correctamente.');
+    }
+
     public function storePage(BackofficePageTranslationUpsertRequest $request, Page $page)
     {
         $this->save->savePageTranslation($page, $request->validated());
@@ -73,7 +127,7 @@ class Phase6TranslationController extends Controller
         return redirect($this->editorialReturnPath(
             from: $request->query('from'),
             locale: $request->validated('locale'),
-            fallback: BackofficePath::active('pages/'.$page->getKey().'/edit'),
+            fallback: BackofficePath::active('pages/'.$page->slug.'/edit'),
         ))
             ->with('success', 'Traduccion de pagina guardada correctamente.');
     }
@@ -87,7 +141,7 @@ class Phase6TranslationController extends Controller
         return redirect($this->editorialReturnPath(
             from: $request->query('from'),
             locale: $translation->locale,
-            fallback: BackofficePath::active('pages/'.$page->getKey().'/edit'),
+            fallback: BackofficePath::active('pages/'.$page->slug.'/edit'),
         ))
             ->with('success', 'Traduccion de pagina actualizada correctamente.');
     }
@@ -239,7 +293,7 @@ class Phase6TranslationController extends Controller
         return redirect($this->editorialReturnPath(
             from: $request->query('from'),
             locale: $request->validated('locale'),
-            fallback: BackofficePath::active('page-blocks/'.$pageBlock->getKey().'/edit'),
+            fallback: $this->pageComponentEditPath($pageBlock, $request->validated('locale')),
         ))
             ->with('success', 'Traduccion de bloque guardada correctamente.');
     }
@@ -253,7 +307,7 @@ class Phase6TranslationController extends Controller
         return redirect($this->editorialReturnPath(
             from: $request->query('from'),
             locale: $translation->locale,
-            fallback: BackofficePath::active('page-blocks/'.$pageBlock->getKey().'/edit'),
+            fallback: $this->pageComponentEditPath($pageBlock, $translation->locale),
         ))
             ->with('success', 'Traduccion de bloque actualizada correctamente.');
     }
@@ -318,7 +372,7 @@ class Phase6TranslationController extends Controller
 
     private function editorialReturnPath(mixed $from, ?string $locale, string $fallback): string
     {
-        if (! is_string($from) || ! in_array($from, ['home', 'login'], true)) {
+        if (! is_string($from) || trim($from) === '') {
             return $fallback;
         }
 
@@ -326,10 +380,46 @@ class Phase6TranslationController extends Controller
             ? $locale
             : 'es';
 
+        if ($from !== 'login') {
+            $page = Page::query()
+                ->when(
+                    ctype_digit($from),
+                    fn ($query) => $query->whereKey($from),
+                    fn ($query) => $query->where('slug', $from),
+                )
+                ->first();
+
+            if ($page instanceof Page) {
+                $query = http_build_query([
+                    'locale' => $activeLocale,
+                ]);
+
+                return BackofficePath::active('pages/'.$page->slug.'/edit').'?'.$query;
+            }
+        }
+
+        if ($from !== 'login') {
+            return $fallback;
+        }
+
         $query = http_build_query([
             'locale' => $activeLocale,
         ]);
 
-        return BackofficePath::active('pages/'.$from.'/edit').'?'.$query;
+        return BackofficePath::active('pages/login/edit').'?'.$query;
+    }
+
+    private function pageComponentEditPath(PageBlock $pageBlock, ?string $locale): string
+    {
+        if (! $pageBlock->page instanceof Page) {
+            return BackofficePath::active('page-blocks/'.$pageBlock->getKey().'/edit');
+        }
+
+        $activeLocale = is_string($locale) && in_array($locale, BackofficeLocales::values(), true)
+            ? $locale
+            : 'es';
+
+        return BackofficePath::active('pages/'.$pageBlock->page->slug.'/components/'.$pageBlock->key.'/edit')
+            .'?'.http_build_query(['locale' => $activeLocale]);
     }
 }

@@ -24,6 +24,44 @@ body {
     height: 100%;
 }
 
+.backoffice-scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.backoffice-scrollbar-hidden::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+.backoffice-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.34) transparent;
+}
+
+.backoffice-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: transparent;
+}
+
+.backoffice-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.backoffice-scrollbar::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(34, 211, 238, 0.28), rgba(168, 85, 247, 0.28));
+    background-clip: padding-box;
+}
+
+.backoffice-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(34, 211, 238, 0.42), rgba(168, 85, 247, 0.42));
+    background-clip: padding-box;
+}
+
 .legacy-intro {
     position: fixed;
     inset: 0;

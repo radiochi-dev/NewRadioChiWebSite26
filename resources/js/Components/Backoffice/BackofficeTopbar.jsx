@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react'
 import { FiLogOut, FiMenu } from 'react-icons/fi'
+import BackofficeBreadcrumbs from './BackofficeBreadcrumbs'
 
 function RoleBadge({ role }) {
     return (
@@ -9,12 +10,12 @@ function RoleBadge({ role }) {
     )
 }
 
-export default function BackofficeTopbar({ branding, title, auth, onMenuClick }) {
+export default function BackofficeTopbar({ title, breadcrumbs = [], auth, onMenuClick }) {
     const roles = auth?.roles ?? []
 
     return (
-        <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/85 backdrop-blur-xl">
-            <div className="flex items-center justify-between gap-4 px-4 py-4 md:px-6">
+        <header className="sticky top-0 z-30 h-24 border-b border-white/10 bg-slate-950/85 backdrop-blur-xl">
+            <div className="flex h-full items-center justify-between gap-4 px-4 md:px-6">
                 <div className="flex min-w-0 items-center gap-3">
                     <button
                         type="button"
@@ -23,10 +24,13 @@ export default function BackofficeTopbar({ branding, title, auth, onMenuClick })
                     >
                         <FiMenu className="h-5 w-5" />
                     </button>
-                    <img src={branding.logo} alt={branding.name} className="h-5 w-auto" />
                     <div className="min-w-0">
                         <p className="truncate text-[11px] uppercase tracking-[0.32em] text-cyan-300/75">Shell React + Inertia</p>
                         <h1 className="truncate text-lg font-semibold text-white">{title}</h1>
+                        <BackofficeBreadcrumbs
+                            items={breadcrumbs}
+                            className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/50"
+                        />
                     </div>
                 </div>
 

@@ -11,6 +11,8 @@ use App\Models\Partner;
 use App\Models\SocialLink;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -53,7 +55,7 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
             'platform' => 'instagram',
             'label' => 'Instagram',
             'url' => 'https://instagram.com/radiochi',
-            'location' => 'footer',
+            'location' => 'global',
             'position' => 1,
             'is_active' => true,
         ]);
@@ -81,6 +83,70 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
                     ->where('title', $title)
                     ->has('table.rows', 1));
         }
+
+        $this->actingAs($editor)
+            ->get('/backoffice/media-assets')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleIndex')
+                ->where('title', 'Assets')
+                ->has('gallery.items', 1)
+                ->where('gallery.items.0.filename', 'phase7-poster.jpg')
+                ->where('gallery.items.0.formatKey', 'image'));
+    }
+
+    public function test_media_assets_gallery_filters_by_name_page_and_format(): void
+    {
+        $editor = $this->createUserWithRole('editor');
+
+        $page = Page::query()->create([
+            'slug' => 'home',
+            'template' => 'home',
+            'is_published' => true,
+        ]);
+
+        PageBlock::query()->create([
+            'page_id' => $page->id,
+            'key' => 'hero-slide-01',
+            'type' => 'hero_slide',
+            'position' => 1,
+            'is_active' => true,
+            'settings' => [
+                'personImage' => '/storage/backoffice/media/2026/09/home-hero.webp',
+            ],
+        ]);
+
+        MediaAsset::query()->create([
+            'disk' => 'public',
+            'path' => '/storage/backoffice/media/2026/09/home-hero.webp',
+            'filename' => 'home-hero.webp',
+            'mime_type' => 'image/webp',
+            'size' => 2048,
+        ]);
+
+        MediaAsset::query()->create([
+            'disk' => 'external',
+            'path' => 'youtube:phase7-video',
+            'filename' => 'phase7-video',
+            'mime_type' => 'video/youtube',
+            'metadata' => [
+                'kind' => 'video',
+                'youtube_id' => 'phase7-video',
+                'thumbnail' => 'https://img.youtube.com/vi/phase7-video/hqdefault.jpg',
+            ],
+        ]);
+
+        $this->actingAs($editor)
+            ->get('/backoffice/media-assets?search=home&filters[assigned_page]=home&filters[format]=image')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleIndex')
+                ->where('filters.0.value', 'home')
+                ->where('filters.1.value', 'image')
+                ->has('gallery.items', 1)
+                ->where('gallery.items.0.filename', 'home-hero.webp')
+                ->where('gallery.items.0.assignedPages.0', 'Home')
+                ->where('gallery.items.0.formatKey', 'image'));
     }
 
     public function test_readonly_can_view_phase_7_indexes_but_cannot_access_create_routes(): void
@@ -155,6 +221,40 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
         ]);
     }
 
+    public function test_music_track_and_partner_forms_expose_image_fields_without_text_paths(): void
+    {
+        $editor = $this->createUserWithRole('editor');
+
+        MediaAsset::query()->create([
+            'disk' => 'public',
+            'path' => '/assets/img/logos/example.webp',
+            'filename' => 'example.webp',
+            'mime_type' => 'image/webp',
+            'size' => 1024,
+            'width' => 600,
+            'height' => 300,
+        ]);
+
+        $this->actingAs($editor)
+            ->get('/backoffice/music-tracks/create')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.sections.0.fields.2.type', 'image')
+                ->where('form.sections.0.fields.3.type', 'image')
+                ->has('form.mediaLibrary', 1)
+                ->where('form.mediaUploadUrl', '/backoffice/media-assets/uploads/images'));
+
+        $this->actingAs($editor)
+            ->get('/backoffice/partners/create')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.sections.0.fields.4.type', 'image')
+                ->has('form.mediaLibrary', 1)
+                ->where('form.mediaUploadUrl', '/backoffice/media-assets/uploads/images'));
+    }
+
     public function test_editor_can_create_media_asset_partner_and_social_link_from_backoffice_preview(): void
     {
         $editor = $this->createUserWithRole('editor');
@@ -191,7 +291,6 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
                 'label' => 'Spotify',
                 'url' => 'https://spotify.com/radiochi',
                 'icon_key' => 'spotify',
-                'location' => 'contact',
                 'position' => 1,
                 'is_active' => true,
             ])
@@ -199,7 +298,40 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
 
         $this->assertDatabaseHas('media_assets', ['path' => 'media/phase7-photo.jpg', 'filename' => 'phase7-photo.jpg']);
         $this->assertDatabaseHas('partners', ['slug' => 'phase7-partner', 'partner_type' => 'media']);
-        $this->assertDatabaseHas('social_links', ['platform' => 'spotify', 'location' => 'contact']);
+        $this->assertDatabaseHas('social_links', ['platform' => 'spotify', 'location' => 'global']);
+    }
+
+    public function test_editor_cannot_create_duplicate_social_platforms_in_shared_source(): void
+    {
+        $editor = $this->createUserWithRole('editor');
+
+        SocialLink::query()->create([
+            'platform' => 'spotify',
+            'label' => 'Spotify',
+            'url' => 'https://spotify.com/original',
+            'location' => 'global',
+            'position' => 1,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($editor)
+            ->from('/backoffice/social-links/create')
+            ->post('/backoffice/social-links/draft', [
+                'platform' => 'Spotify',
+                'label' => 'Spotify duplicado',
+                'url' => 'https://spotify.com/duplicated',
+                'icon_key' => 'spotify',
+                'position' => 2,
+                'is_active' => true,
+            ])
+            ->assertRedirect('/backoffice/social-links/create');
+
+        $this->assertDatabaseCount('social_links', 1);
+        $this->assertDatabaseHas('social_links', [
+            'platform' => 'spotify',
+            'url' => 'https://spotify.com/original',
+            'location' => 'global',
+        ]);
     }
 
     public function test_editor_can_create_downloadable_file_with_polymorphic_attachment_from_backoffice_preview(): void
@@ -260,6 +392,34 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
             ->assertSessionHasErrors('attachable_id');
     }
 
+    public function test_editor_can_upload_image_to_backoffice_media_library(): void
+    {
+        Storage::fake('public');
+
+        $editor = $this->createUserWithRole('editor');
+
+        $pngFixture = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+iVhQAAAAASUVORK5CYII=');
+
+        $response = $this->actingAs($editor)
+            ->post('/backoffice/media-assets/uploads/images', [
+                'image' => UploadedFile::fake()->createWithContent('hero-slide.png', $pngFixture),
+            ]);
+
+        $response->assertCreated();
+        $this->assertTrue(str_ends_with((string) $response->json('asset.filename'), '.png'));
+        $this->assertTrue(str_starts_with((string) $response->json('asset.previewUrl'), '/storage/backoffice/media/'));
+
+        $asset = MediaAsset::query()->latest('id')->firstOrFail();
+
+        Storage::disk('public')->assertExists(str_replace('/storage/', '', $asset->path));
+
+        $this->assertDatabaseHas('media_assets', [
+            'id' => $asset->id,
+            'disk' => 'public',
+            'mime_type' => 'image/png',
+        ]);
+    }
+
     private function createUserWithRole(string $roleName): User
     {
         $user = User::factory()->create();
@@ -268,4 +428,3 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
         return $user;
     }
 }
-

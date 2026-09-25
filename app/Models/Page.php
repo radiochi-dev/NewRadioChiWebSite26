@@ -27,6 +27,22 @@ class Page extends Model
         return $this->hasMany(PageTranslation::class);
     }
 
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function resolveRouteBinding($value, $field = null): ?Model
+    {
+        if (is_string($value) && ctype_digit($value)) {
+            return $this->newQuery()->whereKey($value)->first();
+        }
+
+        return $this->newQuery()
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->first();
+    }
+
     public function blocks(): HasMany
     {
         return $this->hasMany(PageBlock::class)->orderBy('position');

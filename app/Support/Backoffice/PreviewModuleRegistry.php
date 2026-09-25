@@ -117,12 +117,12 @@ final class PreviewModuleRegistry
                 'singular' => 'Red social',
                 'group' => 'Contacto',
                 'icon' => 'share',
-                'description' => 'Enlaces sociales y de contacto por localizacion dentro del proyecto.',
-                'columns' => ['Label', 'Plataforma', 'Ubicacion', 'URL', 'Posicion', 'Activo'],
-                'filters' => ['Ubicacion', 'Activo'],
+                'description' => 'Fuente comun de enlaces sociales reutilizada en todas las superficies compartidas del proyecto.',
+                'columns' => ['Label', 'Plataforma', 'URL', 'Posicion', 'Activo'],
+                'filters' => ['Activo'],
                 'formSections' => [
                     ['title' => 'Enlace', 'fields' => ['Plataforma', 'Label', 'URL', 'Icon key']],
-                    ['title' => 'Publicacion', 'fields' => ['Ubicacion', 'Posicion', 'Activo']],
+                    ['title' => 'Publicacion', 'fields' => ['Posicion', 'Activo']],
                 ],
             ],
             'legal-documents' => [

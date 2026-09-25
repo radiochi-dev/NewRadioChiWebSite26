@@ -75,11 +75,9 @@ class BuildPublicHomePayloadAction
 
         $socialLinks = SocialLink::query()
             ->where('is_active', true)
-            ->whereIn('location', ['contact', 'footer'])
-            ->orderBy('location')
+            ->where('location', 'global')
             ->orderBy('position')
-            ->get()
-            ->groupBy('location');
+            ->get();
 
         $legalDocuments = LegalDocument::query()
             ->where('is_published', true)
@@ -133,8 +131,8 @@ class BuildPublicHomePayloadAction
         ];
 
         $contactData = [
-            'socialLinks' => $this->buildSocialLinks($socialLinks->get('contact', collect())),
-            'footerSocialLinks' => $this->buildSocialLinks($socialLinks->get('footer', collect())),
+            'socialLinks' => $this->buildSocialLinks($socialLinks),
+            'footerSocialLinks' => $this->buildSocialLinks($socialLinks),
             'sponsorLogos' => $this->buildPartners($partners),
             'marqueeRows' => $this->buildContactMarqueeRows($pages->get('contact'), $settings, $locale),
         ];

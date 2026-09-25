@@ -34,7 +34,7 @@ class BackofficePreviewIndexRequest extends FormRequest
             'sort' => ['nullable', 'string', Rule::in($sortableColumns)],
             'direction' => ['nullable', Rule::in(['asc', 'desc'])],
             'page' => ['nullable', 'integer', 'min:1'],
-            'perPage' => ['nullable', 'integer', 'min:1', 'max:25'],
+            'perPage' => ['nullable', 'integer', 'min:1', 'max:50'],
             'filters' => ['nullable', 'array'],
         ];
     }

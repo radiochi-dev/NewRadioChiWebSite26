@@ -40,28 +40,55 @@ const iconMap = {
     users: FiUsers,
 }
 
+function normalizePath(value) {
+    if (typeof value !== 'string' || value.trim() === '') {
+        return '/'
+    }
+
+    const [path] = value.split(/[?#]/)
+    const normalized = path.replace(/\/+$/, '')
+
+    return normalized === '' ? '/' : normalized
+}
+
+function isItemActive(currentUrl, itemHref) {
+    const current = normalizePath(currentUrl)
+    const target = normalizePath(itemHref)
+
+    if (target === '/backoffice') {
+        return current === target
+    }
+
+    return current === target || current.startsWith(`${target}/`)
+}
+
 function NavItem({ item, active, onNavigate }) {
     const Icon = iconMap[item.icon] ?? FiGrid
     const classes = active
         ? 'border-cyan-400/40 bg-cyan-400/10 text-white'
         : 'border-transparent text-white/70 hover:border-white/10 hover:bg-white/5 hover:text-white'
+    const descriptionClasses = active
+        ? 'mt-1 max-h-16 translate-y-0 opacity-100'
+        : 'mt-0 max-h-0 translate-y-1 opacity-0 group-hover:mt-1 group-hover:max-h-16 group-hover:translate-y-0 group-hover:opacity-100'
 
     return (
         <Link
             href={item.href}
-            className={`flex items-start gap-3 rounded-2xl border px-3 py-3 transition ${classes}`}
+            className={`group flex items-start gap-3 rounded-2xl border px-3 py-3 transition ${classes}`}
             onClick={onNavigate}
         >
             <Icon className="mt-0.5 h-4 w-4 shrink-0" />
             <span className="min-w-0">
                 <span className="block text-sm font-semibold">{item.label}</span>
-                <span className="mt-1 block text-xs text-white/45">{item.description}</span>
+                <span className={`block overflow-hidden text-xs text-white/45 transition-all duration-300 ease-out ${descriptionClasses}`}>
+                    {item.description}
+                </span>
             </span>
         </Link>
     )
 }
 
-export default function BackofficeSidebar({ navigation = [], isOpen = false, onClose }) {
+export default function BackofficeSidebar({ branding, navigation = [], isOpen = false, onClose }) {
     const { url } = usePage()
 
     return (
@@ -74,10 +101,13 @@ export default function BackofficeSidebar({ navigation = [], isOpen = false, onC
                 className={`fixed inset-y-0 left-0 z-50 w-80 max-w-[88vw] border-r border-white/10 bg-slate-950/95 backdrop-blur-xl transition md:static md:z-auto md:w-80 md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 <div className="flex h-full flex-col">
-                    <div className="flex items-center justify-between border-b border-white/10 px-5 py-5">
-                        <div>
-                            <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/80">RadioChi</p>
-                            <h2 className="mt-2 text-lg font-semibold text-white">Backoffice</h2>
+                    <div className="flex h-24 items-center justify-between border-b border-white/10 px-5">
+                        <div className="min-w-0">
+                            <img
+                                src={branding?.logo}
+                                alt={branding?.name ?? 'RadioChi Backoffice'}
+                                className="h-12 w-auto max-w-[72px] object-contain"
+                            />
                         </div>
                         <button
                             type="button"
@@ -88,7 +118,7 @@ export default function BackofficeSidebar({ navigation = [], isOpen = false, onC
                         </button>
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                    <div className="backoffice-scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-4 py-4">
                         <div className="space-y-6">
                             {navigation.map((group) => (
                                 <section key={group.label} className="space-y-3">
@@ -100,7 +130,7 @@ export default function BackofficeSidebar({ navigation = [], isOpen = false, onC
                                             <NavItem
                                                 key={item.slug}
                                                 item={item}
-                                                active={url === item.href || url.startsWith(`${item.href}/`)}
+                                                active={isItemActive(url, item.href)}
                                                 onNavigate={onClose}
                                             />
                                         ))}

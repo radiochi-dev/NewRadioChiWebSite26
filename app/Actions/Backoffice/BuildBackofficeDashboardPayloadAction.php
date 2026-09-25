@@ -58,7 +58,6 @@ class BuildBackofficeDashboardPayloadAction
                     'description' => 'Entrar al flujo editorial principal sin pasar por el dashboard legacy.',
                     'actions' => [
                         ['label' => 'Paginas', 'href' => '/backoffice/pages', 'variant' => 'primary'],
-                        ['label' => 'Bloques', 'href' => '/backoffice/page-blocks', 'variant' => 'ghost'],
                     ],
                 ],
                 [

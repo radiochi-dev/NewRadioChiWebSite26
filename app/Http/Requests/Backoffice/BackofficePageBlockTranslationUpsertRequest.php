@@ -33,6 +33,16 @@ class BackofficePageBlockTranslationUpsertRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if (! $this->has('locale')) {
+            $queryLocale = $this->query('locale');
+
+            if (is_string($queryLocale) && in_array($queryLocale, BackofficeLocales::values(), true)) {
+                $this->merge([
+                    'locale' => $queryLocale,
+                ]);
+            }
+        }
+
         if ($this->has('content') && is_string($this->input('content'))) {
             $this->merge([
                 'content' => $this->decodeJsonField('content'),
