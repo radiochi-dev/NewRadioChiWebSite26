@@ -1,4 +1,5 @@
 import ImageField from './ImageField'
+import RichTextField from './RichTextField'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
 import Textarea from '../ui/Textarea'
@@ -86,6 +87,16 @@ export default function CrudFieldRenderer({ field, form, disabled = false, media
 
     if (field.type === 'image') {
         return <ImageField field={field} form={form} disabled={disabled} library={mediaLibrary} uploadUrl={mediaUploadUrl} />
+    }
+
+    if (field.type === 'richtext') {
+        return (
+            <RichTextField
+                {...common}
+                value={form.data[field.key] ?? ''}
+                onChange={(value) => form.setData(field.key, value)}
+            />
+        )
     }
 
     return (

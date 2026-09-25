@@ -20,7 +20,7 @@ final class Phase6ModuleCatalog
                 'slug' => 'events',
                 'title' => 'Eventos',
                 'singular' => 'Evento',
-                'group' => 'Agenda',
+                'group' => 'Editorial / contenido',
                 'description' => 'Gestion real del calendario editorial con persistencia Laravel sobre la base reusable de Fase 5.',
                 'defaultSort' => 'event_starts_at',
                 'defaultDirection' => 'desc',
@@ -51,7 +51,7 @@ final class Phase6ModuleCatalog
                             self::toggle('is_featured', 'Destacado'),
                             self::toggle('is_published', 'Publicado'),
                             self::textarea('excerpt', 'Extracto'),
-                            self::textarea('body', 'Contenido'),
+                            self::richtext('body', 'Contenido'),
                         ],
                     ],
                 ],
@@ -60,7 +60,7 @@ final class Phase6ModuleCatalog
                 'slug' => 'pages',
                 'title' => 'Paginas',
                 'singular' => 'Pagina',
-                'group' => 'Editorial',
+                'group' => 'Editorial / contenido',
                 'description' => 'Gestion real de paginas, traducciones y bloques hijos con coexistencia segura frente a Filament.',
                 'defaultSort' => 'updated_at',
                 'defaultDirection' => 'desc',
@@ -91,7 +91,7 @@ final class Phase6ModuleCatalog
                 'slug' => 'page-blocks',
                 'title' => 'Bloques de pagina',
                 'singular' => 'Bloque de pagina',
-                'group' => 'Editorial',
+                'group' => 'Editorial / contenido',
                 'description' => 'Gestion real de bloques editoriales compuestos por pagina y traducciones por locale.',
                 'defaultSort' => 'page_id',
                 'defaultDirection' => 'asc',
@@ -126,7 +126,7 @@ final class Phase6ModuleCatalog
                 'slug' => 'music-tracks',
                 'title' => 'Tracks musicales',
                 'singular' => 'Track musical',
-                'group' => 'Editorial',
+                'group' => 'Editorial / contenido',
                 'description' => 'Gestion real de tracks musicales, plataformas, metadata editorial y traducciones equivalentes al relation manager actual.',
                 'defaultSort' => 'position',
                 'defaultDirection' => 'asc',
@@ -205,7 +205,7 @@ final class Phase6ModuleCatalog
                 'slug' => 'partners',
                 'title' => 'Sponsors',
                 'singular' => 'Sponsor',
-                'group' => 'Contacto',
+                'group' => 'Marketing',
                 'description' => 'Gestion real de sponsors y partners con orden, logo, website y estado de visibilidad.',
                 'defaultSort' => 'position',
                 'defaultDirection' => 'asc',
@@ -241,7 +241,7 @@ final class Phase6ModuleCatalog
                 'slug' => 'social-links',
                 'title' => 'Redes sociales',
                 'singular' => 'Red social',
-                'group' => 'Contacto',
+                'group' => 'Marketing',
                 'description' => 'Fuente comun de enlaces sociales reutilizada en contacto, footer y superficies compartidas del proyecto.',
                 'defaultSort' => 'position',
                 'defaultDirection' => 'asc',
@@ -540,7 +540,7 @@ final class Phase6ModuleCatalog
                     [
                         'title' => 'Contenido HTML',
                         'fields' => [
-                            self::textarea('html_body', 'HTML body', true),
+                            self::richtext('html_body', 'HTML body', true),
                         ],
                     ],
                 ],
@@ -696,7 +696,7 @@ final class Phase6ModuleCatalog
                 self::text('title', 'Titulo', true),
                 self::text('cta_label', 'CTA label'),
                 self::textarea('summary', 'Resumen'),
-                self::textarea('content', 'Contenido', true),
+                self::richtext('content', 'Contenido', true),
             ],
         ];
     }
@@ -925,6 +925,14 @@ final class Phase6ModuleCatalog
     private static function textarea(string $key, string $label, bool $required = false): array
     {
         return self::field($key, $label, 'textarea', $required);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function richtext(string $key, string $label, bool $required = false): array
+    {
+        return self::field($key, $label, 'richtext', $required);
     }
 
     /**

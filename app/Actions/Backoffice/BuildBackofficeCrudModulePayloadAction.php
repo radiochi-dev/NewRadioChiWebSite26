@@ -124,7 +124,7 @@ class BuildBackofficeCrudModulePayloadAction
                 'relationManagers' => $blueprint['relationManagers'],
                 'specialActions' => $this->actionPayload($module['slug'], $blueprint['specialActions'], $record),
                 'dangerousActions' => $this->actionPayload($module['slug'], $blueprint['dangerousActions'], $record),
-                'validationSummary' => $this->validationSummary($blueprint['validationRules']),
+                'validationSummary' => [],
                 'testChecklist' => $blueprint['testChecklist'],
             ],
             'capabilities' => [

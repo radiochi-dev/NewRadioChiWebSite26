@@ -57,6 +57,11 @@ class BackofficePreviewDraftRequest extends FormRequest
                 'document_type' => ['required', 'string', Rule::in(array_column(Phase6ModuleCatalog::legalDocumentTypeOptions(), 'value'))],
                 'version' => ['nullable', 'string', 'max:120'],
                 'position' => ['nullable', 'integer', 'min:0'],
+                'locale' => ['required', 'string', 'max:5', Rule::in(BackofficeLocales::values())],
+                'title' => ['required', 'string', 'max:255'],
+                'summary' => ['nullable', 'string'],
+                'content' => ['required', 'string'],
+                'cta_label' => ['nullable', 'string', 'max:255'],
                 'is_published' => ['nullable', 'boolean'],
                 'published_at' => ['nullable', 'date'],
                 'settings' => ['nullable', 'array'],
@@ -212,6 +217,7 @@ class BackofficePreviewDraftRequest extends FormRequest
             ],
             'legal-documents' => [
                 'position' => $this->filled('position') ? (int) $this->input('position') : 0,
+                'locale' => $this->normalizeLocale((string) $this->query('locale', $this->input('locale', 'es'))),
                 'is_published' => $this->boolean('is_published'),
                 'settings' => $this->decodeJsonField('settings'),
             ],
@@ -333,5 +339,10 @@ class BackofficePreviewDraftRequest extends FormRequest
         $decoded = json_decode((string) $value, true);
 
         return is_array($decoded) ? $decoded : null;
+    }
+
+    private function normalizeLocale(string $locale): string
+    {
+        return in_array($locale, BackofficeLocales::values(), true) ? $locale : 'es';
     }
 }

@@ -2,6 +2,10 @@ import { Link } from '@inertiajs/react'
 import { FiLogOut, FiMenu } from 'react-icons/fi'
 import BackofficeBreadcrumbs from './BackofficeBreadcrumbs'
 
+function normalizeLabel(value) {
+    return String(value ?? '').trim().toLocaleLowerCase()
+}
+
 function RoleBadge({ role }) {
     return (
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/70">
@@ -12,6 +16,9 @@ function RoleBadge({ role }) {
 
 export default function BackofficeTopbar({ title, breadcrumbs = [], auth, onMenuClick }) {
     const roles = auth?.roles ?? []
+    const visibleBreadcrumbs = normalizeLabel(breadcrumbs[breadcrumbs.length - 1]?.label) === normalizeLabel(title)
+        ? breadcrumbs.slice(0, -1)
+        : breadcrumbs
 
     return (
         <header className="sticky top-0 z-30 h-24 border-b border-white/10 bg-slate-950/85 backdrop-blur-xl">
@@ -28,7 +35,7 @@ export default function BackofficeTopbar({ title, breadcrumbs = [], auth, onMenu
                         <p className="truncate text-[11px] uppercase tracking-[0.32em] text-cyan-300/75">Shell React + Inertia</p>
                         <h1 className="truncate text-lg font-semibold text-white">{title}</h1>
                         <BackofficeBreadcrumbs
-                            items={breadcrumbs}
+                            items={visibleBreadcrumbs}
                             className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/50"
                         />
                     </div>

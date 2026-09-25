@@ -186,10 +186,24 @@ class SaveBackofficePhase6ModuleAction
     private function saveLegalDocument(array $data, ?string $record): LegalDocument
     {
         $document = $record ? LegalDocument::query()->findOrFail($record) : new LegalDocument();
-        $document->fill($data);
+        $document->fill(Arr::only($data, [
+            'slug',
+            'document_type',
+            'version',
+            'position',
+            'is_published',
+            'published_at',
+            'settings',
+        ]));
         $document->save();
 
-        return $document->fresh();
+        $translationPayload = Arr::only($data, ['locale', 'title', 'summary', 'content', 'cta_label']);
+
+        if (($translationPayload['locale'] ?? null) && ($translationPayload['title'] ?? null) && ($translationPayload['content'] ?? null)) {
+            $this->saveLegalDocumentTranslation($document, $translationPayload);
+        }
+
+        return $document->fresh(['translations']);
     }
 
     /**

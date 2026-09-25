@@ -90,6 +90,8 @@ function NavItem({ item, active, onNavigate }) {
 
 export default function BackofficeSidebar({ branding, navigation = [], isOpen = false, onClose }) {
     const { url } = usePage()
+    const pinnedGroups = navigation.filter((group) => group.items?.some((item) => item.slug === 'settings'))
+    const scrollableGroups = navigation.filter((group) => !group.items?.some((item) => item.slug === 'settings'))
 
     return (
         <>
@@ -120,7 +122,7 @@ export default function BackofficeSidebar({ branding, navigation = [], isOpen = 
 
                     <div className="backoffice-scrollbar-hidden min-h-0 flex-1 overflow-y-auto px-4 py-4">
                         <div className="space-y-6">
-                            {navigation.map((group) => (
+                            {scrollableGroups.map((group) => (
                                 <section key={group.label} className="space-y-3">
                                     <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
                                         {group.label}
@@ -139,6 +141,30 @@ export default function BackofficeSidebar({ branding, navigation = [], isOpen = 
                             ))}
                         </div>
                     </div>
+
+                    {pinnedGroups.length ? (
+                        <div className="border-t border-white/10 px-4 py-4">
+                            <div className="space-y-6">
+                                {pinnedGroups.map((group) => (
+                                    <section key={group.label} className="space-y-3">
+                                        <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
+                                            {group.label}
+                                        </p>
+                                        <div className="space-y-2">
+                                            {group.items.map((item) => (
+                                                <NavItem
+                                                    key={item.slug}
+                                                    item={item}
+                                                    active={isItemActive(url, item.href)}
+                                                    onNavigate={onClose}
+                                                />
+                                            ))}
+                                        </div>
+                                    </section>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
                 </div>
             </aside>
         </>

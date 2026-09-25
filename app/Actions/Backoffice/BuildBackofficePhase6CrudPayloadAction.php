@@ -134,7 +134,20 @@ class BuildBackofficePhase6CrudPayloadAction
         $modeLabel = $readOnly && $mode === 'edit'
             ? 'Ver'
             : ($mode === 'edit' ? 'Editar' : 'Crear');
-        $sections = $this->sectionsFor($slug, $mode);
+        $activeLocale = $slug === 'legal-documents'
+            ? $this->activeLegalDocumentLocale($recordModel instanceof LegalDocument ? $recordModel : null, $oldInput)
+            : null;
+        $sections = $this->sectionsFor($slug, $mode, $recordModel, $activeLocale);
+        $localeActions = $slug === 'legal-documents'
+            ? $this->legalDocumentEditorLocaleActions($recordModel instanceof LegalDocument ? $recordModel : null, $activeLocale ?? 'es')
+            : $this->localeHeaderActionsFor($slug, $recordModel);
+        $relationManagers = $this->relationManagers($slug, $recordModel);
+        $actionPath = $slug === 'legal-documents'
+            ? $this->withEditorQuery(
+                BackofficePath::active($module['slug'].'/draft'.($recordModel ? '/'.$recordModel->getKey() : '')),
+                $activeLocale,
+            )
+            : BackofficePath::active($module['slug'].'/draft'.($recordModel ? '/'.$recordModel->getKey() : ''));
 
         return [
             'mode' => $mode,
@@ -154,26 +167,27 @@ class BuildBackofficePhase6CrudPayloadAction
                     'variant' => 'ghost',
                     'visible' => true,
                 ],
-                ...$this->localeHeaderActionsFor($slug, $recordModel),
+                ...($slug === 'legal-documents' ? [] : $localeActions),
             ],
             'summaryCards' => [
                 ['label' => 'Modo', 'value' => strtoupper($mode), 'tone' => 'cyan'],
                 ['label' => 'Persistencia', 'value' => 'REAL', 'tone' => 'emerald'],
                 ['label' => 'Campos', 'value' => (string) collect($sections)->sum(fn (array $section): int => count($section['fields'])), 'tone' => 'fuchsia'],
-                ['label' => 'Relaciones', 'value' => (string) count($this->relationManagers($slug, $recordModel)), 'tone' => 'amber'],
+                ['label' => $localeActions !== [] ? 'Idiomas' : 'Relaciones', 'value' => (string) ($localeActions !== [] ? count($localeActions) : count($relationManagers)), 'tone' => 'amber'],
             ],
             'form' => [
-                'action' => BackofficePath::active($module['slug'].'/draft'.($recordModel ? '/'.$recordModel->getKey() : '')),
+                'action' => $actionPath,
                 'method' => 'post',
                 'submitLabel' => $readOnly ? 'Sin cambios' : ($mode === 'edit' ? 'Guardar cambios' : 'Crear registro'),
                 'defaults' => $this->defaultsFor($slug, $sections, $recordModel, $oldInput),
                 'sections' => $sections,
+                'localeActions' => $slug === 'legal-documents' ? $localeActions : [],
                 'mediaLibrary' => $this->hasImageFields($sections) ? $this->imageLibrary() : [],
                 'mediaUploadUrl' => $this->hasImageFields($sections) ? BackofficePath::active('media-assets/uploads/images') : null,
-                'relationManagers' => $this->relationManagers($slug, $recordModel),
+                'relationManagers' => $relationManagers,
                 'specialActions' => $this->specialActions($slug, $recordModel),
                 'dangerousActions' => [],
-                'validationSummary' => $this->validationSummary($slug),
+                'validationSummary' => [],
             ],
             'capabilities' => [
                 'canSubmit' => ! $readOnly && $user->canManageBackofficeContent(),
@@ -395,6 +409,7 @@ class BuildBackofficePhase6CrudPayloadAction
                 ['label' => $translation ? 'Editar traduccion' : 'Nueva traduccion', 'href' => null],
             ],
             relationManagers: [],
+            actions: $this->pageBlockTranslationHeaderActions($block, $translation),
             validationSummary: [],
         );
     }
@@ -425,6 +440,7 @@ class BuildBackofficePhase6CrudPayloadAction
                 ['label' => $translation ? 'Editar traduccion' : 'Nueva traduccion', 'href' => null],
             ],
             relationManagers: [],
+            actions: $this->settingTranslationHeaderActions($setting, $translation),
             validationSummary: [],
         );
     }
@@ -456,6 +472,8 @@ class BuildBackofficePhase6CrudPayloadAction
                 ['label' => $translation ? 'Editar traduccion' : 'Nueva traduccion', 'href' => null],
             ],
             relationManagers: [],
+            actions: $this->musicTrackTranslationHeaderActions($track, $translation),
+            validationSummary: [],
         );
     }
 
@@ -490,6 +508,8 @@ class BuildBackofficePhase6CrudPayloadAction
                 ['label' => $translation ? 'Editar traduccion' : 'Nueva traduccion', 'href' => null],
             ],
             relationManagers: [],
+            actions: $this->legalTranslationHeaderActions($document, $translation),
+            validationSummary: [],
         );
     }
 
@@ -1085,7 +1105,7 @@ class BuildBackofficePhase6CrudPayloadAction
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function sectionsFor(string $slug, string $mode): array
+    private function sectionsFor(string $slug, string $mode, ?Model $record = null, ?string $activeLocale = null): array
     {
         $sections = $this->module($slug)['formSections'];
 
@@ -1147,6 +1167,10 @@ class BuildBackofficePhase6CrudPayloadAction
             $sections = $this->disableFields($sections, ['campaign_name', 'subscriber_email', 'status', 'processed_at', 'error_message']);
         }
 
+        if ($slug === 'legal-documents') {
+            $sections[] = $this->legalDocumentContentSection($activeLocale ?? 'es');
+        }
+
         return $sections;
     }
 
@@ -1171,6 +1195,16 @@ class BuildBackofficePhase6CrudPayloadAction
     private function defaultValueForField(array $field, string $slug, ?Model $record): mixed
     {
         $value = $record?->getAttribute($field['key']);
+
+        if ($slug === 'legal-documents') {
+            $activeLocale = $this->activeLegalDocumentLocale($record instanceof LegalDocument ? $record : null);
+
+            if ($record instanceof LegalDocument && in_array($field['key'], ['title', 'summary', 'content', 'cta_label'], true)) {
+                /** @var LegalDocumentTranslation|null $translation */
+                $translation = $record->translations->firstWhere('locale', $activeLocale);
+                $value = $translation?->getAttribute($field['key']);
+            }
+        }
 
         if ($slug === 'page-blocks' && $field['key'] === 'page_id' && $record instanceof PageBlock) {
             $value = $record->page_id;
@@ -1215,12 +1249,7 @@ class BuildBackofficePhase6CrudPayloadAction
     private function relationManagers(string $slug, ?Model $record): array
     {
         return match ($slug) {
-            'legal-documents' => $this->legalDocumentRelations($record instanceof LegalDocument ? $record : null),
-            'music-tracks' => $this->musicTrackRelations($record instanceof MusicTrack ? $record : null),
             'newsletter-campaigns' => $this->newsletterCampaignRelations($record instanceof NewsletterCampaign ? $record : null),
-            'pages' => $this->pageRelations($record instanceof Page ? $record : null),
-            'page-blocks' => $this->pageBlockRelations($record instanceof PageBlock ? $record : null),
-            'settings' => $this->settingRelations($record instanceof Setting ? $record : null),
             default => [],
         };
     }
@@ -1485,14 +1514,14 @@ class BuildBackofficePhase6CrudPayloadAction
                 'slug' => 'pages',
                 'title' => 'Paginas',
                 'singular' => 'Pagina',
-                'group' => 'Editorial',
+                'group' => 'Editorial / contenido',
                 'description' => 'Flujo editorial page-centric: pagina -> componentes -> editor tipado del componente.',
             ],
             'title' => 'Paginas',
             'description' => 'Lista real de paginas administrables. Al entrar en una pagina solo se muestran sus componentes y cada componente abre su editor propio.',
             'breadcrumbs' => [
                 ['label' => 'Backoffice', 'href' => BackofficePath::active()],
-                ['label' => 'Editorial', 'href' => null],
+                ['label' => 'Editorial / contenido', 'href' => null],
                 ['label' => 'Paginas', 'href' => BackofficePath::active('pages')],
             ],
             'actions' => [],
@@ -1570,7 +1599,7 @@ class BuildBackofficePhase6CrudPayloadAction
                 'slug' => 'pages',
                 'title' => 'Paginas',
                 'singular' => 'Pagina',
-                'group' => 'Editorial',
+                'group' => 'Editorial / contenido',
                 'description' => 'Editor onepage centrado en pagina y componentes.',
             ],
             'recordLabel' => $pageLabel,
@@ -1628,7 +1657,7 @@ class BuildBackofficePhase6CrudPayloadAction
                 'slug' => 'pages',
                 'title' => 'Paginas',
                 'singular' => 'Pagina',
-                'group' => 'Editorial',
+                'group' => 'Editorial / contenido',
                 'description' => 'Editor onepage centrado en pagina y componentes.',
             ],
             'recordLabel' => 'Login',
@@ -2240,6 +2269,44 @@ class BuildBackofficePhase6CrudPayloadAction
     /**
      * @return array<int, array<string, mixed>>
      */
+    private function legalDocumentEditorLocaleActions(?LegalDocument $document, string $activeLocale): array
+    {
+        return collect(BackofficeLocales::values())
+            ->map(function (string $locale) use ($document, $activeLocale): array {
+                $hasTranslation = $document instanceof LegalDocument
+                    ? $document->translations->contains('locale', $locale)
+                    : false;
+
+                return [
+                    'label' => mb_strtoupper($locale).($document instanceof LegalDocument && ! $hasTranslation ? ' +' : ''),
+                    'href' => $document instanceof LegalDocument
+                        ? BackofficePath::active('legal-documents/'.$document->getKey().'/edit').'?locale='.$locale
+                        : BackofficePath::active('legal-documents/create').'?locale='.$locale,
+                    'variant' => $locale === $activeLocale ? 'primary' : ($hasTranslation || ! ($document instanceof LegalDocument) ? 'secondary' : 'ghost'),
+                    'visible' => true,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function musicTrackTranslationHref(MusicTrack $track, string $locale, ?string $from = null): string
+    {
+        /** @var MusicTrackTranslation|null $translation */
+        $translation = $track->translations->firstWhere('locale', $locale);
+
+        return $this->withEditorQuery(
+            $translation instanceof MusicTrackTranslation
+                ? BackofficePath::active('music-tracks/'.$track->getKey().'/translations/'.$translation->getKey().'/edit')
+                : BackofficePath::active('music-tracks/'.$track->getKey().'/translations/create'),
+            $locale,
+            $from,
+        );
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function editorialPageLocaleActions(string $record, string $activeLocale): array
     {
         return collect(BackofficeLocales::values())
@@ -2259,6 +2326,49 @@ class BuildBackofficePhase6CrudPayloadAction
         return is_string($locale) && in_array($locale, BackofficeLocales::values(), true)
             ? $locale
             : 'es';
+    }
+
+    private function activeLegalDocumentLocale(?LegalDocument $document, array $oldInput = []): string
+    {
+        $requested = $oldInput['locale'] ?? request()->query('locale');
+
+        if (is_string($requested) && in_array($requested, BackofficeLocales::values(), true)) {
+            return $requested;
+        }
+
+        if ($document instanceof LegalDocument) {
+            /** @var LegalDocumentTranslation|null $spanishTranslation */
+            $spanishTranslation = $document->translations->firstWhere('locale', 'es');
+
+            if ($spanishTranslation instanceof LegalDocumentTranslation) {
+                return 'es';
+            }
+
+            /** @var LegalDocumentTranslation|null $firstTranslation */
+            $firstTranslation = $document->translations->first();
+
+            if ($firstTranslation instanceof LegalDocumentTranslation) {
+                return $firstTranslation->locale;
+            }
+        }
+
+        return 'es';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function legalDocumentContentSection(string $activeLocale): array
+    {
+        $fields = array_values(array_filter(
+            Phase6ModuleCatalog::legalDocumentTranslationForm()['fields'],
+            fn (array $field): bool => $field['key'] !== 'locale'
+        ));
+
+        return [
+            'title' => 'Contenido legal · '.mb_strtoupper($activeLocale),
+            'fields' => $fields,
+        ];
     }
 
     private function editorialPageLabel(string $slug): string
@@ -2558,11 +2668,14 @@ class BuildBackofficePhase6CrudPayloadAction
      */
     private function localeHeaderActionsFor(string $slug, ?Model $record): array
     {
-        if ($slug !== 'pages' || ! $record instanceof Page) {
-            return [];
-        }
-
-        return $this->pageTranslationHeaderActions($record, null);
+        return match (true) {
+            $slug === 'pages' && $record instanceof Page => $this->pageTranslationHeaderActions($record, null),
+            $slug === 'page-blocks' && $record instanceof PageBlock => $this->pageBlockTranslationHeaderActions($record, null),
+            $slug === 'settings' && $record instanceof Setting => $this->settingTranslationHeaderActions($record, null),
+            $slug === 'music-tracks' && $record instanceof MusicTrack => $this->musicTrackTranslationHeaderActions($record, null),
+            $slug === 'legal-documents' && $record instanceof LegalDocument => $this->legalTranslationHeaderActions($record, null),
+            default => [],
+        };
     }
 
     /**
@@ -2573,17 +2686,74 @@ class BuildBackofficePhase6CrudPayloadAction
         $translations = $page->translations()
             ->get()
             ->keyBy('locale');
+        $activeLocale = $currentTranslation?->locale ?? $this->normalizeLocale((string) request()->query('locale', ''));
 
         return collect(BackofficeLocales::values())
-            ->map(function (string $locale) use ($page, $translations, $currentTranslation): array {
+            ->map(function (string $locale) use ($page, $translations, $activeLocale): array {
                 /** @var PageTranslation|null $translation */
                 $translation = $translations->get($locale);
-                $isActive = $currentTranslation?->locale === $locale;
+                $isActive = $activeLocale === $locale;
 
                 return [
                     'label' => mb_strtoupper($locale).($translation instanceof PageTranslation ? '' : ' +'),
                     'href' => $this->pageTranslationHref($page, $locale, request()->query('from')),
                     'variant' => $isActive ? 'primary' : ($translation instanceof PageTranslation ? 'secondary' : 'ghost'),
+                    'visible' => true,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function pageBlockTranslationHeaderActions(PageBlock $block, ?PageBlockTranslation $currentTranslation): array
+    {
+        return $this->translationHeaderActions(
+            $block->translations()->get()->keyBy('locale'),
+            fn (string $locale): string => $this->pageBlockTranslationHref($block, $locale, request()->query('from')),
+            $currentTranslation?->locale,
+        );
+    }
+
+    private function settingTranslationHeaderActions(Setting $setting, ?SettingTranslation $currentTranslation): array
+    {
+        return $this->translationHeaderActions(
+            $setting->translations()->get()->keyBy('locale'),
+            fn (string $locale): string => $this->settingTranslationHref($setting, $locale, request()->query('from')),
+            $currentTranslation?->locale,
+        );
+    }
+
+    private function musicTrackTranslationHeaderActions(MusicTrack $track, ?MusicTrackTranslation $currentTranslation): array
+    {
+        return $this->translationHeaderActions(
+            $track->translations()->get()->keyBy('locale'),
+            fn (string $locale): string => $this->musicTrackTranslationHref($track, $locale, request()->query('from')),
+            $currentTranslation?->locale,
+        );
+    }
+
+    private function legalTranslationHeaderActions(LegalDocument $document, ?LegalDocumentTranslation $currentTranslation): array
+    {
+        return $this->translationHeaderActions(
+            $document->translations()->get()->keyBy('locale'),
+            fn (string $locale): string => $this->legalTranslationHref($document, $locale, request()->query('from')),
+            $currentTranslation?->locale,
+        );
+    }
+
+    private function translationHeaderActions(Collection $translations, callable $hrefResolver, ?string $currentLocale): array
+    {
+        $activeLocale = $currentLocale ?? $this->normalizeLocale((string) request()->query('locale', ''));
+
+        return collect(BackofficeLocales::values())
+            ->map(function (string $locale) use ($translations, $hrefResolver, $activeLocale): array {
+                $hasTranslation = $translations->has($locale);
+                $isActive = $activeLocale === $locale;
+
+                return [
+                    'label' => mb_strtoupper($locale).($hasTranslation ? '' : ' +'),
+                    'href' => $hrefResolver($locale),
+                    'variant' => $isActive ? 'primary' : ($hasTranslation ? 'secondary' : 'ghost'),
                     'visible' => true,
                 ];
             })
@@ -2687,7 +2857,7 @@ class BuildBackofficePhase6CrudPayloadAction
                 'slug' => 'translations',
                 'title' => 'Traducciones',
                 'singular' => 'Traduccion',
-                'group' => 'Editorial',
+                'group' => 'Editorial / contenido',
                 'description' => $description,
             ],
             'recordLabel' => null,
@@ -2701,7 +2871,6 @@ class BuildBackofficePhase6CrudPayloadAction
                     'variant' => 'ghost',
                     'visible' => true,
                 ],
-                ...$actions,
             ],
             'summaryCards' => [
                 ['label' => 'Persistencia', 'value' => 'REAL', 'tone' => 'emerald'],
@@ -2716,6 +2885,7 @@ class BuildBackofficePhase6CrudPayloadAction
                     'title' => $title,
                     'fields' => $fields,
                 ]],
+                'localeActions' => $actions,
                 'mediaLibrary' => $this->hasImageFields([['fields' => $fields]]) ? $this->imageLibrary() : [],
                 'mediaUploadUrl' => $this->hasImageFields([['fields' => $fields]]) ? BackofficePath::active('media-assets/uploads/images') : null,
                 'relationManagers' => $relationManagers,

@@ -56,6 +56,38 @@ function RelationManagerPanel({ item }) {
     )
 }
 
+function LocaleActionsBar({ actions = [] }) {
+    if (!actions.length) {
+        return null
+    }
+
+    return (
+        <section className="rounded-[28px] border border-cyan-400/15 bg-cyan-400/[0.05] p-4">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div>
+                    <p className="text-sm font-semibold text-white">Idiomas</p>
+                    <p className="mt-1 text-xs leading-6 text-white/55">
+                        Cambia el locale activo del contenido dentro de este mismo contenedor.
+                    </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {actions.map((action) => (
+                        <Button
+                            key={`${action.label}-${action.href ?? 'button'}`}
+                            href={action.href}
+                            variant={action.variant}
+                            disabled={action.disabled}
+                            external={action.external}
+                        >
+                            {action.label}
+                        </Button>
+                    ))}
+                </div>
+            </div>
+        </section>
+    )
+}
+
 export default function CrudFormScreen({
     title,
     description,
@@ -107,8 +139,10 @@ export default function CrudFormScreen({
                 </Panel>
 
                 <form onSubmit={submit} className="space-y-6">
+                    <LocaleActionsBar actions={form.localeActions ?? []} />
+
                     {form.sections.map((section) => (
-                        <Panel key={section.title} title={section.title}>
+                        <Panel key={section.title} title={section.title} description={section.description}>
                             <div className="grid gap-4 xl:grid-cols-2">
                                 {section.fields.map((field) => (
                                     <CrudFieldRenderer
@@ -126,27 +160,12 @@ export default function CrudFormScreen({
 
                     {form.relationManagers.length ? (
                         <Panel
-                            title={form.relationManagersTitle ?? 'Relaciones y traducciones'}
-                            description={form.relationManagersDescription ?? 'Patron reusable para relation managers, bloques hijos y traducciones por locale.'}
+                            title={form.relationManagersTitle ?? 'Elementos relacionados'}
+                            description={form.relationManagersDescription ?? 'Recursos vinculados al registro actual.'}
                         >
                             <div className="grid gap-4 xl:grid-cols-2">
                                 {form.relationManagers.map((item) => (
                                     <RelationManagerPanel key={item.label} item={item} />
-                                ))}
-                            </div>
-                        </Panel>
-                    ) : null}
-
-                    {form.validationSummary.length ? (
-                        <Panel
-                            title="Resumen de validacion servidor"
-                            description="Contrato estable de FormRequest para no duplicar reglas ni inventar validaciones por modulo."
-                        >
-                            <div className="space-y-3">
-                                {form.validationSummary.map((item) => (
-                                    <div key={item} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/70">
-                                        {item}
-                                    </div>
                                 ))}
                             </div>
                         </Panel>

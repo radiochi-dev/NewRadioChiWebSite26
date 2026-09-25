@@ -200,7 +200,9 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleForm')
-                ->has('form.relationManagers', 1));
+                ->has('form.relationManagers', 0)
+                ->where('actions.1.label', 'ES +')
+                ->where('actions.2.label', 'EN +'));
 
         $this->actingAs($editor)
             ->post('/backoffice/music-tracks/'.$track->id.'/translations', [

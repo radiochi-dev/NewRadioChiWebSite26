@@ -66,10 +66,11 @@ class BackofficeCrudInfrastructureTest extends TestCase
                 ->component('Backoffice/Preview/ModuleForm')
                 ->where('form.action', '/backoffice/events/draft')
                 ->has('form.sections')
+                ->where('form.sections.0.fields.10.type', 'richtext')
                 ->has('form.relationManagers', 0)
                 ->has('form.specialActions', 0)
                 ->has('form.dangerousActions', 0)
-                ->has('form.validationSummary')
+                ->has('form.validationSummary', 0)
                 ->missing('form.testChecklist'));
     }
 

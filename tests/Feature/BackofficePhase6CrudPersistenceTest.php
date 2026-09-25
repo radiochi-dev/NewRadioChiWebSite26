@@ -237,7 +237,10 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
                 ->component('Backoffice/Preview/ModuleForm')
                 ->where('form.defaults.locale', 'fr')
                 ->missing('form.testChecklist')
-                ->has('actions', 7));
+                ->where('actions.0.label', 'Volver')
+                ->has('form.localeActions', 6)
+                ->where('form.localeActions.0.label', 'ES')
+                ->where('form.localeActions.3.label', 'FR +'));
 
         $this->actingAs($editor)
             ->get('/backoffice/pages/'.$page->slug.'/translations/'.$translation->id.'/edit')
@@ -245,8 +248,8 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleForm')
                 ->where('form.defaults.locale', 'es')
-                ->where('actions.1.label', 'ES')
-                ->where('actions.2.label', 'EN +'));
+                ->where('form.localeActions.0.label', 'ES')
+                ->where('form.localeActions.1.label', 'EN +'));
     }
 
     public function test_legacy_numeric_page_translation_edit_url_still_resolves_after_slug_cutover(): void

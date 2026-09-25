@@ -112,6 +112,10 @@ class PreviewController extends Controller
                 ? BackofficePath::active($module.'/'.$saved->slug.'/edit')
                 : BackofficePath::active($module.'/'.$saved->getKey().'/edit');
 
+            if ($module === 'legal-documents') {
+                $redirectPath .= '?locale='.(string) $request->validated('locale', 'es');
+            }
+
             return redirect($redirectPath)
                 ->with('success', $record
                     ? Phase6ModuleCatalog::module($module)['singular'].' actualizado correctamente.'

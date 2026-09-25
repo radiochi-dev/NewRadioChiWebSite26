@@ -69,28 +69,31 @@ export default function BackofficeLayout({
                                 <BackofficeFlashMessages flash={props.flash} />
 
                                 <section className="flex flex-col gap-4 rounded-[32px] border border-white/10 bg-black/20 p-6 shadow-[0_25px_80px_rgba(0,0,0,0.35)]">
-                                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                                        <div className="max-w-3xl">
-                                            <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">{title}</h1>
-                                            {description ? <p className="mt-2 text-base leading-7 text-white/60">{description}</p> : null}
-                                        </div>
+                                    {(description || visibleActions.length) ? (
+                                        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                                            {description ? (
+                                                <div className="max-w-3xl">
+                                                    <p className="text-base leading-7 text-white/60">{description}</p>
+                                                </div>
+                                            ) : <div />}
 
-                                        {visibleActions.length ? (
-                                            <div className="flex flex-wrap items-center gap-3 xl:justify-end">
-                                                {visibleActions.map((action) => (
-                                                    <Button
-                                                        key={`${action.label}-${action.href ?? 'button'}`}
-                                                        href={action.href}
-                                                        variant={action.variant}
-                                                        disabled={action.disabled}
-                                                        external={action.external}
-                                                    >
-                                                        {action.label}
-                                                    </Button>
-                                                ))}
-                                            </div>
-                                        ) : null}
-                                    </div>
+                                            {visibleActions.length ? (
+                                                <div className="flex flex-wrap items-center gap-3 xl:justify-end">
+                                                    {visibleActions.map((action) => (
+                                                        <Button
+                                                            key={`${action.label}-${action.href ?? 'button'}`}
+                                                            href={action.href}
+                                                            variant={action.variant}
+                                                            disabled={action.disabled}
+                                                            external={action.external}
+                                                        >
+                                                            {action.label}
+                                                        </Button>
+                                                    ))}
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    ) : null}
 
                                     {summaryCards.length ? (
                                         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

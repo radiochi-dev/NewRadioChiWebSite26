@@ -147,6 +147,11 @@ class BackofficePhase8OperationalModulesTest extends TestCase
             ->post('/backoffice/legal-documents/draft', [
                 'slug' => 'terms-phase8',
                 'document_type' => 'terms',
+                'locale' => 'es',
+                'title' => 'Terminos fase 8',
+                'summary' => 'Resumen legal inicial',
+                'content' => '<h2>Contenido legal inicial</h2><p>Texto base en castellano.</p>',
+                'cta_label' => 'Leer',
                 'version' => 'v8',
                 'position' => 1,
                 'is_published' => true,
@@ -157,21 +162,34 @@ class BackofficePhase8OperationalModulesTest extends TestCase
         $document = LegalDocument::query()->where('slug', 'terms-phase8')->firstOrFail();
 
         $this->actingAs($editor)
-            ->get('/backoffice/legal-documents/'.$document->id.'/edit')
+            ->get('/backoffice/legal-documents/'.$document->id.'/edit?locale=es')
             ->assertOk()
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleForm')
-                ->has('form.relationManagers', 1));
+                ->has('form.relationManagers', 0)
+                ->where('form.localeActions.0.label', 'ES')
+                ->where('form.localeActions.1.label', 'EN +')
+                ->where('form.sections.1.fields.3.type', 'richtext')
+                ->where('form.defaults.title', 'Terminos fase 8'));
 
         $this->actingAs($editor)
             ->post('/backoffice/legal-documents/'.$document->id.'/translations', [
                 'locale' => 'en',
                 'title' => 'Terms Phase 8',
                 'summary' => 'Legal summary',
-                'content' => 'Legal translated content',
+                'content' => '<h2>Legal translated content</h2><p>Formatted paragraph</p>',
                 'cta_label' => 'Read more',
             ])
             ->assertRedirect('/backoffice/legal-documents/'.$document->id.'/edit');
+
+        $translation = $document->translations()->where('locale', 'en')->firstOrFail();
+
+        $this->actingAs($editor)
+            ->get('/backoffice/legal-documents/'.$document->id.'/translations/'.$translation->id.'/edit')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.sections.0.fields.4.type', 'richtext'));
 
         $this->actingAs($editor)
             ->post('/backoffice/redirect-rules/draft', [
@@ -264,6 +282,7 @@ class BackofficePhase8OperationalModulesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.sections.1.fields.0.type', 'richtext')
                 ->where('form.relationManagers.0.createLabel', 'Ver logs')
                 ->where('form.relationManagers.0.items.0.id', (string) $log->id)
                 ->where('form.specialActions.0.slug', 'queue-campaign'));
@@ -297,4 +316,3 @@ class BackofficePhase8OperationalModulesTest extends TestCase
         return $user;
     }
 }
-

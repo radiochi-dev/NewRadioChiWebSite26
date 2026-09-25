@@ -113,6 +113,14 @@ Se ha corregido la mezcla incorrecta entre paginas y bloques tecnicos:
 - `Redes sociales` pasa a una fuente comun unica: se elimina la separacion editorial `contact/footer` y cada red se crea una sola vez para reutilizarse en todas las superficies compartidas;
 - la lectura publica y el footer de login consumen ahora la misma coleccion `global` de redes sociales;
 - una migracion de consolidacion deduplica los registros legacy y deja un unico registro por plataforma en `social_links`.
+- la shell del backoffice deja de repetir el contexto actual en topbar, breadcrumb y cabecera principal: el titulo activo ya no se duplica y `Settings` queda anclado al bloque inferior del sidebar;
+- el sidebar se reordena para eliminar `Agenda`, mover `Eventos` a `Editorial / contenido` y recolocar `Sponsors` y `Redes sociales` dentro de `Marketing`.
+- los formularios compartidos del backoffice dejan de renderizar el bloque tecnico `Resumen de validacion servidor` en todas las pantallas;
+- los modulos traducibles (`settings`, `tracks`, `documentos legales`, `bloques`) pasan a gobernar los idiomas desde acciones de locale en la cabecera del contenedor en lugar de exponer la tarjeta heredada de `Relaciones y traducciones`.
+- el backoffice incorpora un editor WYSIWYG real basado en Tiptap para los campos de contenido HTML/largo que lo necesitan (`legal-documents.content`, `events.body` y `newsletter-campaigns.html_body`);
+- el contenido legal importado desde `resources/js/legacy/i18n/*/terms-policy-cookies.json` queda ahora alineado con un editor rico funcional en backoffice y con el render HTML que ya usa el frontend publico.
+- `legal-documents` deja de separar artificialmente metadata y traduccion: el editor base ya carga y guarda el contenido del locale activo dentro del mismo contenedor;
+- el menu de idiomas para traducciones se renderiza dentro del contenedor del formulario (`form.localeActions`) y se usa tambien en documentos legales para alternar locale sin salir de la superficie de edicion.
 
 ## Auditoria del estado actual del CMS multidioma
 
