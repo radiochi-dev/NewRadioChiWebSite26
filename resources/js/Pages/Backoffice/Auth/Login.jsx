@@ -114,7 +114,7 @@ export default function Login({ title, description, footer }) {
                                     <button
                                         type="submit"
                                         disabled={form.processing}
-                                        className="inline-flex h-14 w-full items-center justify-center gap-3 rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 text-base font-semibold text-white shadow-[0_18px_40px_rgba(138,43,226,0.3)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+                                        className="inline-flex h-14 w-full items-center justify-center gap-3 rounded-full border border-cyan-300/75 bg-transparent text-base font-semibold text-cyan-100 transition-colors duration-200 hover:border-cyan-100 hover:bg-cyan-300 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/35 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-70"
                                     >
                                         <span>{form.processing ? 'Entrando...' : 'Entrar'}</span>
                                         <FiArrowRight className="h-5 w-5" />

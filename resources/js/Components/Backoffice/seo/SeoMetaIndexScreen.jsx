@@ -20,6 +20,14 @@ function LocaleActionsBar({ actions = [] }) {
         return null
     }
 
+    const explicitActiveAction = actions.find((action) => action.variant === 'primary')
+    const fallbackActiveAction = explicitActiveAction
+        ?? actions.find((action) => action.label?.trim().toUpperCase().startsWith('ES'))
+    const normalizedActions = actions.map((action) => ({
+        ...action,
+        isActive: fallbackActiveAction === action,
+    }))
+
     return (
         <section className="rounded-[28px] border border-cyan-400/15 bg-cyan-400/[0.05] p-4">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -30,13 +38,19 @@ function LocaleActionsBar({ actions = [] }) {
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    {actions.map((action) => (
+                    {normalizedActions.map((action) => (
                         <Button
                             key={`${action.label}-${action.href ?? 'button'}`}
                             href={action.href}
                             variant={action.variant}
                             disabled={action.disabled}
                             external={action.external}
+                            aria-current={action.isActive ? 'page' : undefined}
+                            className={
+                                action.isActive
+                                    ? '!border-cyan-100 !bg-cyan-300 !text-slate-950 shadow-[0_0_0_1px_rgba(207,250,254,0.65)]'
+                                    : ''
+                            }
                         >
                             {action.label}
                         </Button>

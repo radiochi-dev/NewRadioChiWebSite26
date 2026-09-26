@@ -1,9 +1,9 @@
 import { Link } from '@inertiajs/react'
 
 const variants = {
-    primary: 'border-cyan-400/40 bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 text-white shadow-[0_12px_40px_rgba(34,211,238,0.18)]',
-    secondary: 'border-white/10 bg-white/10 text-white hover:bg-white/15',
-    ghost: 'border-white/10 bg-transparent text-white/80 hover:bg-white/5 hover:text-white',
+    primary: 'border-cyan-300/75 bg-transparent text-cyan-100 hover:border-cyan-100 hover:bg-cyan-300 hover:text-slate-950 active:border-cyan-50 active:bg-cyan-200 active:text-slate-950',
+    secondary: 'border-cyan-300/55 bg-transparent text-cyan-100/92 hover:border-cyan-100 hover:bg-cyan-300 hover:text-slate-950 active:border-cyan-50 active:bg-cyan-200 active:text-slate-950',
+    ghost: 'border-cyan-300/35 bg-transparent text-cyan-100/82 hover:border-cyan-100 hover:bg-cyan-300 hover:text-slate-950 active:border-cyan-50 active:bg-cyan-200 active:text-slate-950',
 }
 
 export default function Button({
@@ -17,7 +17,7 @@ export default function Button({
     type = 'button',
     ...props
 }) {
-    const classes = `inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant] ?? variants.secondary} ${className}`
+    const classes = `inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/35 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant] ?? variants.secondary} ${className}`
 
     if (href && external) {
         return (

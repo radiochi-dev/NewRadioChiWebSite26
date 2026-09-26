@@ -2742,6 +2742,7 @@ class BuildBackofficePhase6CrudPayloadAction
                     ? BackofficePath::active('pages/login/edit').'?locale='.$locale
                     : BackofficePath::active('pages/'.$record.'/edit').'?locale='.$locale,
                 'variant' => $locale === $activeLocale ? 'primary' : 'secondary',
+                'active' => $locale === $activeLocale,
                 'visible' => true,
             ])
             ->all();

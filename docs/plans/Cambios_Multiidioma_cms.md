@@ -18,6 +18,9 @@
 - [x] ~~Reconstruir la superficie editorial page-centric para que `home` deje de listar slides como filas y pase a editarlos en tabs dentro del mismo contenedor, con alta y baja de slides desde la propia pagina.~~
 - [x] ~~Eliminar globalmente del backoffice el bloque y la tarjeta resumen `Modo EDIT`, porque no aportaban valor operativo en los formularios.~~
 - [x] ~~Corregir globalmente el color de iconos y controles nativos de campos compartidos del backoffice para que se lean bien sobre la UI oscura.~~
+- [x] ~~Eliminar los botones con gradient del backoffice y unificar su patron visual a un solo color de acento con estado normal transparente y hover relleno.~~
+- [x] ~~Marcar visualmente el idioma activo en el menu de locales del backoffice y usar `ES` como fallback por defecto cuando no llegue uno explicitamente seleccionado.~~
+- [x] ~~Corregir el menu de idioma del primer contenedor en los editores page-centric (`pages/*/edit`), marcando el locale activo tambien en las acciones de cabecera del `BackofficeLayout`.~~
 - [ ] Completar la cobertura tipada de todos los formularios secundarios restantes del CMS onepage.
 - [ ] Validar integralmente frontend publico + backoffice editorial con pruebas y navegador.
 
@@ -138,6 +141,9 @@ Se ha corregido la mezcla incorrecta entre paginas y bloques tecnicos:
 - el redirect de guardado de traducciones de pagina/bloque ya conserva `focus` para devolver el editor inline a la pestaña concreta que se estaba editando.
 - los formularios del backoffice dejan de mostrar tanto el panel `Modo EDIT` como la tarjeta-resumen `Modo`, reduciendo ruido visual en todas las superficies CRUD.
 - los componentes compartidos de campos (`Input`, `Textarea`, `Select`, `RichTextField`, `ImageField`, toggles y checkboxes de tabla) quedan ajustados para tema oscuro: iconos de fecha/hora aclarados, checks con `accent-color` consistente y SVG de controles con contraste suficiente.
+- los botones del backoffice (`Button`, tabs editoriales, toggle de filtros y CTA de login) abandonan el gradient y pasan a un patron unico mas sobrio: fondo transparente + borde/texto del color de acento en reposo, y fondo lleno del mismo color con contraste alto en hover/active/focus-visible.
+- las barras de idioma del CRUD y de `SEO meta` remarcan el locale activo con estado relleno persistente; si no llega un activo explicito en el payload, el fallback visual cae sobre `ES`.
+- los menús de idioma que viven en `actions` del `BackofficeLayout` ya soportan `active`, de modo que `pages/home/edit`, `pages/login/edit` y el resto del flujo page-centric marcan el locale seleccionado con el mismo estado visual relleno.
 - validacion reciente cerrada en runtime Docker del proyecto:
   - `BackofficePhase6CrudPersistenceTest`: 13 tests OK, 282 assertions.
   - `BackofficePhase7RichContentPersistenceTest`: 10 tests OK, 176 assertions.

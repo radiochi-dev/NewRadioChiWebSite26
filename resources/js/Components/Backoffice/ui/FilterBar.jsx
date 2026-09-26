@@ -80,7 +80,7 @@ export default function FilterBar({ path, filters = [], sortFields = [], query =
                     <button
                         type="button"
                         onClick={() => setIsExpanded((current) => !current)}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-semibold text-white/75 transition hover:bg-white/[0.06] hover:text-white"
+                        className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/35 bg-transparent px-3 py-2 text-sm font-semibold text-cyan-100/82 transition-colors duration-200 hover:border-cyan-100 hover:bg-cyan-300 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/35 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                     >
                         <span>{isExpanded ? 'Ocultar filtros' : 'Mostrar filtros'}</span>
                         <FiChevronDown className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />

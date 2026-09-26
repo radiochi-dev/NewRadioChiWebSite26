@@ -146,18 +146,15 @@ function TabbedRelationManagerPanel({ item, capabilities, mediaLibrary, mediaUpl
                 <div className="mt-4 space-y-4">
                     <div className="flex flex-wrap gap-2">
                         {tabs.map((tab) => (
-                            <button
+                            <Button
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setActiveTabId(tab.id)}
-                                className={`inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
-                                    tab.id === activeTab?.id
-                                        ? 'border-cyan-400/40 bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 text-white shadow-[0_12px_40px_rgba(34,211,238,0.18)]'
-                                        : 'border-white/10 bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'
-                                }`}
+                                variant="ghost"
+                                className={tab.id === activeTab?.id ? '!border-cyan-100 !bg-cyan-300 !text-slate-950' : ''}
                             >
                                 {tab.label}
-                            </button>
+                            </Button>
                         ))}
                     </div>
 
@@ -201,6 +198,14 @@ function LocaleActionsBar({ actions = [] }) {
         return null
     }
 
+    const explicitActiveAction = actions.find((action) => action.variant === 'primary')
+    const fallbackActiveAction = explicitActiveAction
+        ?? actions.find((action) => action.label?.trim().toUpperCase().startsWith('ES'))
+    const normalizedActions = actions.map((action) => ({
+        ...action,
+        isActive: fallbackActiveAction === action,
+    }))
+
     return (
         <section className="rounded-[28px] border border-cyan-400/15 bg-cyan-400/[0.05] p-4">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -211,13 +216,19 @@ function LocaleActionsBar({ actions = [] }) {
                     </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    {actions.map((action) => (
+                    {normalizedActions.map((action) => (
                         <Button
                             key={`${action.label}-${action.href ?? 'button'}`}
                             href={action.href}
                             variant={action.variant}
                             disabled={action.disabled}
                             external={action.external}
+                            aria-current={action.isActive ? 'page' : undefined}
+                            className={
+                                action.isActive
+                                    ? '!border-cyan-100 !bg-cyan-300 !text-slate-950 shadow-[0_0_0_1px_rgba(207,250,254,0.65)]'
+                                    : ''
+                            }
                         >
                             {action.label}
                         </Button>

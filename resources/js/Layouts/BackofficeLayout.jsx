@@ -86,6 +86,12 @@ export default function BackofficeLayout({
                                                             variant={action.variant}
                                                             disabled={action.disabled}
                                                             external={action.external}
+                                                            aria-current={action.active ? 'page' : undefined}
+                                                            className={
+                                                                action.active
+                                                                    ? '!border-cyan-100 !bg-cyan-300 !text-slate-950 shadow-[0_0_0_1px_rgba(207,250,254,0.65)]'
+                                                                    : (action.className ?? '')
+                                                            }
                                                         >
                                                             {action.label}
                                                         </Button>

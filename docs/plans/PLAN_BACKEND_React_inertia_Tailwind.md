@@ -664,6 +664,9 @@ Validacion real en esta fase:
 - [x] ~~Superficie page-centric de `pages` afinada para edicion inline en el mismo contenedor: `BuildBackofficePhase6CrudPayloadAction`, `CrudFormScreen`, `PreviewController` y `Phase6TranslationController` ya soportan tabs de bloque, alta/baja de slides y retorno con `focus` al tab activo sin reabrir una pantalla separada por item.~~
 - [x] ~~Limpieza global de formularios del backoffice: `CrudFormScreen`, `BuildBackofficePhase6CrudPayloadAction` y `BuildBackofficeCrudModulePayloadAction` ya no muestran el panel ni la tarjeta resumen `Modo EDIT`.~~
 - [x] ~~Ajuste visual global de campos del backoffice: `Input`, `Textarea`, `Select`, `CrudFieldRenderer`, `DataTable`, `ImageField`, `RichTextField` y `app.css` ya fuerzan contraste correcto de iconos/controles sobre la UI oscura.~~
+- [x] ~~Refactor visual global de botones del backoffice: `Button`, CTA del login, tabs inline y toggle de filtros ya usan un unico acento sin gradients, con reposo transparente y hover/focus/active relleno para distinguir claramente ambos estados.~~
+- [x] ~~Refuerzo visual del menu de idiomas del backoffice: `CrudFormScreen` y `SeoMetaIndexScreen` ya remarcan el locale activo y aplican fallback a `ES` cuando no exista un activo explicito en el payload.~~
+- [x] ~~Correccion del selector de idiomas en el primer contenedor page-centric: `BackofficeLayout` ya soporta acciones activas y `BuildBackofficePhase6CrudPayloadAction` marca el locale activo en `editorialPageLocaleActions()`.~~
 
 Criterio de salida:
 - el backend React/Inertia cubre el 100% del alcance funcional actual del admin.
