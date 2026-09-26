@@ -667,6 +667,8 @@ Validacion real en esta fase:
 - [x] ~~Refactor visual global de botones del backoffice: `Button`, CTA del login, tabs inline y toggle de filtros ya usan un unico acento sin gradients, con reposo transparente y hover/focus/active relleno para distinguir claramente ambos estados.~~
 - [x] ~~Refuerzo visual del menu de idiomas del backoffice: `CrudFormScreen` y `SeoMetaIndexScreen` ya remarcan el locale activo y aplican fallback a `ES` cuando no exista un activo explicito en el payload.~~
 - [x] ~~Correccion del selector de idiomas en el primer contenedor page-centric: `BackofficeLayout` ya soporta acciones activas y `BuildBackofficePhase6CrudPayloadAction` marca el locale activo en `editorialPageLocaleActions()`.~~
+- [x] ~~Bloque `Configuracion` reestructurado con criterio WordPress/Strapi: nace el modulo real `users` restringido a `super_admin`, con datos personales + rol editable, y `settings` pasa a mostrarse como `Configuracion del sitio` para dejar claro que no es la gestion de usuarios.~~
+- [x] ~~Auditoria de warnings utilitarios Tailwind en el backoffice: se normalizan clases de opacidad simplificables (`bg-white/[0.04]`, `bg-white/[0.03]`, `bg-cyan-400/[0.05]`, etc.) a su forma canonica y se valida que `BackofficeTopbar -> BackofficeBreadcrumbs` compila sin error real de import en Vite.~~
 
 Criterio de salida:
 - el backend React/Inertia cubre el 100% del alcance funcional actual del admin.

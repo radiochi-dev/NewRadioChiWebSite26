@@ -7,7 +7,7 @@ import CrudFieldRenderer from './CrudFieldRenderer'
 
 function Panel({ title, description, children }) {
     return (
-        <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
+        <section className="rounded-[28px] border border-white/10 bg-white/3 p-6">
             <div className="flex flex-col gap-2">
                 <p className="text-lg font-semibold text-white">{title}</p>
                 {description ? <p className="text-sm leading-6 text-white/60">{description}</p> : null}
@@ -35,7 +35,7 @@ function RelationManagerPanel({ item }) {
             {item.items?.length ? (
                 <div className="mt-4 space-y-3">
                     {item.items.map((record) => (
-                        <div key={record.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
+                        <div key={record.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/2 px-4 py-3">
                             <div>
                                 <p className="text-sm font-semibold text-white">{record.label}</p>
                                 {record.meta ? <p className="mt-1 text-xs text-white/50">{record.meta}</p> : null}
@@ -49,7 +49,7 @@ function RelationManagerPanel({ item }) {
                     ))}
                 </div>
             ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-white/50">
+                <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-white/2 px-4 py-3 text-sm text-white/50">
                     Todavia no hay registros relacionados.
                 </div>
             )}
@@ -159,7 +159,7 @@ function TabbedRelationManagerPanel({ item, capabilities, mediaLibrary, mediaUpl
                     </div>
 
                     {activeTab ? (
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                        <div className="rounded-2xl border border-white/10 bg-white/2 p-4">
                             <TabbedEditorForm
                                 key={activeTab.id}
                                 tab={activeTab}
@@ -175,7 +175,7 @@ function TabbedRelationManagerPanel({ item, capabilities, mediaLibrary, mediaUpl
             {item.items?.length ? (
                 <div className="mt-4 space-y-3">
                     {item.items.map((record) => (
-                        <div key={record.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
+                        <div key={record.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/2 px-4 py-3">
                             <div>
                                 <p className="text-sm font-semibold text-white">{record.label}</p>
                                 {record.meta ? <p className="mt-1 text-xs text-white/50">{record.meta}</p> : null}
@@ -207,7 +207,7 @@ function LocaleActionsBar({ actions = [] }) {
     }))
 
     return (
-        <section className="rounded-[28px] border border-cyan-400/15 bg-cyan-400/[0.05] p-4">
+        <section className="rounded-[28px] border border-cyan-400/15 bg-cyan-400/5 p-4">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                     <p className="text-sm font-semibold text-white">Idiomas</p>

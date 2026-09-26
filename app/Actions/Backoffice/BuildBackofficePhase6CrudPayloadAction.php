@@ -111,9 +111,9 @@ class BuildBackofficePhase6CrudPayloadAction
             ],
             'capabilities' => [
                 'canCreate' => $this->canCreateFor($slug, $user),
-                'canEdit' => ! Phase6ModuleCatalog::isReadOnly($slug) && $user->canManageBackofficeContent(),
+                'canEdit' => ! Phase6ModuleCatalog::isReadOnly($slug) && $this->canManageModule($slug, $user),
                 'canDelete' => false,
-                'canView' => $user->canViewBackofficeContent(),
+                'canView' => $this->canViewModule($slug, $user),
             ],
         ];
 
@@ -212,8 +212,8 @@ class BuildBackofficePhase6CrudPayloadAction
                 'validationSummary' => [],
             ],
             'capabilities' => [
-                'canSubmit' => ! $readOnly && $user->canManageBackofficeContent(),
-                'canView' => $user->canViewBackofficeContent(),
+                'canSubmit' => ! $readOnly && $this->canManageModule($slug, $user),
+                'canView' => $this->canViewModule($slug, $user),
             ],
         ];
     }
@@ -530,7 +530,7 @@ class BuildBackofficePhase6CrudPayloadAction
 
         return $this->translationFormPayload(
             user: $user,
-            title: $translation ? 'Editar traduccion de setting' : 'Crear traduccion de setting',
+            title: $translation ? 'Editar traduccion del ajuste del sitio' : 'Crear traduccion del ajuste del sitio',
             description: $schema['description'],
             action: $this->withEditorQuery(
                 BackofficePath::active('settings/'.$setting->getKey().'/translations'.($translation ? '/'.$translation->getKey() : '')),
@@ -541,8 +541,8 @@ class BuildBackofficePhase6CrudPayloadAction
             fields: $this->translationFields($schema['fields'], $translation !== null),
             breadcrumbs: [
                 ['label' => 'Backoffice', 'href' => BackofficePath::active()],
-                ['label' => 'Settings', 'href' => BackofficePath::active('settings')],
-                ['label' => 'Editar setting', 'href' => BackofficePath::active('settings/'.$setting->getKey().'/edit')],
+                ['label' => 'Configuracion del sitio', 'href' => BackofficePath::active('settings')],
+                ['label' => 'Editar ajuste del sitio', 'href' => BackofficePath::active('settings/'.$setting->getKey().'/edit')],
                 ['label' => $translation ? 'Editar traduccion' : 'Nueva traduccion', 'href' => null],
             ],
             relationManagers: [],
@@ -980,6 +980,7 @@ class BuildBackofficePhase6CrudPayloadAction
             'redirect-rules' => RedirectRule::query(),
             'social-links' => SocialLink::query()->where('location', 'global'),
             'settings' => Setting::query()->withCount('translations'),
+            'users' => User::query()->with('roles'),
             'downloadable-files' => DownloadableFile::query(),
             'seo-metas' => SeoMeta::query(),
             default => abort(404),
@@ -1053,6 +1054,11 @@ class BuildBackofficePhase6CrudPayloadAction
                     ->where('group', 'like', "%{$search}%")
                     ->orWhere('key', 'like', "%{$search}%")
                     ->orWhere('type', 'like', "%{$search}%"),
+                'users' => $nested
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('role', 'like', "%{$search}%")
+                    ->orWhereHas('roles', fn (Builder $roles): Builder => $roles->where('name', 'like', "%{$search}%")),
                 'partners' => $nested
                     ->where('name', 'like', "%{$search}%")
                     ->orWhere('slug', 'like', "%{$search}%")
@@ -1125,10 +1131,24 @@ class BuildBackofficePhase6CrudPayloadAction
                 'is_translatable', 'is_public' => $this->applyBooleanFilter($builder, $key, $value),
                 default => null,
             },
+            'users' => $key === 'backoffice_role' ? $this->applyUserRoleFilter($builder, $value) : null,
             'downloadable-files' => $key === 'is_active' ? $this->applyBooleanFilter($builder, $key, $value) : null,
             'seo-metas' => $key === 'locale' ? $builder->where('locale', $value) : null,
             default => null,
         };
+    }
+
+    private function applyUserRoleFilter(Builder $builder, string $value): void
+    {
+        $legacyRole = User::mapSpatieRoleToLegacyRole($value);
+
+        $builder->where(function (Builder $nested) use ($value, $legacyRole): void {
+            $nested->whereHas('roles', fn (Builder $roles): Builder => $roles->where('name', $value));
+
+            if ($legacyRole !== null) {
+                $nested->orWhere('role', $legacyRole);
+            }
+        });
     }
 
     private function applyBooleanFilter(Builder $builder, string $key, string $value): void
@@ -1190,6 +1210,11 @@ class BuildBackofficePhase6CrudPayloadAction
             'page-blocks' => $key === 'page_slug' ? $record->page?->slug : $record->getAttribute($key),
             'media-assets' => $key === 'size_human' ? $this->formatBytes($record->getAttribute('size')) : $record->getAttribute($key),
             'downloadable-files' => $key === 'attachable_label' ? $this->attachableLabel($record) : $record->getAttribute($key),
+            'users' => match ($key) {
+                'backoffice_role' => $record instanceof User ? $this->formatUserRoleLabel($record->primaryBackofficeRole()) : null,
+                'backoffice_access' => $record instanceof User ? ($record->hasBackofficeAccess() ? 'Si' : 'No') : null,
+                default => $record->getAttribute($key),
+            },
             default => $record->getAttribute($key),
         };
 
@@ -1249,6 +1274,21 @@ class BuildBackofficePhase6CrudPayloadAction
 
         if ($slug === 'newsletter-subscribers') {
             $sections = $this->disableFields($sections, ['subscribed_at', 'unsubscribed_at']);
+        }
+
+        if ($slug === 'users') {
+            $sections = array_map(function (array $section) use ($mode): array {
+                $section['fields'] = array_map(function (array $field) use ($mode): array {
+                    if ($field['key'] === 'password') {
+                        $field['label'] = $mode === 'edit' ? 'Nueva contrasena' : 'Contrasena temporal';
+                        $field['required'] = $mode !== 'edit';
+                    }
+
+                    return $field;
+                }, $section['fields']);
+
+                return $section;
+            }, $sections);
         }
 
         if ($slug === 'newsletter-campaigns') {
@@ -1395,6 +1435,14 @@ class BuildBackofficePhase6CrudPayloadAction
             };
         }
 
+        if ($slug === 'users' && $record instanceof User) {
+            $value = match ($field['key']) {
+                'role_name' => $record->primaryBackofficeRole(),
+                'password' => '',
+                default => $value,
+            };
+        }
+
         if ($record instanceof Model) {
             if (is_bool($value)) {
                 return $value;
@@ -1414,7 +1462,7 @@ class BuildBackofficePhase6CrudPayloadAction
         return match ($field['type']) {
             'toggle' => false,
             'number' => 0,
-            'select' => '',
+            'select' => $slug === 'users' && $field['key'] === 'role_name' ? 'readonly' : '',
             'json', 'textarea', 'text', 'url', 'datetime', 'image' => '',
             default => '',
         };
@@ -3134,6 +3182,11 @@ class BuildBackofficePhase6CrudPayloadAction
                 'Tipo: required, in:string,json,boolean,number,url,html.',
                 'Value JSON y Settings JSON: nullable, array.',
             ],
+            'users' => [
+                'Nombre y email: required; email unico.',
+                'Rol del backoffice: required, in:super_admin,editor,marketing,readonly.',
+                'Contrasena: required en create y opcional en edit; si viene informada se rehash automaticamente.',
+            ],
             'partners' => [
                 'Slug: required, string, max:255, unique.',
                 'Nombre: required, string, max:255.',
@@ -3204,6 +3257,7 @@ class BuildBackofficePhase6CrudPayloadAction
             'redirect-rules' => RedirectRule::query()->findOrFail($record),
             'social-links' => SocialLink::query()->findOrFail($record),
             'settings' => Setting::query()->with('translations')->findOrFail($record),
+            'users' => User::query()->with('roles')->findOrFail($record),
             'downloadable-files' => DownloadableFile::query()->findOrFail($record),
             'seo-metas' => SeoMeta::query()->findOrFail($record),
             default => abort(404),
@@ -3296,7 +3350,7 @@ class BuildBackofficePhase6CrudPayloadAction
     {
         return $slug !== 'pages'
             && ! Phase6ModuleCatalog::isReadOnly($slug)
-            && $user->canManageBackofficeContent();
+            && $this->canManageModule($slug, $user);
     }
 
     /**
@@ -3400,10 +3454,36 @@ class BuildBackofficePhase6CrudPayloadAction
     private function canOpenRecord(string $slug, User $user): bool
     {
         if (Phase6ModuleCatalog::isReadOnly($slug)) {
-            return $user->canViewBackofficeContent();
+            return $this->canViewModule($slug, $user);
         }
 
-        return $user->canManageBackofficeContent();
+        return $this->canManageModule($slug, $user);
+    }
+
+    private function canViewModule(string $slug, User $user): bool
+    {
+        return match ($slug) {
+            'users' => $user->canManageBackofficeUsers(),
+            default => $user->canViewBackofficeContent(),
+        };
+    }
+
+    private function canManageModule(string $slug, User $user): bool
+    {
+        return match ($slug) {
+            'users' => $user->canManageBackofficeUsers(),
+            default => $user->canManageBackofficeContent(),
+        };
+    }
+
+    private function formatUserRoleLabel(?string $role): string
+    {
+        return match ($role) {
+            'super_admin' => 'Super admin',
+            'readonly' => 'Solo lectura',
+            null => '—',
+            default => Str::headline(str_replace('_', ' ', $role)),
+        };
     }
 
     /**

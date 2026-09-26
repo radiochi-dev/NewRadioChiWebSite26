@@ -5,7 +5,7 @@ import CrudFieldRenderer from '../crud/CrudFieldRenderer'
 
 function Panel({ title, description, children }) {
     return (
-        <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
+        <section className="rounded-[28px] border border-white/10 bg-white/3 p-6">
             <div className="flex flex-col gap-2">
                 <p className="text-lg font-semibold text-white">{title}</p>
                 {description ? <p className="text-sm leading-6 text-white/60">{description}</p> : null}
@@ -29,7 +29,7 @@ function LocaleActionsBar({ actions = [] }) {
     }))
 
     return (
-        <section className="rounded-[28px] border border-cyan-400/15 bg-cyan-400/[0.05] p-4">
+        <section className="rounded-[28px] border border-cyan-400/15 bg-cyan-400/5 p-4">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                     <p className="text-sm font-semibold text-white">Idiomas</p>
@@ -63,7 +63,7 @@ function LocaleActionsBar({ actions = [] }) {
 
 function EmptySeoState({ capabilities }) {
     return (
-        <section className="rounded-[28px] border border-white/10 bg-white/[0.03] px-6 py-8 text-center">
+        <section className="rounded-[28px] border border-white/10 bg-white/3 px-6 py-8 text-center">
             <h2 className="text-lg font-semibold text-white">Todavia no hay un recurso SEO cargado</h2>
             <p className="mt-3 text-sm leading-6 text-white/60">
                 Cuando exista al menos un registro SEO para una entidad, esta pantalla lo abrira directamente como editor multilingue por recurso.

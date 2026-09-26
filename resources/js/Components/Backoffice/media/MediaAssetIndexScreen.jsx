@@ -54,7 +54,7 @@ function AssetPreview({ item }) {
 
 function AssetCard({ item }) {
     return (
-        <article className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] shadow-[0_20px_55px_rgba(0,0,0,0.28)]">
+        <article className="overflow-hidden rounded-[28px] border border-white/10 bg-white/3 shadow-[0_20px_55px_rgba(0,0,0,0.28)]">
             <AssetPreview item={item} />
 
             <div className="space-y-5 px-5 py-5">
@@ -89,7 +89,7 @@ function AssetCard({ item }) {
                             item.assignedPages.map((page) => (
                                 <span
                                     key={`${item.id}-${page}`}
-                                    className="inline-flex rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-white/80"
+                                    className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/80"
                                 >
                                     {page}
                                 </span>
@@ -169,7 +169,7 @@ export default function MediaAssetIndexScreen({
     const headerFilters = (
         <form
             onSubmit={submit}
-            className={`rounded-[24px] border border-white/10 bg-white/[0.03] px-4 ${isExpanded ? 'pb-4 pt-4' : 'py-3'}`}
+            className={`rounded-[24px] border border-white/10 bg-white/3 px-4 ${isExpanded ? 'pb-4 pt-4' : 'py-3'}`}
         >
             <div className={`flex flex-col ${isExpanded ? 'gap-4' : 'gap-0'}`}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -180,7 +180,7 @@ export default function MediaAssetIndexScreen({
                     <button
                         type="button"
                         onClick={() => setIsExpanded((current) => !current)}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-semibold text-white/75 transition hover:bg-white/[0.06] hover:text-white"
+                        className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/3 px-3 py-2 text-sm font-semibold text-white/75 transition hover:bg-white/6 hover:text-white"
                     >
                         <span>{isExpanded ? 'Ocultar filtros' : 'Mostrar filtros'}</span>
                         <FiChevronDown className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />

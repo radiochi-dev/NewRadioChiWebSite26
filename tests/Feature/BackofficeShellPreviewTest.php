@@ -61,4 +61,20 @@ class BackofficeShellPreviewTest extends TestCase
             ->get('/backoffice/events/create')
             ->assertForbidden();
     }
+
+    public function test_super_admin_sees_users_inside_the_configuration_navigation_group(): void
+    {
+        $superAdmin = User::factory()->create();
+        $superAdmin->assignRole(Role::findOrCreate('super_admin', 'web'));
+
+        $this->actingAs($superAdmin)
+            ->get('/backoffice')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Backoffice/Dashboard/Index')
+                ->where('backoffice.navigation.6.items.0.slug', 'users')
+                ->where('backoffice.navigation.6.items.0.label', 'Usuarios')
+                ->where('backoffice.navigation.6.items.1.slug', 'settings')
+                ->where('backoffice.navigation.6.items.1.label', 'Configuracion del sitio'));
+    }
 }

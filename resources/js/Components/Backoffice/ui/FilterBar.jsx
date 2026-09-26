@@ -67,8 +67,8 @@ export default function FilterBar({ path, filters = [], sortFields = [], query =
             onSubmit={submit}
             className={
                 compact
-                    ? `rounded-[24px] border border-white/10 bg-white/[0.03] px-4 ${isExpanded ? 'pb-4 pt-4' : 'py-3'}`
-                    : `rounded-[28px] border border-white/10 bg-white/[0.03] px-5 ${isExpanded ? 'pb-5 pt-5' : 'py-4'}`
+                    ? `rounded-[24px] border border-white/10 bg-white/3 px-4 ${isExpanded ? 'pb-4 pt-4' : 'py-3'}`
+                    : `rounded-[28px] border border-white/10 bg-white/3 px-5 ${isExpanded ? 'pb-5 pt-5' : 'py-4'}`
             }
         >
             <div className={`flex flex-col ${isExpanded ? (compact ? 'gap-4' : 'gap-5') : 'gap-0'}`}>

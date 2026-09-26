@@ -11,6 +11,7 @@ use App\Models\PageBlock;
 use App\Models\Partner;
 use App\Models\Setting;
 use App\Models\SocialLink;
+use App\Models\User;
 use App\Support\Backoffice\CrudModuleBlueprintFactory;
 use App\Support\Backoffice\Phase6ModuleCatalog;
 use App\Support\BackofficeLocales;
@@ -24,7 +25,16 @@ class BackofficePreviewDraftRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->canManageBackofficeContent() === true;
+        $user = $this->user();
+        $module = (string) $this->route('module');
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $module === 'users'
+            ? $user->canManageBackofficeUsers()
+            : $user->canManageBackofficeContent();
     }
 
     /**
@@ -155,6 +165,15 @@ class BackofficePreviewDraftRequest extends FormRequest
                 'position' => ['nullable', 'integer', 'min:0'],
                 'settings' => ['nullable', 'array'],
             ],
+            'users' => [
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'email:rfc,dns', 'max:255', Rule::unique('users', 'email')->ignore($record)],
+                'password' => $record === ''
+                    ? ['required', 'string', 'min:8', 'max:255']
+                    : ['nullable', 'string', 'min:8', 'max:255'],
+                'role_name' => ['required', 'string', Rule::in(User::BACKOFFICE_ROLES)],
+                'email_verified_at' => ['nullable', 'date'],
+            ],
             'partners' => [
                 'slug' => ['required', 'string', 'max:255', Rule::unique('partners', 'slug')->ignore($record)],
                 'name' => ['required', 'string', 'max:255'],
@@ -270,6 +289,13 @@ class BackofficePreviewDraftRequest extends FormRequest
                     ? $this->typedSettingValuePayload((string) $this->route('record'))
                     : $this->decodeJsonField('value'),
                 'settings' => $this->decodeJsonField('settings'),
+            ],
+            'users' => [
+                'name' => trim((string) $this->input('name')),
+                'email' => Str::lower(trim((string) $this->input('email'))),
+                'password' => trim((string) $this->input('password')) !== '' ? (string) $this->input('password') : null,
+                'role_name' => trim((string) $this->input('role_name')),
+                'email_verified_at' => $this->filled('email_verified_at') ? (string) $this->input('email_verified_at') : null,
             ],
             'partners' => [
                 'position' => $this->filled('position') ? (int) $this->input('position') : 0,

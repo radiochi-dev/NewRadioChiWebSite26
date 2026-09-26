@@ -144,6 +144,8 @@ Se ha corregido la mezcla incorrecta entre paginas y bloques tecnicos:
 - los botones del backoffice (`Button`, tabs editoriales, toggle de filtros y CTA de login) abandonan el gradient y pasan a un patron unico mas sobrio: fondo transparente + borde/texto del color de acento en reposo, y fondo lleno del mismo color con contraste alto en hover/active/focus-visible.
 - las barras de idioma del CRUD y de `SEO meta` remarcan el locale activo con estado relleno persistente; si no llega un activo explicito en el payload, el fallback visual cae sobre `ES`.
 - los menús de idioma que viven en `actions` del `BackofficeLayout` ya soportan `active`, de modo que `pages/home/edit`, `pages/login/edit` y el resto del flujo page-centric marcan el locale seleccionado con el mismo estado visual relleno.
+- el bloque `Configuracion` deja de mezclar conceptos: `users` pasa a ser un modulo administrativo independiente para cuentas y roles del backoffice, mientras `settings` se presenta como `Configuracion del sitio` para los ajustes globales reutilizados por el frontend.
+- se auditan warnings de clases Tailwind en la shell React/Inertia del backoffice y se sustituyen utilidades arbitrarias simplificables por su forma canonica (`bg-white/3`, `bg-white/4`, `bg-white/6`, `bg-cyan-400/5`, etc.); la comprobacion por build confirma que el import `BackofficeTopbar -> BackofficeBreadcrumbs` no esta roto en codigo.
 - validacion reciente cerrada en runtime Docker del proyecto:
   - `BackofficePhase6CrudPersistenceTest`: 13 tests OK, 282 assertions.
   - `BackofficePhase7RichContentPersistenceTest`: 10 tests OK, 176 assertions.

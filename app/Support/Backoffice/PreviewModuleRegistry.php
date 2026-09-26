@@ -50,7 +50,7 @@ final class PreviewModuleRegistry
                 'filters' => ['Pagina', 'Activo'],
                 'formSections' => [
                     ['title' => 'Bloque', 'fields' => ['Pagina', 'Clave', 'Tipo', 'Posicion', 'Activo']],
-                    ['title' => 'Configuracion', 'fields' => ['Settings', 'Traducciones']],
+                    ['title' => 'Configuracion', 'fields' => ['Configuracion del sitio', 'Traducciones']],
                 ],
             ],
             'music-tracks' => [
@@ -141,16 +141,29 @@ final class PreviewModuleRegistry
             ],
             'settings' => [
                 'slug' => 'settings',
-                'title' => 'Settings',
-                'singular' => 'Setting',
+                'title' => 'Configuracion del sitio',
+                'singular' => 'Ajuste del sitio',
                 'group' => 'Configuracion',
                 'icon' => 'settings',
-                'description' => 'Parametros globales publicos o privados, translatables y con posicion editorial.',
+                'description' => 'Claves globales reutilizadas por el frontend publico, con traducciones y payloads editoriales compartidos.',
                 'columns' => ['Grupo', 'Clave', 'Tipo', 'Traducciones', 'Publico', 'Posicion'],
                 'filters' => ['Grupo', 'Traducible', 'Publico'],
                 'formSections' => [
                     ['title' => 'Clave', 'fields' => ['Grupo', 'Key', 'Tipo', 'Posicion']],
                     ['title' => 'Valor', 'fields' => ['Traducible', 'Publico', 'Value', 'Traducciones']],
+                ],
+            ],
+            'users' => [
+                'slug' => 'users',
+                'title' => 'Usuarios',
+                'singular' => 'Usuario',
+                'group' => 'Configuracion',
+                'icon' => 'users',
+                'description' => 'Gestion administrativa de cuentas del backoffice con datos personales, rol y acceso.',
+                'columns' => ['Nombre', 'Email', 'Rol', 'Email verificado', 'Acceso backoffice'],
+                'filters' => ['Rol'],
+                'formSections' => [
+                    ['title' => 'Cuenta de acceso', 'fields' => ['Nombre', 'Email', 'Contrasena temporal', 'Rol del backoffice', 'Email verificado']],
                 ],
             ],
             'redirect-rules' => [

@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\LegalDocument;
 use App\Models\MusicTrack;
 use App\Models\PageBlock;
+use App\Models\User;
 use App\Support\BackofficeLocales;
 
 final class Phase6ModuleCatalog
@@ -272,10 +273,10 @@ final class Phase6ModuleCatalog
             ],
             'settings' => [
                 'slug' => 'settings',
-                'title' => 'Settings',
-                'singular' => 'Setting',
+                'title' => 'Configuracion del sitio',
+                'singular' => 'Ajuste del sitio',
                 'group' => 'Configuracion',
-                'description' => 'Gestion real de configuracion global publica o privada con traducciones y payloads JSON.',
+                'description' => 'Ajustes globales reutilizados por el sitio publico: claves editoriales, textos compartidos y payloads JSON del frontend.',
                 'defaultSort' => 'group',
                 'defaultDirection' => 'asc',
                 'columns' => [
@@ -294,7 +295,7 @@ final class Phase6ModuleCatalog
                 ],
                 'formSections' => [
                     [
-                        'title' => 'Setting global',
+                        'title' => 'Ajuste global del sitio',
                         'fields' => [
                             self::text('group', 'Grupo', true),
                             self::text('key', 'Clave', true),
@@ -311,6 +312,37 @@ final class Phase6ModuleCatalog
                             self::toggle('is_public', 'Publico'),
                             self::json('value', 'Value JSON'),
                             self::json('settings', 'Settings JSON'),
+                        ],
+                    ],
+                ],
+            ],
+            'users' => [
+                'slug' => 'users',
+                'title' => 'Usuarios',
+                'singular' => 'Usuario',
+                'group' => 'Configuracion',
+                'description' => 'Gestion de cuentas del backoffice con datos personales basicos, rol asignado y control de acceso administrativo.',
+                'defaultSort' => 'name',
+                'defaultDirection' => 'asc',
+                'columns' => [
+                    self::column('name', 'Nombre'),
+                    self::column('email', 'Email'),
+                    self::column('backoffice_role', 'Rol', sortable: false, badge: true),
+                    self::column('email_verified_at', 'Email verificado'),
+                    self::column('backoffice_access', 'Acceso backoffice', sortable: false, badge: true),
+                ],
+                'filters' => [
+                    self::selectFilter('backoffice_role', 'Rol', self::backofficeRoleOptions()),
+                ],
+                'formSections' => [
+                    [
+                        'title' => 'Cuenta de acceso',
+                        'fields' => [
+                            self::text('name', 'Nombre', true),
+                            self::text('email', 'Email', true),
+                            self::password('password', 'Contrasena temporal'),
+                            self::select('role_name', 'Rol del backoffice', true, self::backofficeRoleOptions()),
+                            self::datetime('email_verified_at', 'Email verificado'),
                         ],
                     ],
                 ],
@@ -653,8 +685,8 @@ final class Phase6ModuleCatalog
     public static function settingTranslationForm(): array
     {
         return [
-            'title' => 'Traduccion de setting',
-            'description' => 'Equivalente React/Inertia del relation manager de traducciones de settings.',
+            'title' => 'Traduccion del ajuste del sitio',
+            'description' => 'Equivalente React/Inertia del relation manager de traducciones de configuracion del sitio.',
             'fields' => [
                 self::select('locale', 'Idioma', true, self::localeOptions()),
                 self::json('value', 'Value JSON'),
@@ -783,6 +815,10 @@ final class Phase6ModuleCatalog
             $items[] = 'Cobertura de listado de solo lectura y filtro por campana sobre persistencia real.';
         }
 
+        if ($slug === 'users') {
+            $items[] = 'Cobertura de altas/ediciones de usuarios con sincronizacion de rol Spatie + columna legacy y acceso solo para `super_admin`.';
+        }
+
         return $items;
     }
 
@@ -832,6 +868,19 @@ final class Phase6ModuleCatalog
             ['value' => MusicTrack::class, 'label' => 'MusicTrack'],
             ['value' => LegalDocument::class, 'label' => 'LegalDocument'],
             ['value' => Event::class, 'label' => 'Event'],
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, string>>
+     */
+    public static function backofficeRoleOptions(): array
+    {
+        return [
+            ['value' => 'super_admin', 'label' => 'Super admin'],
+            ['value' => 'editor', 'label' => 'Editor'],
+            ['value' => 'marketing', 'label' => 'Marketing'],
+            ['value' => 'readonly', 'label' => 'Solo lectura'],
         ];
     }
 
@@ -996,6 +1045,14 @@ final class Phase6ModuleCatalog
     private static function url(string $key, string $label, bool $required = false): array
     {
         return self::field($key, $label, 'url', $required);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function password(string $key, string $label, bool $required = false): array
+    {
+        return self::field($key, $label, 'password', $required);
     }
 
     /**

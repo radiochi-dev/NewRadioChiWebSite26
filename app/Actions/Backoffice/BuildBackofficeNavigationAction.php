@@ -32,7 +32,7 @@ class BuildBackofficeNavigationAction
             $this->group('Marketing', ['newsletter-subscribers', 'newsletter-campaigns', 'partners', 'social-links']),
             $this->group('Legal y Footer', ['legal-documents']),
             $this->group('SEO', ['redirect-rules', 'seo-metas']),
-            $this->group('Configuracion', ['settings']),
+            $this->group('Configuracion', ['users', 'settings'], $user),
         ];
 
         return array_values(array_filter($navigation));
@@ -42,9 +42,10 @@ class BuildBackofficeNavigationAction
      * @param  array<int, string>  $slugs
      * @return array<string, mixed>|null
      */
-    private function group(string $label, array $slugs): ?array
+    private function group(string $label, array $slugs, ?User $user = null): ?array
     {
         $items = collect($slugs)
+            ->filter(fn (string $slug): bool => $this->isVisibleFor($slug, $user))
             ->map(fn (string $slug): ?array => PreviewModuleRegistry::find($slug))
             ->filter()
             ->map(fn (array $module): array => [
@@ -65,5 +66,14 @@ class BuildBackofficeNavigationAction
             'label' => $label,
             'items' => $items,
         ];
+    }
+
+    private function isVisibleFor(string $slug, ?User $user): bool
+    {
+        if ($slug !== 'users') {
+            return true;
+        }
+
+        return $user instanceof User && $user->canManageBackofficeUsers();
     }
 }

@@ -85,7 +85,7 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleIndex')
-                ->where('title', 'Settings')
+                ->where('title', 'Configuracion del sitio')
                 ->has('table.rows', 1));
 
         $this->actingAs($editor)
@@ -134,6 +134,35 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
         $this->actingAs($readonly)
             ->get('/backoffice/page-blocks/create')
             ->assertRedirect('/backoffice/pages');
+    }
+
+    public function test_super_admin_can_manage_users_but_editor_cannot_open_the_module(): void
+    {
+        $superAdmin = $this->createUserWithRole('super_admin');
+        $editor = $this->createUserWithRole('editor');
+        $managedUser = User::factory()->create([
+            'name' => 'Managed User',
+            'email' => 'managed.user@gmail.com',
+            'role' => 'Editor',
+        ]);
+        $managedUser->assignRole(Role::findOrCreate('editor', 'web'));
+
+        $this->actingAs($superAdmin)
+            ->get('/backoffice/users')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleIndex')
+                ->where('title', 'Usuarios')
+                ->where('capabilities.canCreate', true)
+                ->has('table.rows', 4));
+
+        $this->actingAs($editor)
+            ->get('/backoffice/users')
+            ->assertForbidden();
+
+        $this->actingAs($editor)
+            ->get('/backoffice/users/create')
+            ->assertForbidden();
     }
 
     public function test_editor_can_create_and_update_event_from_backoffice_preview(): void
@@ -521,6 +550,39 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             'setting_id' => $setting->id,
             'locale' => 'it',
         ]);
+    }
+
+    public function test_super_admin_can_create_and_update_user_from_backoffice_preview(): void
+    {
+        $superAdmin = $this->createUserWithRole('super_admin');
+
+        $response = $this->postWithCsrf($superAdmin, '/backoffice/users/draft', [
+            'name' => 'RadioChi Manager',
+            'email' => 'radiochi.manager@gmail.com',
+            'password' => 'secure-password-123',
+            'role_name' => 'marketing',
+            'email_verified_at' => '2026-09-26T10:30',
+        ]);
+
+        $user = User::query()->where('email', 'radiochi.manager@gmail.com')->firstOrFail();
+
+        $response->assertRedirect('/backoffice/users/'.$user->id.'/edit');
+        $this->assertTrue($user->fresh()->hasRole('marketing'));
+        $this->assertSame('Marketing', $user->fresh()->role);
+
+        $this->postWithCsrf($superAdmin, '/backoffice/users/draft/'.$user->id, [
+            'name' => 'RadioChi Editor Lead',
+            'email' => 'radiochi.manager@gmail.com',
+            'password' => '',
+            'role_name' => 'editor',
+            'email_verified_at' => '2026-09-26T10:30',
+        ])->assertRedirect('/backoffice/users/'.$user->id.'/edit');
+
+        $user->refresh();
+
+        $this->assertSame('RadioChi Editor Lead', $user->name);
+        $this->assertTrue($user->hasRole('editor'));
+        $this->assertSame('Editor', $user->role);
     }
 
     public function test_editor_can_upsert_seo_meta_from_backoffice_preview(): void

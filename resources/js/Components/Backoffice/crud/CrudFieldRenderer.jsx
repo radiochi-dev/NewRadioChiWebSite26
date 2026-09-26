@@ -102,7 +102,19 @@ export default function CrudFieldRenderer({ field, form, disabled = false, media
     return (
         <Input
             {...common}
-            type={field.type === 'email' ? 'email' : field.type === 'url' ? 'url' : field.type === 'number' ? 'number' : field.type === 'datetime' ? 'datetime-local' : 'text'}
+            type={
+                field.type === 'email'
+                    ? 'email'
+                    : field.type === 'url'
+                      ? 'url'
+                      : field.type === 'number'
+                        ? 'number'
+                        : field.type === 'datetime'
+                          ? 'datetime-local'
+                          : field.type === 'password'
+                            ? 'password'
+                            : 'text'
+            }
             value={form.data[field.key] ?? ''}
             onChange={(event) => form.setData(field.key, event.target.value)}
         />

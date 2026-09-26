@@ -12,7 +12,7 @@ function SessionChip({ children }) {
 
 function Panel({ title, description, children }) {
     return (
-        <article className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
+        <article className="rounded-[28px] border border-white/10 bg-white/3 p-6">
             <p className="text-lg font-semibold text-white">{title}</p>
             {description ? <p className="mt-2 text-sm leading-6 text-white/60">{description}</p> : null}
             <div className="mt-5">{children}</div>

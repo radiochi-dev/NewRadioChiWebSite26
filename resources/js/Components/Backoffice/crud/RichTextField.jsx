@@ -37,7 +37,7 @@ function ToolbarButton({ label, icon: Icon, active = false, disabled = false, on
             className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border text-sm transition ${
                 active
                     ? 'border-cyan-300/60 bg-cyan-400/15 text-cyan-100'
-                    : 'border-white/10 bg-white/[0.04] text-white/85 hover:border-white/20 hover:bg-white/[0.08] hover:text-cyan-100'
+                    : 'border-white/10 bg-white/4 text-white/85 hover:border-white/20 hover:bg-white/8 hover:text-cyan-100'
             } disabled:cursor-not-allowed disabled:opacity-40`}
         >
             <Icon className="h-4 w-4" />

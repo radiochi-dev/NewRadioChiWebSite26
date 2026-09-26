@@ -13,6 +13,7 @@ use App\Http\Requests\Backoffice\BackofficePreviewIndexRequest;
 use App\Models\NewsletterCampaign;
 use App\Models\Page;
 use App\Models\PageBlock;
+use App\Models\User;
 use App\Support\BackofficeLocales;
 use App\Support\Backoffice\BackofficePath;
 use App\Support\Backoffice\Phase6ModuleCatalog;
@@ -41,6 +42,8 @@ class PreviewController extends Controller
             return redirect(BackofficePath::active('pages'));
         }
 
+        abort_unless($this->canViewModule($module, $user), 403);
+
         $payload = Phase6ModuleCatalog::supports($module)
             ? $this->phase6Payload->index($user, $module, $request->validated())
             : $this->crudPayload->index($user, $module, $request->validated());
@@ -57,7 +60,7 @@ class PreviewController extends Controller
             return redirect(BackofficePath::active('pages'));
         }
 
-        abort_unless($user->canManageBackofficeContent(), 403);
+        abort_unless($this->canManageModule($module, $user), 403);
         abort_if(Phase6ModuleCatalog::supports($module) && Phase6ModuleCatalog::isReadOnly($module), 403);
 
         $payload = Phase6ModuleCatalog::supports($module)
@@ -86,8 +89,8 @@ class PreviewController extends Controller
 
         abort_unless(
             Phase6ModuleCatalog::supports($module) && Phase6ModuleCatalog::isReadOnly($module)
-                ? $user->canViewBackofficeContent()
-                : $user->canManageBackofficeContent(),
+                ? $this->canViewModule($module, $user)
+                : $this->canManageModule($module, $user),
             403,
         );
 
@@ -108,6 +111,7 @@ class PreviewController extends Controller
     {
         if (Phase6ModuleCatalog::supports($module)) {
             abort_if(Phase6ModuleCatalog::isReadOnly($module), 403);
+            abort_unless($this->canManageModule($module, $request->user()), 403);
 
             $validated = $request->validated();
             $saved = $this->savePhase6Module->execute($module, $validated, $record);
@@ -220,5 +224,29 @@ class PreviewController extends Controller
         } while ($existingKeys->contains($candidate));
 
         return $candidate;
+    }
+
+    private function canViewModule(string $module, ?User $user): bool
+    {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return match ($module) {
+            'users' => $user->canManageBackofficeUsers(),
+            default => $user->canViewBackofficeContent(),
+        };
+    }
+
+    private function canManageModule(string $module, ?User $user): bool
+    {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return match ($module) {
+            'users' => $user->canManageBackofficeUsers(),
+            default => $user->canManageBackofficeContent(),
+        };
     }
 }

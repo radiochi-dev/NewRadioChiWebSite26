@@ -68,7 +68,7 @@ export default function Login({ title, description, footer }) {
                                             type="email"
                                             value={form.data.email}
                                             onChange={(event) => form.setData('email', event.target.value)}
-                                            className="h-14 w-full rounded-full border border-white/15 bg-white/[0.06] px-5 text-white outline-none transition placeholder:text-white/35 focus:border-fuchsia-400/70 focus:ring-4 focus:ring-fuchsia-500/20"
+                                            className="h-14 w-full rounded-full border border-white/15 bg-white/6 px-5 text-white outline-none transition placeholder:text-white/35 focus:border-fuchsia-400/70 focus:ring-4 focus:ring-fuchsia-500/20"
                                             placeholder="correo@radiochi.com"
                                             autoComplete="email"
                                         />
@@ -79,7 +79,7 @@ export default function Login({ title, description, footer }) {
                                         <label className="mb-2 block text-sm font-semibold text-white" htmlFor="password">
                                             Contraseña
                                         </label>
-                                        <div className="flex h-14 items-center rounded-full border border-white/15 bg-white/[0.06] pr-2 transition focus-within:border-fuchsia-400/70 focus-within:ring-4 focus-within:ring-fuchsia-500/20">
+                                        <div className="flex h-14 items-center rounded-full border border-white/15 bg-white/6 pr-2 transition focus-within:border-fuchsia-400/70 focus-within:ring-4 focus-within:ring-fuchsia-500/20">
                                             <input
                                                 id="password"
                                                 type={showPassword ? 'text' : 'password'}

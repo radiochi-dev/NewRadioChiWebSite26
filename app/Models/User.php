@@ -102,6 +102,30 @@ class User extends Authenticatable
         return $this->hasBackofficeAccess();
     }
 
+    public function canManageBackofficeUsers(): bool
+    {
+        return $this->isSuperAdmin();
+    }
+
+    public function primaryBackofficeRole(): ?string
+    {
+        if ($this->supportsPermissionRoles()) {
+            $roles = $this->getRoleNames()->map(fn (string $role): string => (string) $role)->all();
+
+            foreach (self::BACKOFFICE_ROLES as $role) {
+                if (in_array($role, $roles, true)) {
+                    return $role;
+                }
+            }
+        }
+
+        if ($this->isLegacySuperAdmin()) {
+            return 'super_admin';
+        }
+
+        return self::mapLegacyRoleToSpatieRole($this->role);
+    }
+
     public function syncLegacyRoleToSpatieRole(): void
     {
         if (! $this->supportsPermissionRoles()) {
@@ -135,6 +159,17 @@ class User extends Authenticatable
             'editor' => 'editor',
             'marketing' => 'marketing',
             'readonly', 'read_only' => 'readonly',
+            default => null,
+        };
+    }
+
+    public static function mapSpatieRoleToLegacyRole(?string $role): ?string
+    {
+        return match ($role) {
+            'super_admin' => 'SuperAdmin',
+            'editor' => 'Editor',
+            'marketing' => 'Marketing',
+            'readonly' => 'ReadOnly',
             default => null,
         };
     }

@@ -22,9 +22,11 @@ use App\Models\SeoMeta;
 use App\Models\Setting;
 use App\Models\SettingTranslation;
 use App\Models\SocialLink;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 class SaveBackofficePhase6ModuleAction
 {
@@ -51,6 +53,7 @@ class SaveBackofficePhase6ModuleAction
             'redirect-rules' => $this->saveRedirectRule($data, $record),
             'social-links' => $this->saveSocialLink($data, $record),
             'settings' => $this->saveSetting($data, $record),
+            'users' => $this->saveUser($data, $record),
             'downloadable-files' => $this->saveDownloadableFile($data, $record),
             'seo-metas' => $this->saveSeoMeta($data, $record),
             default => abort(404),
@@ -346,6 +349,28 @@ class SaveBackofficePhase6ModuleAction
         }
 
         return $setting->fresh(['translations']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function saveUser(array $data, ?string $record): User
+    {
+        $user = $record ? User::query()->with('roles')->findOrFail($record) : new User();
+        $payload = Arr::only($data, ['name', 'email', 'email_verified_at']);
+
+        if (filled($data['password'] ?? null)) {
+            $payload['password'] = $data['password'];
+        }
+
+        $payload['role'] = User::mapSpatieRoleToLegacyRole($data['role_name'] ?? null) ?? $user->role;
+
+        $user->fill($payload);
+        $user->save();
+        Role::findOrCreate((string) $data['role_name'], 'web');
+        $user->syncRoles([(string) $data['role_name']]);
+
+        return $user->fresh(['roles']);
     }
 
     /**

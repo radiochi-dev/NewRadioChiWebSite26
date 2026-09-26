@@ -39,9 +39,9 @@ export default function DataTable({ table }) {
     }
 
     return (
-        <section className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03]">
+        <section className="overflow-hidden rounded-[28px] border border-white/10 bg-white/3">
             {bulkActions.length ? (
-                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 bg-white/[0.02] px-5 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 bg-white/2 px-5 py-4">
                     <div>
                         <p className="text-sm font-semibold text-white">Acciones masivas</p>
                         <p className="mt-1 text-xs text-white/50">
@@ -65,7 +65,7 @@ export default function DataTable({ table }) {
             ) : null}
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-white/10 text-left">
-                    <thead className="bg-white/[0.02]">
+                    <thead className="bg-white/2">
                         <tr>
                             {canSelect ? (
                                 <th className="px-5 py-4">
