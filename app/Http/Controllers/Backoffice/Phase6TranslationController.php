@@ -390,11 +390,12 @@ class Phase6TranslationController extends Controller
                 ->first();
 
             if ($page instanceof Page) {
-                $query = http_build_query([
+                $query = array_filter([
                     'locale' => $activeLocale,
-                ]);
+                    'focus' => request()->query('focus'),
+                ], fn (mixed $value): bool => is_string($value) && $value !== '');
 
-                return BackofficePath::active('pages/'.$page->slug.'/edit').'?'.$query;
+                return BackofficePath::active('pages/'.$page->slug.'/edit').'?'.http_build_query($query);
             }
         }
 
@@ -402,11 +403,12 @@ class Phase6TranslationController extends Controller
             return $fallback;
         }
 
-        $query = http_build_query([
+        $query = array_filter([
             'locale' => $activeLocale,
-        ]);
+            'focus' => request()->query('focus'),
+        ], fn (mixed $value): bool => is_string($value) && $value !== '');
 
-        return BackofficePath::active('pages/login/edit').'?'.$query;
+        return BackofficePath::active('pages/login/edit').'?'.http_build_query($query);
     }
 
     private function pageComponentEditPath(PageBlock $pageBlock, ?string $locale): string

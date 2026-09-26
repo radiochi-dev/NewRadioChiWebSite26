@@ -660,6 +660,10 @@ Validacion real en esta fase:
 - [x] ~~Rutas y controlador anidados para traducciones de `LegalDocuments` cerrados en `routes/web.php` y `Phase6TranslationController`.~~
 - [x] ~~Nueva regresion de Fase 8 validada en Docker: 18 tests OK, 335 assertions OK (`BackofficePhase8OperationalModulesTest`, `BackofficePhase7RichContentPersistenceTest`, `BackofficePhase6CrudPersistenceTest`).~~
 - [x] ~~Build frontend validado en Docker con `npm run build`; persisten warnings conocidos de assets runtime/chunk size, sin error bloqueante.~~
+- [x] ~~Rollout adicional del patron multilingue integrado completado para `settings` y `music-tracks`: `BackofficePreviewDraftRequest`, `SaveBackofficePhase6ModuleAction` y `PreviewController` ya validan, guardan y redirigen con `?locale=` desde el formulario principal, sin separar el flujo editorial por idioma.~~
+- [x] ~~Superficie page-centric de `pages` afinada para edicion inline en el mismo contenedor: `BuildBackofficePhase6CrudPayloadAction`, `CrudFormScreen`, `PreviewController` y `Phase6TranslationController` ya soportan tabs de bloque, alta/baja de slides y retorno con `focus` al tab activo sin reabrir una pantalla separada por item.~~
+- [x] ~~Limpieza global de formularios del backoffice: `CrudFormScreen`, `BuildBackofficePhase6CrudPayloadAction` y `BuildBackofficeCrudModulePayloadAction` ya no muestran el panel ni la tarjeta resumen `Modo EDIT`.~~
+- [x] ~~Ajuste visual global de campos del backoffice: `Input`, `Textarea`, `Select`, `CrudFieldRenderer`, `DataTable`, `ImageField`, `RichTextField` y `app.css` ya fuerzan contraste correcto de iconos/controles sobre la UI oscura.~~
 
 Criterio de salida:
 - el backend React/Inertia cubre el 100% del alcance funcional actual del admin.

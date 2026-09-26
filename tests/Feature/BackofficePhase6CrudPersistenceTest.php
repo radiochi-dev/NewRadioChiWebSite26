@@ -94,7 +94,11 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleIndex')
                 ->where('title', 'SEO meta')
-                ->has('table.rows', 1));
+                ->has('form.localeActions', 6)
+                ->where('form.localeActions.0.label', 'ES')
+                ->where('form.sections.0.title', 'Metadata SEO · ES')
+                ->missing('table')
+                ->where('filters', []));
     }
 
     public function test_readonly_can_view_phase_6_indexes_but_cannot_access_create_routes(): void
@@ -311,11 +315,44 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleForm')
                 ->where('title', 'Editar Home')
+                ->where('form.hideModePanel', true)
                 ->where('form.hideSubmit', true)
                 ->where('form.relationManagersTitle', 'Componentes administrables de la pagina')
-                ->has('form.relationManagers', 1)
-                ->where('form.relationManagers.0.label', 'Hero / Home')
+                ->has('form.tabbedEditors', 1)
+                ->where('form.tabbedEditors.0.label', 'Hero / Home')
+                ->where('form.tabbedEditors.0.createAction.label', 'Nuevo slide')
+                ->where('form.tabbedEditors.0.tabs.0.label', 'Contenido base')
+                ->has('form.relationManagers', 0)
                 ->has('actions', 7));
+    }
+
+    public function test_editor_can_create_and_delete_home_slide_from_page_editor_surface(): void
+    {
+        $editor = $this->createUserWithRole('editor');
+        $page = Page::query()->create([
+            'slug' => 'home',
+            'template' => 'home',
+            'is_published' => true,
+        ]);
+
+        $this->postWithCsrf($editor, '/backoffice/page-blocks/actions/create-block?record='.$page->id.'&type=hero_slide&locale=es&from=home')
+            ->assertRedirect();
+
+        $block = PageBlock::query()->where('page_id', $page->id)->where('type', 'hero_slide')->firstOrFail();
+
+        $this->assertDatabaseHas('page_blocks', [
+            'id' => $block->id,
+            'page_id' => $page->id,
+            'key' => 'hero-slide-01',
+            'type' => 'hero_slide',
+        ]);
+
+        $this->postWithCsrf($editor, '/backoffice/page-blocks/actions/delete-block?record='.$block->id.'&locale=es&from=home')
+            ->assertRedirect('/backoffice/pages/home/edit?locale=es&focus=page-'.$page->id);
+
+        $this->assertDatabaseMissing('page_blocks', [
+            'id' => $block->id,
+        ]);
     }
 
     public function test_hero_block_translation_form_exposes_typed_fields_and_shared_assets(): void
@@ -437,11 +474,11 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
         ]);
     }
 
-    public function test_editor_can_create_setting_and_manage_translation_from_backoffice_preview(): void
+    public function test_editor_can_create_setting_and_manage_translation_from_integrated_locale_editor(): void
     {
         $editor = $this->createUserWithRole('editor');
 
-        $this->postWithCsrf($editor, '/backoffice/settings/draft', [
+        $response = $this->postWithCsrf($editor, '/backoffice/settings/draft', [
                 'group' => 'footer',
                 'key' => 'credits',
                 'type' => 'json',
@@ -449,18 +486,35 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
                 'is_translatable' => true,
                 'is_public' => true,
                 'value' => json_encode(['label' => 'Credits'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            ])
-            ->assertRedirect();
+            ]);
 
         $setting = Setting::query()->where('group', 'footer')->where('key', 'credits')->firstOrFail();
+        $response->assertRedirect('/backoffice/settings/'.$setting->id.'/edit?locale=es');
 
-        $this->postWithCsrf($editor, '/backoffice/settings/'.$setting->id.'/translations', [
-                'locale' => 'it',
-                'value' => json_encode(['label' => 'Crediti'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        $this->actingAs($editor)
+            ->get('/backoffice/settings/'.$setting->id.'/edit?locale=it')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.localeActions.0.label', 'ES')
+                ->where('form.localeActions.4.label', 'IT +')
+                ->where('form.sections.1.title', 'Contenido traducible · IT')
+                ->where('form.sections.1.fields.0.key', 'copyright')
+                ->where('form.sections.1.fields.1.key', 'rights'));
+
+        $this->postWithCsrf($editor, '/backoffice/settings/draft/'.$setting->id.'?locale=it', [
+                'group' => 'footer',
+                'key' => 'credits',
+                'type' => 'json',
+                'position' => 1,
+                'is_translatable' => true,
+                'is_public' => true,
+                'copyright' => 'RadioChi 2026',
+                'rights' => 'Tutti i diritti riservati',
             ])
-            ->assertRedirect('/backoffice/settings/'.$setting->id.'/edit');
+            ->assertRedirect('/backoffice/settings/'.$setting->id.'/edit?locale=it');
 
-        $translation = $setting->translations()->firstOrFail();
+        $translation = $setting->translations()->where('locale', 'it')->firstOrFail();
 
         $this->assertDatabaseHas('settings_translations', [
             'id' => $translation->id,
@@ -506,6 +560,47 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             ->where('entity_id', 1)
             ->where('locale', 'es')
             ->count());
+
+        $seoMeta = SeoMeta::query()
+            ->where('entity_type', 'page')
+            ->where('entity_id', 1)
+            ->where('locale', 'es')
+            ->firstOrFail();
+
+        $this->actingAs($editor)
+            ->get('/backoffice/seo-metas?entity_type=page&entity_id=1&locale=en')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleIndex')
+                ->where('form.defaults.entity_type', 'page')
+                ->where('form.defaults.entity_id', 1)
+                ->where('form.defaults.locale', 'en')
+                ->where('form.localeActions.1.label', 'EN +')
+                ->where('form.sections.0.title', 'Metadata SEO · EN'));
+
+        $this->actingAs($editor)
+            ->get('/backoffice/seo-metas/'.$seoMeta->id.'/edit')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.localeActions.0.label', 'ES')
+                ->where('form.localeActions.1.label', 'EN +')
+                ->has('form.sections', 1)
+                ->where('form.sections.0.title', 'Metadata SEO · ES')
+                ->where('form.sections.0.fields.0.key', 'meta_title'));
+
+        $this->actingAs($editor)
+            ->get('/backoffice/seo-metas/create?entity_type=page&entity_id=1&locale=en')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.defaults.entity_type', 'page')
+                ->where('form.defaults.entity_id', '1')
+                ->where('form.defaults.locale', 'en')
+                ->where('form.localeActions.0.label', 'ES')
+                ->where('form.localeActions.1.label', 'EN +')
+                ->has('form.sections', 1)
+                ->where('form.sections.0.title', 'Metadata SEO · EN'));
     }
 
     private function createUserWithRole(string $roleName): User

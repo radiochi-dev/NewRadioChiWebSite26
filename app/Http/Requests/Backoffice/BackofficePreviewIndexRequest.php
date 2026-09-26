@@ -35,6 +35,9 @@ class BackofficePreviewIndexRequest extends FormRequest
             'direction' => ['nullable', Rule::in(['asc', 'desc'])],
             'page' => ['nullable', 'integer', 'min:1'],
             'perPage' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'entity_type' => ['nullable', 'string', 'max:255'],
+            'entity_id' => ['nullable', 'integer', 'min:1'],
+            'locale' => ['nullable', 'string', 'max:5'],
             'filters' => ['nullable', 'array'],
         ];
     }

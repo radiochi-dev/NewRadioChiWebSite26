@@ -117,7 +117,7 @@ export default function ImageField({ field, form, disabled = false, library = []
                             </div>
                         ) : (
                             <div className="flex h-56 flex-col items-center justify-center gap-3 bg-slate-950/65 px-6 text-center">
-                                <span className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70">
+                                <span className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/85">
                                     <FiImage className="h-6 w-6" />
                                 </span>
                                 <div>

@@ -62,7 +62,7 @@ export default function CrudFieldRenderer({ field, form, disabled = false, media
                     checked={Boolean(form.data[field.key])}
                     onChange={(event) => form.setData(field.key, event.target.checked)}
                     disabled={disabled || field.disabled}
-                    className="h-5 w-5 rounded border-white/20 bg-slate-950"
+                    className="backoffice-field-checkbox h-5 w-5 rounded border-white/20 bg-slate-950 text-cyan-300 accent-cyan-400"
                 />
             </label>
         )

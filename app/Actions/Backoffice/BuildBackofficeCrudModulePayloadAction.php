@@ -111,7 +111,6 @@ class BuildBackofficeCrudModulePayloadAction
                 ],
             ],
             'summaryCards' => [
-                ['label' => 'Modo', 'value' => strtoupper($mode), 'tone' => 'cyan'],
                 ['label' => 'Campos input', 'value' => (string) collect($blueprint['inputSections'])->sum(fn (array $section): int => count($section['fields'])), 'tone' => 'fuchsia'],
                 ['label' => 'Relations', 'value' => (string) count($blueprint['relationManagers']), 'tone' => 'emerald'],
                 ['label' => 'Validacion', 'value' => 'FormRequest', 'tone' => 'amber'],

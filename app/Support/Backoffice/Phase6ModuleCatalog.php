@@ -707,6 +707,20 @@ final class Phase6ModuleCatalog
     public static function specialAction(string $module, string $action): ?array
     {
         return match ($module.':'.$action) {
+            'page-blocks:create-block' => [
+                'slug' => 'create-block',
+                'label' => 'Crear bloque editorial',
+                'description' => 'Crea un nuevo bloque editorial reusable dentro de la pagina activa y redirige a su editor tipado.',
+                'tone' => 'cyan',
+                'requires_confirmation' => false,
+            ],
+            'page-blocks:delete-block' => [
+                'slug' => 'delete-block',
+                'label' => 'Eliminar bloque editorial',
+                'description' => 'Elimina el bloque editorial activo y sus traducciones asociadas para volver a la pagina de origen.',
+                'tone' => 'rose',
+                'requires_confirmation' => false,
+            ],
             'newsletter-campaigns:queue-campaign' => [
                 'slug' => 'queue-campaign',
                 'label' => 'Encolar campana',

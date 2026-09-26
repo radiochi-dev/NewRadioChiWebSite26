@@ -12,10 +12,13 @@ use App\Http\Requests\Backoffice\BackofficePreviewDraftRequest;
 use App\Http\Requests\Backoffice\BackofficePreviewIndexRequest;
 use App\Models\NewsletterCampaign;
 use App\Models\Page;
+use App\Models\PageBlock;
+use App\Support\BackofficeLocales;
 use App\Support\Backoffice\BackofficePath;
 use App\Support\Backoffice\Phase6ModuleCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -106,14 +109,15 @@ class PreviewController extends Controller
         if (Phase6ModuleCatalog::supports($module)) {
             abort_if(Phase6ModuleCatalog::isReadOnly($module), 403);
 
-            $saved = $this->savePhase6Module->execute($module, $request->validated(), $record);
+            $validated = $request->validated();
+            $saved = $this->savePhase6Module->execute($module, $validated, $record);
 
             $redirectPath = $module === 'pages' && $saved instanceof Page
                 ? BackofficePath::active($module.'/'.$saved->slug.'/edit')
                 : BackofficePath::active($module.'/'.$saved->getKey().'/edit');
 
-            if ($module === 'legal-documents') {
-                $redirectPath .= '?locale='.(string) $request->validated('locale', 'es');
+            if (in_array($module, ['legal-documents', 'music-tracks', 'settings'], true) && filled($validated['locale'] ?? null)) {
+                $redirectPath .= '?locale='.(string) $validated['locale'];
             }
 
             return redirect($redirectPath)
@@ -129,6 +133,51 @@ class PreviewController extends Controller
 
     public function action(BackofficePreviewActionRequest $request, string $module, string $action)
     {
+        if ($module === 'page-blocks' && $action === 'create-block') {
+            $page = Page::query()->findOrFail((string) $request->validated('record'));
+            $type = (string) $request->query('type', 'hero_slide');
+            $locale = $this->normalizeBackofficeLocale($request->query('locale'));
+
+            $block = PageBlock::query()->create([
+                'page_id' => $page->id,
+                'key' => $this->nextPageBlockKey($page, $type),
+                'type' => $type,
+                'position' => ((int) $page->blocks()->max('position')) + 1,
+                'is_active' => true,
+                'settings' => [],
+            ]);
+
+            return redirect(
+                BackofficePath::active('pages/'.$page->slug.'/edit').'?'.http_build_query([
+                    'locale' => $locale,
+                    'focus' => 'block-'.$block->getKey(),
+                ])
+            )->with('success', 'Nuevo bloque editorial creado correctamente.');
+        }
+
+        if ($module === 'page-blocks' && $action === 'delete-block') {
+            $block = PageBlock::query()
+                ->with('page')
+                ->findOrFail((string) $request->validated('record'));
+
+            $page = $block->page;
+            $locale = $this->normalizeBackofficeLocale($request->query('locale'));
+
+            $block->delete();
+
+            if ($page instanceof Page) {
+                return redirect(
+                    BackofficePath::active('pages/'.$page->slug.'/edit').'?'.http_build_query([
+                        'locale' => $locale,
+                        'focus' => 'page-'.$page->getKey(),
+                    ])
+                )->with('success', 'Bloque editorial eliminado correctamente.');
+            }
+
+            return redirect(BackofficePath::active('pages'))
+                ->with('success', 'Bloque editorial eliminado correctamente.');
+        }
+
         if ($module === 'newsletter-campaigns' && $action === 'queue-campaign') {
             $campaign = NewsletterCampaign::query()->findOrFail((string) $request->validated('record'));
 
@@ -141,5 +190,35 @@ class PreviewController extends Controller
         }
 
         return redirect()->back()->with('success', 'Accion `'.$action.'` validada para `'.$module.'` en la superficie oficial del backoffice.');
+    }
+
+    private function normalizeBackofficeLocale(mixed $locale): string
+    {
+        return is_string($locale) && in_array($locale, BackofficeLocales::values(), true)
+            ? $locale
+            : 'es';
+    }
+
+    private function nextPageBlockKey(Page $page, string $type): string
+    {
+        $prefix = match ($type) {
+            'hero_slide' => 'hero-slide',
+            'about_step' => 'about-step',
+            'contact_marquee' => 'contact-marquee',
+            default => Str::of($type)->replace('_', '-')->toString(),
+        };
+
+        $existingKeys = $page->blocks()
+            ->where('type', $type)
+            ->pluck('key');
+
+        $sequence = 1;
+
+        do {
+            $candidate = sprintf('%s-%02d', $prefix, $sequence);
+            $sequence++;
+        } while ($existingKeys->contains($candidate));
+
+        return $candidate;
     }
 }

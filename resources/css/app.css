@@ -24,6 +24,39 @@ body {
     height: 100%;
 }
 
+.backoffice-field-input,
+.backoffice-field-textarea,
+.backoffice-field-select-trigger,
+.backoffice-field-checkbox {
+    color-scheme: dark;
+}
+
+.backoffice-field-input::-webkit-calendar-picker-indicator {
+    filter: invert(92%) sepia(14%) saturate(485%) hue-rotate(156deg) brightness(106%) contrast(97%);
+    opacity: 0.9;
+    cursor: pointer;
+}
+
+.backoffice-field-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+.backoffice-field-input::-webkit-inner-spin-button,
+.backoffice-field-input::-webkit-clear-button {
+    opacity: 0.85;
+}
+
+.backoffice-field-checkbox {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.backoffice-field-checkbox:focus {
+    outline: none;
+    box-shadow:
+        inset 0 0 0 1px rgba(103, 232, 249, 0.55),
+        0 0 0 3px rgba(34, 211, 238, 0.18);
+}
+
 .backoffice-scrollbar-hidden {
     -ms-overflow-style: none;
     scrollbar-width: none;

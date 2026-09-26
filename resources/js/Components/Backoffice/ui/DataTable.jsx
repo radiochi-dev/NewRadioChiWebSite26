@@ -73,7 +73,7 @@ export default function DataTable({ table }) {
                                         type="checkbox"
                                         checked={allSelected}
                                         onChange={toggleAll}
-                                        className="h-4 w-4 rounded border-white/20 bg-slate-950"
+                                        className="backoffice-field-checkbox h-4 w-4 rounded border-white/20 bg-slate-950 text-cyan-300 accent-cyan-400"
                                     />
                                 </th>
                             ) : null}
@@ -109,7 +109,7 @@ export default function DataTable({ table }) {
                                                 type="checkbox"
                                                 checked={selectedRows.includes(row.id)}
                                                 onChange={() => toggleRow(row.id)}
-                                                className="h-4 w-4 rounded border-white/20 bg-slate-950"
+                                                className="backoffice-field-checkbox h-4 w-4 rounded border-white/20 bg-slate-950 text-cyan-300 accent-cyan-400"
                                             />
                                         </td>
                                     ) : null}

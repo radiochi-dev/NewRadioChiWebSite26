@@ -212,10 +212,39 @@ class SaveBackofficePhase6ModuleAction
     private function saveMusicTrack(array $data, ?string $record): MusicTrack
     {
         $track = $record ? MusicTrack::query()->findOrFail($record) : new MusicTrack();
-        $track->fill($data);
+        $track->fill(Arr::only($data, [
+            'slug',
+            'platform',
+            'label_image_path',
+            'cover_image_path',
+            'stream_url',
+            'external_url',
+            'genre',
+            'year',
+            'position',
+            'is_featured',
+            'is_published',
+            'published_at',
+            'settings',
+        ]));
         $track->save();
 
-        return $track->fresh();
+        $translationPayload = Arr::only($data, [
+            'locale',
+            'artist_name',
+            'title',
+            'hero_title',
+            'subtitle',
+            'description',
+            'cta_primary_label',
+            'cta_secondary_label',
+        ]);
+
+        if (($translationPayload['locale'] ?? null) && ($translationPayload['title'] ?? null)) {
+            $this->saveMusicTrackTranslation($track, $translationPayload);
+        }
+
+        return $track->fresh(['translations']);
     }
 
     /**
@@ -292,10 +321,31 @@ class SaveBackofficePhase6ModuleAction
     private function saveSetting(array $data, ?string $record): Setting
     {
         $setting = $record ? Setting::query()->findOrFail($record) : new Setting();
-        $setting->fill($data);
+        $payload = Arr::only($data, [
+            'group',
+            'key',
+            'type',
+            'is_translatable',
+            'is_public',
+            'position',
+            'settings',
+        ]);
+
+        $payload['value'] = ($data['is_translatable'] ?? false)
+            ? null
+            : ($data['value'] ?? null);
+
+        $setting->fill($payload);
         $setting->save();
 
-        return $setting->fresh();
+        if (($data['is_translatable'] ?? false) && isset($data['locale'])) {
+            $this->saveSettingTranslation($setting, [
+                'locale' => $data['locale'],
+                'value' => is_array($data['value'] ?? null) ? $data['value'] : [],
+            ]);
+        }
+
+        return $setting->fresh(['translations']);
     }
 
     /**

@@ -174,12 +174,42 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
         }
     }
 
-    public function test_editor_can_create_music_track_and_manage_translation_from_backoffice_preview(): void
+    public function test_editor_can_create_music_track_and_manage_translation_from_integrated_locale_editor(): void
     {
         $editor = $this->createUserWithRole('editor');
 
-        $this->actingAs($editor)
+        $response = $this->actingAs($editor)
             ->post('/backoffice/music-tracks/draft', [
+                'slug' => 'phase7-track',
+                'platform' => 'soundcloud',
+                'artist_name' => 'RadioChi',
+                'title' => 'Track fase 7',
+                'hero_title' => 'Hero ES',
+                'stream_url' => 'https://soundcloud.com/radiochi/phase7-track',
+                'external_url' => 'https://soundcloud.com/radiochi/phase7-track',
+                'genre' => 'House',
+                'year' => 2026,
+                'position' => 1,
+                'is_featured' => true,
+                'is_published' => true,
+                'settings' => json_encode(['legacy_id' => 701], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ]);
+
+        $track = MusicTrack::query()->where('slug', 'phase7-track')->firstOrFail();
+        $response->assertRedirect('/backoffice/music-tracks/'.$track->id.'/edit?locale=es');
+
+        $this->actingAs($editor)
+            ->get('/backoffice/music-tracks/'.$track->id.'/edit?locale=en')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->has('form.relationManagers', 0)
+                ->where('form.localeActions.0.label', 'ES')
+                ->where('form.localeActions.1.label', 'EN +')
+                ->where('form.sections.1.title', 'Contenido traducible · EN'));
+
+        $this->actingAs($editor)
+            ->post('/backoffice/music-tracks/draft/'.$track->id.'?locale=en', [
                 'slug' => 'phase7-track',
                 'platform' => 'soundcloud',
                 'stream_url' => 'https://soundcloud.com/radiochi/phase7-track',
@@ -190,30 +220,13 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
                 'is_featured' => true,
                 'is_published' => true,
                 'settings' => json_encode(['legacy_id' => 701], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            ])
-            ->assertRedirect();
-
-        $track = MusicTrack::query()->where('slug', 'phase7-track')->firstOrFail();
-
-        $this->actingAs($editor)
-            ->get('/backoffice/music-tracks/'.$track->id.'/edit')
-            ->assertOk()
-            ->assertInertia(fn (Assert $inertia) => $inertia
-                ->component('Backoffice/Preview/ModuleForm')
-                ->has('form.relationManagers', 0)
-                ->where('actions.1.label', 'ES +')
-                ->where('actions.2.label', 'EN +'));
-
-        $this->actingAs($editor)
-            ->post('/backoffice/music-tracks/'.$track->id.'/translations', [
-                'locale' => 'en',
                 'artist_name' => 'RadioChi',
                 'title' => 'Phase 7 Track',
                 'description' => 'Translated body',
             ])
-            ->assertRedirect('/backoffice/music-tracks/'.$track->id.'/edit');
+            ->assertRedirect('/backoffice/music-tracks/'.$track->id.'/edit?locale=en');
 
-        $translation = $track->translations()->firstOrFail();
+        $translation = $track->translations()->where('locale', 'en')->firstOrFail();
 
         $this->assertDatabaseHas('music_track_translations', [
             'id' => $translation->id,

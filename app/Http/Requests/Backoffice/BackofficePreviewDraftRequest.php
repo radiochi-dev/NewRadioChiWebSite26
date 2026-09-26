@@ -9,11 +9,13 @@ use App\Models\MediaAsset;
 use App\Models\MusicTrack;
 use App\Models\PageBlock;
 use App\Models\Partner;
+use App\Models\Setting;
 use App\Models\SocialLink;
 use App\Support\Backoffice\CrudModuleBlueprintFactory;
 use App\Support\Backoffice\Phase6ModuleCatalog;
 use App\Support\BackofficeLocales;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -79,6 +81,14 @@ class BackofficePreviewDraftRequest extends FormRequest
                 'is_featured' => ['nullable', 'boolean'],
                 'is_published' => ['nullable', 'boolean'],
                 'published_at' => ['nullable', 'date'],
+                'locale' => ['required', 'string', 'max:5', Rule::in(BackofficeLocales::values())],
+                'artist_name' => ['nullable', 'string', 'max:255'],
+                'title' => ['required', 'string', 'max:255'],
+                'hero_title' => ['nullable', 'string', 'max:255'],
+                'subtitle' => ['nullable', 'string', 'max:255'],
+                'description' => ['nullable', 'string'],
+                'cta_primary_label' => ['nullable', 'string', 'max:255'],
+                'cta_secondary_label' => ['nullable', 'string', 'max:255'],
                 'settings' => ['nullable', 'array'],
             ],
             'media-assets' => [
@@ -137,6 +147,9 @@ class BackofficePreviewDraftRequest extends FormRequest
                 ],
                 'type' => ['required', 'string', Rule::in(['string', 'json', 'boolean', 'number', 'url', 'html'])],
                 'value' => ['nullable', 'array'],
+                'locale' => $this->usesIntegratedSettingTranslation($record)
+                    ? ['required', 'string', 'max:5', Rule::in(BackofficeLocales::values())]
+                    : ['nullable', 'string', 'max:5', Rule::in(BackofficeLocales::values())],
                 'is_translatable' => ['nullable', 'boolean'],
                 'is_public' => ['nullable', 'boolean'],
                 'position' => ['nullable', 'integer', 'min:0'],
@@ -224,6 +237,7 @@ class BackofficePreviewDraftRequest extends FormRequest
             'music-tracks' => [
                 'year' => $this->filled('year') ? (int) $this->input('year') : null,
                 'position' => $this->filled('position') ? (int) $this->input('position') : 0,
+                'locale' => $this->normalizeLocale((string) $this->query('locale', $this->input('locale', 'es'))),
                 'is_featured' => $this->boolean('is_featured'),
                 'is_published' => $this->boolean('is_published'),
                 'settings' => $this->decodeJsonField('settings'),
@@ -249,9 +263,12 @@ class BackofficePreviewDraftRequest extends FormRequest
             ],
             'settings' => [
                 'position' => $this->filled('position') ? (int) $this->input('position') : 0,
+                'locale' => $this->normalizeLocale((string) $this->query('locale', $this->input('locale', 'es'))),
                 'is_translatable' => $this->boolean('is_translatable'),
                 'is_public' => $this->boolean('is_public'),
-                'value' => $this->decodeJsonField('value'),
+                'value' => $this->usesIntegratedSettingTranslation((string) $this->route('record'))
+                    ? $this->typedSettingValuePayload((string) $this->route('record'))
+                    : $this->decodeJsonField('value'),
                 'settings' => $this->decodeJsonField('settings'),
             ],
             'partners' => [
@@ -344,5 +361,93 @@ class BackofficePreviewDraftRequest extends FormRequest
     private function normalizeLocale(string $locale): string
     {
         return in_array($locale, BackofficeLocales::values(), true) ? $locale : 'es';
+    }
+
+    private function usesIntegratedSettingTranslation(?string $record = null): bool
+    {
+        if ($this->boolean('is_translatable')) {
+            return true;
+        }
+
+        if (! is_string($record) || trim($record) === '') {
+            return false;
+        }
+
+        return Setting::query()
+            ->whereKey($record)
+            ->where('is_translatable', true)
+            ->exists();
+    }
+
+    private function typedSettingValuePayload(?string $record = null): ?array
+    {
+        if ($this->has('value') && is_string($this->input('value')) && $this->looksLikeJson((string) $this->input('value'))) {
+            return $this->decodeJsonField('value');
+        }
+
+        $mapping = [
+            'label' => 'label',
+            'menu_home' => 'items.home',
+            'menu_about' => 'items.about',
+            'menu_music' => 'items.music',
+            'menu_media' => 'items.media',
+            'menu_calendar' => 'items.calendarEvents',
+            'menu_contact' => 'items.contact',
+            'copyright' => 'copyright',
+            'rights' => 'rights',
+            'terms_button' => 'terms_button',
+            'privacy_button' => 'privacy_button',
+            'cookies_button' => 'cookies_button',
+        ];
+
+        $hasTypedInput = collect(array_keys($mapping))
+            ->contains(fn (string $field): bool => $this->has($field));
+
+        if (! $hasTypedInput && ! $this->has('value')) {
+            return null;
+        }
+
+        $base = $this->existingSettingTranslationValue($record, (string) $this->input('locale', $this->query('locale', 'es')));
+
+        foreach ($mapping as $field => $key) {
+            if (! $this->has($field)) {
+                continue;
+            }
+
+            Arr::set($base, $key, $this->input($field));
+        }
+
+        if ($this->has('value') && ! is_array($this->input('value'))) {
+            Arr::set($base, 'value', $this->input('value'));
+        }
+
+        return $base;
+    }
+
+    private function existingSettingTranslationValue(?string $record, string $locale): array
+    {
+        if (! is_string($record) || trim($record) === '') {
+            return [];
+        }
+
+        $setting = Setting::query()
+            ->with('translations')
+            ->find($record);
+
+        if (! $setting instanceof Setting) {
+            return [];
+        }
+
+        $translation = $setting->translations
+            ->firstWhere('locale', $this->normalizeLocale($locale));
+
+        return is_array($translation?->value) ? $translation->value : [];
+    }
+
+    private function looksLikeJson(string $value): bool
+    {
+        $trimmed = trim($value);
+
+        return str_starts_with($trimmed, '{') || str_starts_with($trimmed, '[');
     }
 }

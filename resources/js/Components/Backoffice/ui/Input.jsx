@@ -6,7 +6,7 @@ export default function Input({ label, hint, error, required = false, className 
                 {required ? <span className="ml-1 text-rose-300">*</span> : null}
             </span>
             <input
-                className={`w-full rounded-2xl border bg-slate-900/80 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/25 disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`backoffice-field-input w-full rounded-2xl border bg-slate-900/80 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/25 disabled:cursor-not-allowed disabled:opacity-60 ${
                     error ? 'border-rose-400/60' : 'border-white/10 focus:border-cyan-300/60'
                 }`}
                 {...props}

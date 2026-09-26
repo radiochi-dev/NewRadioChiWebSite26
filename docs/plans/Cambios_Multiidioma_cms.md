@@ -14,6 +14,10 @@
 - [x] ~~Reconducir `Paginas` a una superficie editorial real page-centric en lugar de exponer CRUD tecnico de `pages/page_blocks`.~~
 - [x] ~~Implementar la base del nuevo editor multidioma por pagina en backoffice con retorno al flujo editorial (`Paginas` -> `Pagina` -> `Componente` -> formulario tipado).~~
 - [x] ~~Consolidar `Redes sociales` como fuente comun unica para contacto, footer y login, sin duplicados editoriales por localizacion.~~
+- [x] ~~Cerrar el patron de editor multilingue integrado en `settings` y `music-tracks`, guardando el locale activo desde el formulario principal y manteniendo imagenes compartidas entre idiomas.~~
+- [x] ~~Reconstruir la superficie editorial page-centric para que `home` deje de listar slides como filas y pase a editarlos en tabs dentro del mismo contenedor, con alta y baja de slides desde la propia pagina.~~
+- [x] ~~Eliminar globalmente del backoffice el bloque y la tarjeta resumen `Modo EDIT`, porque no aportaban valor operativo en los formularios.~~
+- [x] ~~Corregir globalmente el color de iconos y controles nativos de campos compartidos del backoffice para que se lean bien sobre la UI oscura.~~
 - [ ] Completar la cobertura tipada de todos los formularios secundarios restantes del CMS onepage.
 - [ ] Validar integralmente frontend publico + backoffice editorial con pruebas y navegador.
 
@@ -121,6 +125,23 @@ Se ha corregido la mezcla incorrecta entre paginas y bloques tecnicos:
 - el contenido legal importado desde `resources/js/legacy/i18n/*/terms-policy-cookies.json` queda ahora alineado con un editor rico funcional en backoffice y con el render HTML que ya usa el frontend publico.
 - `legal-documents` deja de separar artificialmente metadata y traduccion: el editor base ya carga y guarda el contenido del locale activo dentro del mismo contenedor;
 - el menu de idiomas para traducciones se renderiza dentro del contenedor del formulario (`form.localeActions`) y se usa tambien en documentos legales para alternar locale sin salir de la superficie de edicion.
+- `seo-metas` expone ahora el mismo patron de conmutacion por idioma dentro del contenedor del formulario, enlazando cada locale del mismo recurso SEO y pre-rellenando altas nuevas cuando aun no existe el registro;
+- la gestion SEO queda alineada con el payload publico por locale: un registro por `entity_type + entity_id + locale`, con metadatos y canonical especificos por idioma.
+- cuando `seo-metas` ya esta contextualizado a una entidad concreta, la edicion oculta la identidad tecnica y deja una superficie de dos niveles: tabs de idioma en el primer contenedor y un unico contenedor de `Metadata SEO` para el locale activo;
+- al cambiar de tab en `seo-metas`, el formulario ya no muestra bloques tecnicos duplicados y carga directamente los campos SEO del idioma correspondiente para el mismo recurso.
+- el indice `/backoffice/seo-metas` deja de renderizar una tabla CRUD por locale y pasa a comportarse como editor por recurso: primer contenedor con tabs de idioma, segundo contenedor con el formulario del locale activo;
+- en ese flujo de indice se elimina el bloque de filtros para `seo-metas`, porque deja de aportar valor cuando la pantalla ya no navega por filas sino por el recurso SEO seleccionado.
+- `settings` translatables dejan de depender del flujo separado de traducciones para el uso principal: el formulario base ya cambia el segundo contenedor segun el idioma activo, valida `locale` desde query y persiste `settings_translations.value` desde el mismo editor.
+- `music-tracks` deja de separar la traduccion en una pantalla secundaria para el flujo principal: el formulario base ya guarda el locale activo junto al contenido editorial del track y conserva `label_image_path` / `cover_image_path` como assets compartidos entre idiomas.
+- `pages/home/edit` deja de mostrar el bloque sobrante `Modo EDIT` y sustituye la lista lineal de hero por un editor inline con tabs dentro del mismo contenedor: `Contenido base`, `Slide 01`, `Slide 02`, etc.
+- desde esa misma superficie page-centric ya existe `Nuevo slide` y cada tab de slide expone su propia accion `Eliminar`, manteniendo el idioma activo sobre el mismo contenedor sin abrir una pantalla separada por item.
+- el redirect de guardado de traducciones de pagina/bloque ya conserva `focus` para devolver el editor inline a la pestaña concreta que se estaba editando.
+- los formularios del backoffice dejan de mostrar tanto el panel `Modo EDIT` como la tarjeta-resumen `Modo`, reduciendo ruido visual en todas las superficies CRUD.
+- los componentes compartidos de campos (`Input`, `Textarea`, `Select`, `RichTextField`, `ImageField`, toggles y checkboxes de tabla) quedan ajustados para tema oscuro: iconos de fecha/hora aclarados, checks con `accent-color` consistente y SVG de controles con contraste suficiente.
+- validacion reciente cerrada en runtime Docker del proyecto:
+  - `BackofficePhase6CrudPersistenceTest`: 13 tests OK, 282 assertions.
+  - `BackofficePhase7RichContentPersistenceTest`: 10 tests OK, 176 assertions.
+  - `npm run build`: OK, con warnings ya conocidos de assets runtime/chunk size sin error bloqueante.
 
 ## Auditoria del estado actual del CMS multidioma
 

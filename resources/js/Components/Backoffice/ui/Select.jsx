@@ -156,7 +156,7 @@ export default function Select({
                 aria-expanded={open}
                 onClick={() => setOpen((current) => !current)}
                 onKeyDown={handleButtonKeyDown}
-                className={`relative w-full rounded-2xl border bg-slate-900/80 px-4 py-3 pr-14 text-left text-sm text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`backoffice-field-select-trigger relative w-full rounded-2xl border bg-slate-900/80 px-4 py-3 pr-14 text-left text-sm text-white outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
                     error ? 'border-rose-400/60' : 'border-white/10 focus:border-cyan-300/60'
                 } ${open ? 'border-cyan-300/60 shadow-[0_0_0_1px_rgba(103,232,249,0.24)]' : ''}`}
             >
@@ -164,7 +164,7 @@ export default function Select({
                     {selectedOption?.label ?? 'Selecciona una opcion'}
                 </span>
 
-                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-white/70">
+                <span className={`pointer-events-none absolute inset-y-0 right-4 flex items-center transition ${open ? 'text-cyan-100' : 'text-white/80'}`}>
                     <FiChevronDown className={`h-4 w-4 transition ${open ? 'rotate-180' : ''}`} />
                 </span>
             </button>

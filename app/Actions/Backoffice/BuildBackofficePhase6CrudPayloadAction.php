@@ -49,6 +49,10 @@ class BuildBackofficePhase6CrudPayloadAction
             return $this->mediaAssetsIndex($user, $query);
         }
 
+        if ($slug === 'seo-metas') {
+            return $this->seoMetasEditorIndex($user, $query);
+        }
+
         $module = $this->module($slug);
         $filters = $this->filtersFor($slug, $module['filters']);
         $normalized = $this->normalizeIndexQuery($module, $filters, $query);
@@ -125,7 +129,7 @@ class BuildBackofficePhase6CrudPayloadAction
         if ($slug === 'pages') {
             abort_if($mode !== 'edit' || ! is_string($record) || trim($record) === '', 404);
 
-            return $this->editorialPageForm($user, $record, request()->query('locale'));
+            return $this->editorialPageForm($user, $record, request()->query('locale'), $oldInput);
         }
 
         $module = $this->module($slug);
@@ -134,15 +138,29 @@ class BuildBackofficePhase6CrudPayloadAction
         $modeLabel = $readOnly && $mode === 'edit'
             ? 'Ver'
             : ($mode === 'edit' ? 'Editar' : 'Crear');
-        $activeLocale = $slug === 'legal-documents'
-            ? $this->activeLegalDocumentLocale($recordModel instanceof LegalDocument ? $recordModel : null, $oldInput)
-            : null;
-        $sections = $this->sectionsFor($slug, $mode, $recordModel, $activeLocale);
-        $localeActions = $slug === 'legal-documents'
-            ? $this->legalDocumentEditorLocaleActions($recordModel instanceof LegalDocument ? $recordModel : null, $activeLocale ?? 'es')
-            : $this->localeHeaderActionsFor($slug, $recordModel);
+        $integratedLocaleModules = ['legal-documents', 'seo-metas', 'settings', 'music-tracks'];
+        $activeLocale = match ($slug) {
+            'legal-documents' => $this->activeLegalDocumentLocale($recordModel instanceof LegalDocument ? $recordModel : null, $oldInput),
+            'seo-metas' => $this->activeSeoMetaLocale($recordModel instanceof SeoMeta ? $recordModel : null, $oldInput),
+            'settings' => $this->activeSettingLocale($recordModel instanceof Setting ? $recordModel : null, $oldInput),
+            'music-tracks' => $this->activeMusicTrackLocale($recordModel instanceof MusicTrack ? $recordModel : null, $oldInput),
+            default => null,
+        };
+        $sections = $this->sectionsFor($slug, $mode, $recordModel, $activeLocale, [
+            'entity_type' => request()->query('entity_type'),
+            'entity_id' => request()->query('entity_id'),
+            'locale' => $activeLocale,
+            'is_translatable' => $oldInput['is_translatable'] ?? request()->query('is_translatable'),
+        ]);
+        $localeActions = match ($slug) {
+            'legal-documents' => $this->legalDocumentEditorLocaleActions($recordModel instanceof LegalDocument ? $recordModel : null, $activeLocale ?? 'es'),
+            'seo-metas' => $this->seoMetaLocaleActions($recordModel instanceof SeoMeta ? $recordModel : null, $activeLocale ?? 'es'),
+            'settings' => $this->settingEditorLocaleActions($recordModel instanceof Setting ? $recordModel : null, $activeLocale ?? 'es'),
+            'music-tracks' => $this->musicTrackEditorLocaleActions($recordModel instanceof MusicTrack ? $recordModel : null, $activeLocale ?? 'es'),
+            default => $this->localeHeaderActionsFor($slug, $recordModel),
+        };
         $relationManagers = $this->relationManagers($slug, $recordModel);
-        $actionPath = $slug === 'legal-documents'
+        $actionPath = in_array($slug, $integratedLocaleModules, true)
             ? $this->withEditorQuery(
                 BackofficePath::active($module['slug'].'/draft'.($recordModel ? '/'.$recordModel->getKey() : '')),
                 $activeLocale,
@@ -167,10 +185,9 @@ class BuildBackofficePhase6CrudPayloadAction
                     'variant' => 'ghost',
                     'visible' => true,
                 ],
-                ...($slug === 'legal-documents' ? [] : $localeActions),
+                ...(in_array($slug, $integratedLocaleModules, true) ? [] : $localeActions),
             ],
             'summaryCards' => [
-                ['label' => 'Modo', 'value' => strtoupper($mode), 'tone' => 'cyan'],
                 ['label' => 'Persistencia', 'value' => 'REAL', 'tone' => 'emerald'],
                 ['label' => 'Campos', 'value' => (string) collect($sections)->sum(fn (array $section): int => count($section['fields'])), 'tone' => 'fuchsia'],
                 ['label' => $localeActions !== [] ? 'Idiomas' : 'Relaciones', 'value' => (string) ($localeActions !== [] ? count($localeActions) : count($relationManagers)), 'tone' => 'amber'],
@@ -179,9 +196,14 @@ class BuildBackofficePhase6CrudPayloadAction
                 'action' => $actionPath,
                 'method' => 'post',
                 'submitLabel' => $readOnly ? 'Sin cambios' : ($mode === 'edit' ? 'Guardar cambios' : 'Crear registro'),
-                'defaults' => $this->defaultsFor($slug, $sections, $recordModel, $oldInput),
+                'defaults' => $this->defaultsFor($slug, $sections, $recordModel, $oldInput, [
+                    'entity_type' => request()->query('entity_type'),
+                    'entity_id' => request()->query('entity_id'),
+                    'locale' => $activeLocale,
+                    'is_translatable' => $oldInput['is_translatable'] ?? request()->query('is_translatable'),
+                ]),
                 'sections' => $sections,
-                'localeActions' => $slug === 'legal-documents' ? $localeActions : [],
+                'localeActions' => in_array($slug, $integratedLocaleModules, true) ? $localeActions : [],
                 'mediaLibrary' => $this->hasImageFields($sections) ? $this->imageLibrary() : [],
                 'mediaUploadUrl' => $this->hasImageFields($sections) ? BackofficePath::active('media-assets/uploads/images') : null,
                 'relationManagers' => $relationManagers,
@@ -338,6 +360,90 @@ class BuildBackofficePhase6CrudPayloadAction
                 'canEdit' => $user->canManageBackofficeContent(),
                 'canDelete' => false,
                 'canView' => $user->canViewBackofficeContent(),
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function seoMetasEditorIndex(User $user, array $query = []): array
+    {
+        $module = $this->module('seo-metas');
+        $resourceGroups = $this->seoMetaResourceGroups();
+        $activeResource = $this->activeSeoMetaResource($resourceGroups, $query);
+
+        $entityType = $activeResource['entity_type'] ?? (string) Arr::get($query, 'entity_type', '');
+        $entityId = $activeResource['entity_id'] ?? Arr::get($query, 'entity_id');
+        $requestedLocale = Arr::get($query, 'locale');
+        $activeLocale = is_string($requestedLocale) && in_array($requestedLocale, BackofficeLocales::values(), true)
+            ? $requestedLocale
+            : ($activeResource['default_locale'] ?? 'es');
+        $hasContext = $entityType !== '' && ! blank($entityId);
+
+        /** @var SeoMeta|null $activeRecord */
+        $activeRecord = $activeResource['records'] instanceof Collection
+            ? $activeResource['records']->firstWhere('locale', $activeLocale)
+            : null;
+
+        $mode = $activeRecord instanceof SeoMeta ? 'edit' : 'create';
+        $context = [
+            'entity_type' => $entityType,
+            'entity_id' => $entityId,
+            'locale' => $activeLocale,
+        ];
+        $sections = $hasContext
+            ? $this->sectionsFor('seo-metas', $mode, $activeRecord, $activeLocale, $context)
+            : [];
+        $formDefaults = $hasContext
+            ? $this->defaultsFor('seo-metas', $sections, $activeRecord, [], $context)
+            : [];
+        $localeActions = $hasContext
+            ? $this->seoMetaIndexLocaleActions($entityType, $entityId, $activeResource['records'] ?? collect(), $activeLocale)
+            : [];
+
+        return [
+            'mode' => 'index',
+            'module' => Arr::only($module, ['slug', 'title', 'singular', 'group', 'description']),
+            'title' => $module['title'],
+            'description' => 'Editor SEO por recurso. Cambia el locale desde el primer contenedor y edita en la misma superficie la metadata del idioma activo.',
+            'breadcrumbs' => [
+                ['label' => 'Backoffice', 'href' => BackofficePath::active()],
+                ['label' => $module['group'], 'href' => null],
+                ['label' => $module['title'], 'href' => BackofficePath::active($module['slug'])],
+            ],
+            'actions' => [],
+            'summaryCards' => [
+                ['label' => 'Recursos SEO', 'value' => (string) $resourceGroups->count(), 'tone' => 'cyan'],
+                ['label' => 'Idiomas', 'value' => (string) count($localeActions), 'tone' => 'fuchsia'],
+                ['label' => 'Lectura real', 'value' => 'DB', 'tone' => 'emerald'],
+                ['label' => 'Fase activa', 'value' => $this->phaseLabel('seo-metas'), 'tone' => 'amber'],
+            ],
+            'filters' => [],
+            'form' => [
+                'action' => $this->withEditorQuery(
+                    BackofficePath::active('seo-metas/draft'.($activeRecord ? '/'.$activeRecord->getKey() : '')),
+                    $activeLocale,
+                ),
+                'method' => 'post',
+                'submitLabel' => $activeRecord instanceof SeoMeta ? 'Guardar cambios' : 'Crear SEO meta',
+                'defaults' => $formDefaults,
+                'sections' => $sections,
+                'localeActions' => $localeActions,
+                'mediaLibrary' => [],
+                'mediaUploadUrl' => null,
+                'relationManagers' => [],
+                'specialActions' => [],
+                'dangerousActions' => [],
+                'validationSummary' => [],
+            ],
+            'capabilities' => [
+                'canCreate' => $this->canCreateFor('seo-metas', $user),
+                'canEdit' => $user->canManageBackofficeContent(),
+                'canDelete' => false,
+                'canView' => $user->canViewBackofficeContent(),
+                'canSubmit' => $user->canManageBackofficeContent(),
             ],
         ];
     }
@@ -1105,7 +1211,7 @@ class BuildBackofficePhase6CrudPayloadAction
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function sectionsFor(string $slug, string $mode, ?Model $record = null, ?string $activeLocale = null): array
+    private function sectionsFor(string $slug, string $mode, ?Model $record = null, ?string $activeLocale = null, array $context = []): array
     {
         $sections = $this->module($slug)['formSections'];
 
@@ -1171,6 +1277,55 @@ class BuildBackofficePhase6CrudPayloadAction
             $sections[] = $this->legalDocumentContentSection($activeLocale ?? 'es');
         }
 
+        if ($slug === 'settings' && $this->settingSupportsIntegratedLocaleContent($record, $context)) {
+            $sections = array_map(function (array $section): array {
+                if (($section['title'] ?? '') !== 'Setting global') {
+                    return $section;
+                }
+
+                $section['fields'] = array_values(array_filter(
+                    $section['fields'],
+                    fn (array $field): bool => $field['key'] !== 'value'
+                ));
+
+                return $section;
+            }, $sections);
+
+            $sections[] = $this->settingContentSection($record instanceof Setting ? $record : null, $activeLocale ?? 'es');
+        }
+
+        if ($slug === 'music-tracks') {
+            $sections[] = $this->musicTrackContentSection($activeLocale ?? 'es');
+        }
+
+        if ($slug === 'seo-metas') {
+            $sections = array_map(function (array $section): array {
+                if (($section['title'] ?? '') !== 'Identidad SEO') {
+                    return $section;
+                }
+
+                $section['description'] = 'Cada registro SEO corresponde a una entidad concreta y a un locale especifico.';
+
+                return $section;
+            }, $sections);
+
+            if ($this->seoMetaHasContext($record, $context)) {
+                $metadataFields = [];
+
+                foreach ($sections as $section) {
+                    if (in_array($section['title'] ?? '', ['Metadata', 'Payloads JSON'], true)) {
+                        $metadataFields = [...$metadataFields, ...($section['fields'] ?? [])];
+                    }
+                }
+
+                $sections = [[
+                    'title' => 'Metadata SEO · '.mb_strtoupper($activeLocale ?? 'es'),
+                    'description' => 'Campos SEO del idioma activo para este mismo recurso.',
+                    'fields' => $metadataFields,
+                ]];
+            }
+        }
+
         return $sections;
     }
 
@@ -1179,7 +1334,7 @@ class BuildBackofficePhase6CrudPayloadAction
      * @param  array<string, mixed>  $oldInput
      * @return array<string, mixed>
      */
-    private function defaultsFor(string $slug, array $sections, ?Model $record, array $oldInput): array
+    private function defaultsFor(string $slug, array $sections, ?Model $record, array $oldInput, array $context = []): array
     {
         $defaults = [];
 
@@ -1189,7 +1344,17 @@ class BuildBackofficePhase6CrudPayloadAction
             }
         }
 
-        return array_merge($defaults, Arr::except($oldInput, ['_token']));
+        $overrides = Arr::except($oldInput, ['_token']);
+
+        if ($slug === 'seo-metas' && ! $record instanceof SeoMeta) {
+            $overrides = array_merge([
+                'entity_type' => $context['entity_type'] ?? request()->query('entity_type', ''),
+                'entity_id' => $context['entity_id'] ?? request()->query('entity_id', ''),
+                'locale' => $context['locale'] ?? $this->activeSeoMetaLocale(null, $oldInput),
+            ], $overrides);
+        }
+
+        return array_merge($defaults, $overrides);
     }
 
     private function defaultValueForField(array $field, string $slug, ?Model $record): mixed
@@ -1204,6 +1369,18 @@ class BuildBackofficePhase6CrudPayloadAction
                 $translation = $record->translations->firstWhere('locale', $activeLocale);
                 $value = $translation?->getAttribute($field['key']);
             }
+        }
+
+        if ($slug === 'music-tracks' && $record instanceof MusicTrack && in_array($field['key'], ['artist_name', 'title', 'hero_title', 'subtitle', 'description', 'cta_primary_label', 'cta_secondary_label'], true)) {
+            /** @var MusicTrackTranslation|null $translation */
+            $translation = $record->translations->firstWhere('locale', $this->activeMusicTrackLocale($record));
+            $value = $translation?->getAttribute($field['key']);
+        }
+
+        if ($slug === 'settings' && $record instanceof Setting && isset($field['valueKey'])) {
+            /** @var SettingTranslation|null $translation */
+            $translation = $record->translations->firstWhere('locale', $this->activeSettingLocale($record));
+            $value = $this->mappedArrayValue($translation?->getAttribute('value') ?? [], (string) $field['valueKey']);
         }
 
         if ($slug === 'page-blocks' && $field['key'] === 'page_id' && $record instanceof PageBlock) {
@@ -1570,7 +1747,7 @@ class BuildBackofficePhase6CrudPayloadAction
     /**
      * @return array<string, mixed>
      */
-    private function editorialPageForm(User $user, string $record, ?string $locale): array
+    private function editorialPageForm(User $user, string $record, ?string $locale, array $oldInput = []): array
     {
         $activeLocale = $this->normalizeLocale($locale);
 
@@ -1590,7 +1767,11 @@ class BuildBackofficePhase6CrudPayloadAction
             )
             ->firstOrFail();
 
-        $sections = $this->pageEditorialSections($page, $activeLocale);
+        $sections = array_map(function (array $section): array {
+            $section['initialActiveTab'] = request()->query('focus');
+
+            return $section;
+        }, $this->pageEditorialSections($page, $activeLocale, $oldInput));
         $pageLabel = $this->editorialPageLabel($page->slug);
 
         return [
@@ -1631,16 +1812,20 @@ class BuildBackofficePhase6CrudPayloadAction
                 'submitLabel' => null,
                 'defaults' => [],
                 'sections' => [],
+                'tabbedEditors' => $sections,
                 'relationManagersTitle' => 'Componentes administrables de la pagina',
-                'relationManagersDescription' => 'Cada tarjeta corresponde solo a esta pagina. Al abrir un item entras en el editor tipado del componente concreto para el idioma seleccionado.',
-                'relationManagers' => $sections,
+                'relationManagersDescription' => 'El idioma activo gobierna este mismo contenedor. Cada tab expone el contenido base o el bloque concreto sin anidar una pantalla distinta por slide.',
+                'relationManagers' => [],
+                'mediaLibrary' => $this->pageEditorialHasImageFields($sections) ? $this->imageLibrary() : [],
+                'mediaUploadUrl' => $this->pageEditorialHasImageFields($sections) ? BackofficePath::active('media-assets/uploads/images') : null,
                 'specialActions' => [],
                 'dangerousActions' => [],
                 'validationSummary' => [],
                 'hideSubmit' => true,
+                'hideModePanel' => true,
             ],
             'capabilities' => [
-                'canSubmit' => false,
+                'canSubmit' => $user->canManageBackofficeContent(),
                 'canView' => $user->canViewBackofficeContent(),
             ],
         ];
@@ -1689,13 +1874,17 @@ class BuildBackofficePhase6CrudPayloadAction
                 'submitLabel' => null,
                 'defaults' => [],
                 'sections' => [],
+                'tabbedEditors' => [],
                 'relationManagersTitle' => 'Componentes administrables de la pagina',
                 'relationManagersDescription' => 'El login expone solo sus componentes operativos: footer, redes y modales legales.',
                 'relationManagers' => $this->loginEditorialSections($locale),
+                'mediaLibrary' => [],
+                'mediaUploadUrl' => null,
                 'specialActions' => [],
                 'dangerousActions' => [],
                 'validationSummary' => [],
                 'hideSubmit' => true,
+                'hideModePanel' => true,
             ],
             'capabilities' => [
                 'canSubmit' => false,
@@ -1707,7 +1896,7 @@ class BuildBackofficePhase6CrudPayloadAction
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function pageEditorialSections(Page $page, string $locale): array
+    private function pageEditorialSections(Page $page, string $locale, array $oldInput = []): array
     {
         $settings = Setting::query()
             ->whereIn('group', ['header', 'intro', 'footer', 'legal', 'media'])
@@ -1720,24 +1909,28 @@ class BuildBackofficePhase6CrudPayloadAction
             'home' => [[
                 'label' => 'Hero / Home',
                 'description' => 'Componente hero del home. Aqui se editan el contenido base y cada slide del carrusel para el idioma seleccionado.',
-                'items' => array_values(array_filter([
-                    $this->pageTranslationItem($page, $locale, 'Contenido base', $page->slug),
-                    ...$this->pageBlockItems($page->blocks->where('type', 'hero_slide')->values()->all(), $locale, 'Slide', $page->slug),
+                'createAction' => $this->pageBlockCreateAction($page, $locale, 'hero_slide', 'Nuevo slide', $page->slug),
+                'tabs' => array_values(array_filter([
+                    $this->pageTranslationEditorTab($page, $locale, 'Contenido base', $page->slug, $oldInput),
+                    ...$this->pageBlockEditorTabs($page->blocks->where('type', 'hero_slide')->values()->all(), $locale, 'Slide', $page->slug, $oldInput),
                 ])),
             ]],
             'about' => [[
                 'label' => 'About',
                 'description' => 'Componente about. Aqui se editan el contenido base y los pasos del scrollytelling asociados a esta pagina.',
-                'items' => array_values(array_filter([
-                    $this->pageTranslationItem($page, $locale, 'Contenido base', $page->slug),
-                    ...$this->pageBlockItems($page->blocks->where('type', 'about_step')->values()->all(), $locale, 'Paso', $page->slug),
+                'createAction' => $this->pageBlockCreateAction($page, $locale, 'about_step', 'Nuevo paso', $page->slug),
+                'tabs' => array_values(array_filter([
+                    $this->pageTranslationEditorTab($page, $locale, 'Contenido base', $page->slug, $oldInput),
+                    ...$this->pageBlockEditorTabs($page->blocks->where('type', 'about_step')->values()->all(), $locale, 'Paso', $page->slug, $oldInput),
                 ])),
             ]],
             'music' => [[
                 'label' => 'Music',
                 'description' => 'Componente music. Aqui se editan el contenido base y el acceso al catalogo de tracks que alimenta esta pagina.',
+                'tabs' => array_values(array_filter([
+                    $this->pageTranslationEditorTab($page, $locale, 'Contenido base', $page->slug, $oldInput),
+                ])),
                 'items' => array_values(array_filter([
-                    $this->pageTranslationItem($page, $locale, 'Contenido base', $page->slug),
                     $this->linkItem(
                         'music-index',
                         'Tracks musicales',
@@ -1749,8 +1942,10 @@ class BuildBackofficePhase6CrudPayloadAction
             'calendar' => [[
                 'label' => 'Calendar',
                 'description' => 'Componente calendar. Aqui se editan los textos de la pagina y el acceso al listado real de eventos.',
+                'tabs' => array_values(array_filter([
+                    $this->pageTranslationEditorTab($page, $locale, 'Contenido base', $page->slug, $oldInput),
+                ])),
                 'items' => array_values(array_filter([
-                    $this->pageTranslationItem($page, $locale, 'Contenido base', $page->slug),
                     $this->linkItem(
                         'events-index',
                         'Eventos',
@@ -1762,8 +1957,10 @@ class BuildBackofficePhase6CrudPayloadAction
             'media' => [[
                 'label' => 'Media',
                 'description' => 'Componente media. Aqui se editan los labels visibles y los recursos compartidos asociados a esta pagina.',
+                'tabs' => array_values(array_filter([
+                    $this->pageTranslationEditorTab($page, $locale, 'Contenido base', $page->slug, $oldInput),
+                ])),
                 'items' => array_values(array_filter([
-                    $this->pageTranslationItem($page, $locale, 'Contenido base', $page->slug),
                     $this->settingTranslationItem($settings->get('media.youtube_channel_url'), $locale, 'Canal de YouTube', $page->slug),
                     $this->linkItem(
                         'media-assets-index',
@@ -1776,9 +1973,12 @@ class BuildBackofficePhase6CrudPayloadAction
             'contact' => [[
                 'label' => 'Contact',
                 'description' => 'Componente contact. Aqui se editan el copy base, las filas marquee y los modulos operativos que pertenecen a esta pagina.',
+                'createAction' => $this->pageBlockCreateAction($page, $locale, 'contact_marquee', 'Nueva fila', $page->slug),
+                'tabs' => array_values(array_filter([
+                    $this->pageTranslationEditorTab($page, $locale, 'Contenido base', $page->slug, $oldInput),
+                    ...$this->pageBlockEditorTabs($page->blocks->where('type', 'contact_marquee')->values()->all(), $locale, 'Fila', $page->slug, $oldInput),
+                ])),
                 'items' => array_values(array_filter([
-                    $this->pageTranslationItem($page, $locale, 'Contenido base', $page->slug),
-                    ...$this->pageBlockItems($page->blocks->where('type', 'contact_marquee')->values()->all(), $locale, 'Fila marquee', $page->slug),
                     $this->linkItem(
                         'social-links-index',
                         'Redes sociales',
@@ -1796,9 +1996,9 @@ class BuildBackofficePhase6CrudPayloadAction
             default => [[
                 'label' => 'Componentes',
                 'description' => 'Lista de componentes administrables de esta pagina.',
-                'items' => array_values(array_filter([
-                    $this->pageTranslationItem($page, $locale, 'Contenido base', $page->slug),
-                    ...$this->pageBlockItems($page->blocks->values()->all(), $locale, 'Componente', $page->slug),
+                'tabs' => array_values(array_filter([
+                    $this->pageTranslationEditorTab($page, $locale, 'Contenido base', $page->slug, $oldInput),
+                    ...$this->pageBlockEditorTabs($page->blocks->values()->all(), $locale, 'Componente', $page->slug, $oldInput),
                 ])),
             ]],
         };
@@ -2127,6 +2327,72 @@ class BuildBackofficePhase6CrudPayloadAction
             ->all();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function pageTranslationEditorTab(Page $page, string $locale, string $label, ?string $from = null, array $oldInput = []): array
+    {
+        /** @var PageTranslation|null $translation */
+        $translation = $page->translations->firstWhere('locale', $locale);
+        $schema = $this->pageTranslationSchema($page);
+        $tabId = 'page-'.$page->getKey();
+
+        return [
+            'id' => $tabId,
+            'label' => $label,
+            'meta' => $translation instanceof PageTranslation
+                ? ($translation->title ?: 'Traduccion '.mb_strtoupper($locale))
+                : 'Sin traduccion '.mb_strtoupper($locale),
+            'editor' => [
+                'action' => $this->appendQuery($this->withEditorQuery(
+                    BackofficePath::active('pages/'.$page->slug.'/translations'.($translation ? '/'.$translation->getKey() : '')),
+                    $locale,
+                    $from,
+                ), ['focus' => $tabId]),
+                'defaults' => $this->translationDefaults($schema['fields'], $translation, request()->query('focus') === $tabId ? $oldInput : [], $locale),
+                'fields' => $this->translationFields($schema['fields'], $translation !== null),
+                'submitLabel' => 'Guardar contenido base',
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<int, PageBlock>  $blocks
+     * @return array<int, array<string, mixed>>
+     */
+    private function pageBlockEditorTabs(array $blocks, string $locale, string $prefix, ?string $from = null, array $oldInput = []): array
+    {
+        return collect($blocks)
+            ->values()
+            ->map(function (PageBlock $block, int $index) use ($locale, $prefix, $from, $oldInput): array {
+                /** @var PageBlockTranslation|null $translation */
+                $translation = $block->translations->firstWhere('locale', $locale);
+                $schema = $this->pageBlockTranslationSchema($block);
+                $tabId = 'block-'.$block->getKey();
+                $title = data_get($translation?->content, 'title');
+
+                return [
+                    'id' => $tabId,
+                    'label' => sprintf('%s %02d', $prefix, $index + 1),
+                    'meta' => trim(($title ?: $block->key).' · '.($translation instanceof PageBlockTranslation ? 'traduccion '.$locale : 'sin traduccion '.$locale)),
+                    'editor' => [
+                        'action' => $this->appendQuery($this->withEditorQuery(
+                            $block->page instanceof Page
+                                ? BackofficePath::active('pages/'.$block->page->slug.'/components/'.$block->key)
+                                : BackofficePath::active('page-blocks/'.$block->getKey().'/translations'.($translation ? '/'.$translation->getKey() : '')),
+                            $locale,
+                            $from,
+                        ), ['focus' => $tabId]),
+                        'defaults' => $this->translationDefaults($schema['fields'], $translation, request()->query('focus') === $tabId ? $oldInput : [], $locale),
+                        'fields' => $this->translationFields($schema['fields'], $translation !== null),
+                        'submitLabel' => 'Guardar '.$prefix,
+                        'deleteAction' => $this->pageBlockDeleteAction($block, $locale, $from),
+                    ],
+                ];
+            })
+            ->all();
+    }
+
     private function pageTranslationItem(?Page $page, string $locale, string $label, ?string $from = null): ?array
     {
         if (! $page instanceof Page) {
@@ -2191,6 +2457,45 @@ class BuildBackofficePhase6CrudPayloadAction
             'label' => $label,
             'meta' => $meta,
             'href' => $href,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pageBlockCreateAction(Page $page, string $locale, string $type, string $label, ?string $from = null): array
+    {
+        return [
+            'label' => $label,
+            'href' => $this->appendQuery(
+                BackofficePath::active('page-blocks/actions/create-block'),
+                array_filter([
+                    'record' => (string) $page->getKey(),
+                    'type' => $type,
+                    'locale' => $locale,
+                    'from' => $from,
+                ])
+            ),
+            'method' => 'post',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pageBlockDeleteAction(PageBlock $block, string $locale, ?string $from = null): array
+    {
+        return [
+            'label' => 'Eliminar',
+            'href' => $this->appendQuery(
+                BackofficePath::active('page-blocks/actions/delete-block'),
+                array_filter([
+                    'record' => (string) $block->getKey(),
+                    'locale' => $locale,
+                    'from' => $from,
+                ])
+            ),
+            'method' => 'post',
         ];
     }
 
@@ -2290,6 +2595,127 @@ class BuildBackofficePhase6CrudPayloadAction
             ->all();
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function musicTrackEditorLocaleActions(?MusicTrack $track, string $activeLocale): array
+    {
+        return collect(BackofficeLocales::values())
+            ->map(function (string $locale) use ($track, $activeLocale): array {
+                $hasTranslation = $track instanceof MusicTrack
+                    ? $track->translations->contains('locale', $locale)
+                    : false;
+
+                return [
+                    'label' => mb_strtoupper($locale).($track instanceof MusicTrack && ! $hasTranslation ? ' +' : ''),
+                    'href' => $track instanceof MusicTrack
+                        ? BackofficePath::active('music-tracks/'.$track->getKey().'/edit').'?locale='.$locale
+                        : BackofficePath::active('music-tracks/create').'?locale='.$locale,
+                    'variant' => $locale === $activeLocale ? 'primary' : ($hasTranslation || ! ($track instanceof MusicTrack) ? 'secondary' : 'ghost'),
+                    'visible' => true,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function settingEditorLocaleActions(?Setting $setting, string $activeLocale): array
+    {
+        if ($setting instanceof Setting && ! $setting->is_translatable) {
+            return [];
+        }
+
+        return collect(BackofficeLocales::values())
+            ->map(function (string $locale) use ($setting, $activeLocale): array {
+                $hasTranslation = $setting instanceof Setting
+                    ? $setting->translations->contains('locale', $locale)
+                    : false;
+
+                return [
+                    'label' => mb_strtoupper($locale).($setting instanceof Setting && ! $hasTranslation ? ' +' : ''),
+                    'href' => $setting instanceof Setting
+                        ? BackofficePath::active('settings/'.$setting->getKey().'/edit').'?locale='.$locale
+                        : BackofficePath::active('settings/create').'?locale='.$locale.'&is_translatable=1',
+                    'variant' => $locale === $activeLocale ? 'primary' : ($hasTranslation || ! ($setting instanceof Setting) ? 'secondary' : 'ghost'),
+                    'visible' => true,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function seoMetaLocaleActions(?SeoMeta $record, string $activeLocale): array
+    {
+        $entityType = $record?->entity_type ?? (string) request()->query('entity_type', '');
+        $entityId = $record?->entity_id ?? request()->query('entity_id');
+
+        if ($entityType === '' || blank($entityId)) {
+            return [];
+        }
+
+        $siblings = SeoMeta::query()
+            ->where('entity_type', $entityType)
+            ->where('entity_id', $entityId)
+            ->get()
+            ->keyBy('locale');
+
+        return collect(BackofficeLocales::values())
+            ->map(function (string $locale) use ($siblings, $record, $entityType, $entityId, $activeLocale): array {
+                /** @var SeoMeta|null $localeRecord */
+                $localeRecord = $siblings->get($locale);
+                $hasRecord = $localeRecord instanceof SeoMeta;
+
+                return [
+                    'label' => mb_strtoupper($locale).($hasRecord ? '' : ' +'),
+                    'href' => $hasRecord
+                        ? BackofficePath::active('seo-metas/'.$localeRecord->getKey().'/edit')
+                        : BackofficePath::active('seo-metas/create').'?entity_type='.urlencode((string) $entityType).'&entity_id='.urlencode((string) $entityId).'&locale='.urlencode($locale),
+                    'variant' => $locale === $activeLocale ? 'primary' : ($hasRecord ? 'secondary' : 'ghost'),
+                    'visible' => true,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, SeoMeta>  $records
+     * @return array<int, array<string, mixed>>
+     */
+    private function seoMetaIndexLocaleActions(string $entityType, mixed $entityId, Collection $records, string $activeLocale): array
+    {
+        if ($entityType === '' || blank($entityId)) {
+            return [];
+        }
+
+        $siblings = $records->keyBy('locale');
+
+        return collect(BackofficeLocales::values())
+            ->map(function (string $locale) use ($siblings, $entityType, $entityId, $activeLocale): array {
+                /** @var SeoMeta|null $localeRecord */
+                $localeRecord = $siblings->get($locale);
+                $hasRecord = $localeRecord instanceof SeoMeta;
+
+                return [
+                    'label' => mb_strtoupper($locale).($hasRecord ? '' : ' +'),
+                    'href' => BackofficePath::active('seo-metas')
+                        .'?entity_type='.urlencode($entityType)
+                        .'&entity_id='.urlencode((string) $entityId)
+                        .'&locale='.urlencode($locale),
+                    'variant' => $locale === $activeLocale ? 'primary' : ($hasRecord ? 'secondary' : 'ghost'),
+                    'visible' => true,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
     private function musicTrackTranslationHref(MusicTrack $track, string $locale, ?string $from = null): string
     {
         /** @var MusicTrackTranslation|null $translation */
@@ -2326,6 +2752,88 @@ class BuildBackofficePhase6CrudPayloadAction
         return is_string($locale) && in_array($locale, BackofficeLocales::values(), true)
             ? $locale
             : 'es';
+    }
+
+    private function activeSeoMetaLocale(?SeoMeta $record, array $oldInput = []): string
+    {
+        $requested = $oldInput['locale'] ?? request()->query('locale');
+
+        if (is_string($requested) && in_array($requested, BackofficeLocales::values(), true)) {
+            return $requested;
+        }
+
+        if ($record instanceof SeoMeta && is_string($record->locale)) {
+            return $this->normalizeLocale($record->locale);
+        }
+
+        return 'es';
+    }
+
+    private function seoMetaHasContext(?Model $record = null, array $context = []): bool
+    {
+        if ($record instanceof SeoMeta) {
+            return true;
+        }
+
+        return ($context['entity_type'] ?? request()->query('entity_type')) !== null
+            && ($context['entity_id'] ?? request()->query('entity_id')) !== null;
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function seoMetaResourceGroups(): Collection
+    {
+        return SeoMeta::query()
+            ->orderByDesc('updated_at')
+            ->get()
+            ->groupBy(fn (SeoMeta $meta): string => $meta->entity_type.'::'.$meta->entity_id)
+            ->map(function (Collection $records): array {
+                /** @var SeoMeta $first */
+                $first = $records->first();
+                $defaultLocale = $records->contains(fn (SeoMeta $meta): bool => $meta->locale === 'es')
+                    ? 'es'
+                    : (string) optional($records->first())->locale;
+
+                return [
+                    'entity_type' => (string) $first->entity_type,
+                    'entity_id' => $first->entity_id,
+                    'default_locale' => $defaultLocale !== '' ? $defaultLocale : 'es',
+                    'records' => $records->sortBy('locale')->values(),
+                ];
+            })
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $resourceGroups
+     * @return array<string, mixed>
+     */
+    private function activeSeoMetaResource(Collection $resourceGroups, array $query = []): array
+    {
+        $requestedEntityType = (string) Arr::get($query, 'entity_type', '');
+        $requestedEntityId = Arr::get($query, 'entity_id');
+
+        if ($requestedEntityType !== '' && ! blank($requestedEntityId)) {
+            /** @var array<string, mixed>|null $matched */
+            $matched = $resourceGroups->first(fn (array $resource): bool => $resource['entity_type'] === $requestedEntityType && (string) $resource['entity_id'] === (string) $requestedEntityId);
+
+            if (is_array($matched)) {
+                return $matched;
+            }
+        }
+
+        /** @var array<string, mixed>|null $first */
+        $first = $resourceGroups->first();
+
+        return is_array($first)
+            ? $first
+            : [
+                'entity_type' => '',
+                'entity_id' => null,
+                'default_locale' => 'es',
+                'records' => collect(),
+            ];
     }
 
     private function activeLegalDocumentLocale(?LegalDocument $document, array $oldInput = []): string
@@ -2367,6 +2875,103 @@ class BuildBackofficePhase6CrudPayloadAction
 
         return [
             'title' => 'Contenido legal · '.mb_strtoupper($activeLocale),
+            'fields' => $fields,
+        ];
+    }
+
+    private function activeMusicTrackLocale(?MusicTrack $track, array $oldInput = []): string
+    {
+        $requested = $oldInput['locale'] ?? request()->query('locale');
+
+        if (is_string($requested) && in_array($requested, BackofficeLocales::values(), true)) {
+            return $requested;
+        }
+
+        if ($track instanceof MusicTrack) {
+            /** @var MusicTrackTranslation|null $spanishTranslation */
+            $spanishTranslation = $track->translations->firstWhere('locale', 'es');
+
+            if ($spanishTranslation instanceof MusicTrackTranslation) {
+                return 'es';
+            }
+
+            /** @var MusicTrackTranslation|null $firstTranslation */
+            $firstTranslation = $track->translations->first();
+
+            if ($firstTranslation instanceof MusicTrackTranslation) {
+                return $firstTranslation->locale;
+            }
+        }
+
+        return 'es';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function musicTrackContentSection(string $activeLocale): array
+    {
+        $fields = array_values(array_filter(
+            Phase6ModuleCatalog::musicTrackTranslationForm()['fields'],
+            fn (array $field): bool => $field['key'] !== 'locale'
+        ));
+
+        return [
+            'title' => 'Contenido traducible · '.mb_strtoupper($activeLocale),
+            'description' => 'Campos editoriales del track para el idioma activo. Las imagenes permanecen compartidas entre todos los idiomas.',
+            'fields' => $fields,
+        ];
+    }
+
+    private function activeSettingLocale(?Setting $setting, array $oldInput = []): string
+    {
+        $requested = $oldInput['locale'] ?? request()->query('locale');
+
+        if (is_string($requested) && in_array($requested, BackofficeLocales::values(), true)) {
+            return $requested;
+        }
+
+        if ($setting instanceof Setting) {
+            /** @var SettingTranslation|null $spanishTranslation */
+            $spanishTranslation = $setting->translations->firstWhere('locale', 'es');
+
+            if ($spanishTranslation instanceof SettingTranslation) {
+                return 'es';
+            }
+
+            /** @var SettingTranslation|null $firstTranslation */
+            $firstTranslation = $setting->translations->first();
+
+            if ($firstTranslation instanceof SettingTranslation) {
+                return $firstTranslation->locale;
+            }
+        }
+
+        return 'es';
+    }
+
+    private function settingSupportsIntegratedLocaleContent(?Model $record = null, array $context = []): bool
+    {
+        if ($record instanceof Setting) {
+            return (bool) $record->is_translatable;
+        }
+
+        return (bool) ($context['is_translatable'] ?? request()->boolean('is_translatable'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function settingContentSection(?Setting $setting, string $activeLocale): array
+    {
+        $fields = array_values(array_filter(
+            $this->settingTranslationSchema($setting ?? new Setting())['fields'],
+            fn (array $field): bool => $field['key'] !== 'locale'
+        ));
+
+        return [
+            'title' => 'Contenido traducible · '.mb_strtoupper($activeLocale),
+            'description' => 'Campos del valor traducible para el idioma activo. El cambio de idioma actualiza este mismo bloque.',
             'fields' => $fields,
         ];
     }
@@ -2438,6 +3043,36 @@ class BuildBackofficePhase6CrudPayloadAction
         }
 
         return $href.'?'.http_build_query($query);
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    private function appendQuery(string $href, array $query): string
+    {
+        if ($query === []) {
+            return $href;
+        }
+
+        $separator = str_contains($href, '?') ? '&' : '?';
+
+        return $href.$separator.http_build_query($query);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $sections
+     */
+    private function pageEditorialHasImageFields(array $sections): bool
+    {
+        foreach ($sections as $section) {
+            foreach (($section['tabs'] ?? []) as $tab) {
+                if ($this->hasImageFields([['fields' => $tab['editor']['fields'] ?? []]])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
