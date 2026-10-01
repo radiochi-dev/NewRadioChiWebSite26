@@ -11,6 +11,8 @@ import { FaFacebookSquare, FaSpotify } from 'react-icons/fa'
 import { ImSoundcloud2 } from 'react-icons/im'
 
 const DEFAULT_SECTION_IDS = ['home', 'about', 'music', 'calendar', 'media', 'contact']
+const SECTION_TRANSITION_MS = 820
+const SECTION_TRANSITION_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)'
 const buildVisibleSectionIds = (sections) => {
     const requestedSections = Array.isArray(sections) && sections.length > 0
         ? sections.filter((sectionId, index, values) => DEFAULT_SECTION_IDS.includes(sectionId) && values.indexOf(sectionId) === index)
@@ -470,34 +472,13 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
 
             section.style.transform = `translateY(${translateY}vh)`
             section.style.transition = shouldAnimate
-                ? 'transform 700ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                ? `transform ${SECTION_TRANSITION_MS}ms ${SECTION_TRANSITION_EASING}`
                 : 'none'
+            section.style.willChange = shouldAnimate ? 'transform' : ''
             section.style.pointerEvents = 'auto'
             section.style.opacity = '1'
             section.style.visibility = 'visible'
         })
-
-        if (shouldAnimate) {
-            const bounceTimeout = window.setTimeout(() => {
-                sectionRefs.current.forEach((section, index) => {
-                    if (!section || index >= activeSectionIndex) {
-                        return
-                    }
-
-                    const bounceY = (-100 * (activeSectionIndex - index)) + 0.8
-                    section.style.transition = 'transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1)'
-                    section.style.transform = `translateY(${bounceY}vh)`
-
-                    const settleTimeout = window.setTimeout(() => {
-                        section.style.transition = 'transform 80ms cubic-bezier(0.25, 0.46, 0.45, 0.94)'
-                        section.style.transform = `translateY(${-100 * (activeSectionIndex - index)}vh)`
-                    }, 120)
-                    sectionAnimationTimeoutsRef.current.push(settleTimeout)
-                })
-            }, 550)
-
-            sectionAnimationTimeoutsRef.current.push(bounceTimeout)
-        }
 
         didMountSectionsRef.current = true
 
@@ -870,7 +851,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                 window.setTimeout(() => {
                     isScrollingRef.current = false
                     setIsScrolling(false)
-                }, 700)
+                }, SECTION_TRANSITION_MS)
             }
             setActiveSectionIndex(index)
             activeSectionIndexRef.current = index
@@ -1023,7 +1004,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
             goDirect(step)
 
             if (step !== idx) {
-                const timeoutId = window.setTimeout(moveNext, 800)
+                const timeoutId = window.setTimeout(moveNext, SECTION_TRANSITION_MS + 40)
                 sequentialNavTimeoutsRef.current.push(timeoutId)
             }
         }

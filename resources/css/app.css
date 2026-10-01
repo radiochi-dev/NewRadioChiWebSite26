@@ -768,8 +768,9 @@ body {
     width: 100%;
     height: 100dvh;
     background-color: #000;
-    transition: transform 700ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: transform 820ms cubic-bezier(0.22, 1, 0.36, 1);
     overflow: hidden;
+    will-change: transform;
 }
 
 .legacy-section.is-active .legacy-home-content,
@@ -778,7 +779,7 @@ body {
 .legacy-section.is-active .legacy-events-content,
 .legacy-section.is-active .legacy-media-content,
 .legacy-section.is-active .legacy-contact-content {
-    animation: legacy-section-in 550ms ease-out;
+    animation: legacy-section-in 620ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .legacy-animated-bg {
