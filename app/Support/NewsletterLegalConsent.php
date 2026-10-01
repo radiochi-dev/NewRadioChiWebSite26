@@ -4,7 +4,7 @@ namespace App\Support;
 
 class NewsletterLegalConsent
 {
-    public const CONSENT_VERSION = 'v1.1';
+    public const CONSENT_VERSION = 'v1.2';
 
     public const LEGAL_DOCUMENT_VERSION = '2026.09';
 

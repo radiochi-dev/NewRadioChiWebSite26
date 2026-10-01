@@ -64,7 +64,7 @@ class Phase5LegacyImportTest extends TestCase
 
         $legalDocument = LegalDocument::query()->where('slug', 'privacy')->firstOrFail();
         $this->assertSame('Privacy Policy', $legalDocument->translations()->where('locale', 'en')->firstOrFail()->title);
-        $this->assertStringContainsString('double opt-in', $legalDocument->translations()->where('locale', 'en')->firstOrFail()->content);
+        $this->assertStringContainsString('explicit consent', $legalDocument->translations()->where('locale', 'en')->firstOrFail()->content);
         $this->assertSame('2026.09', $legalDocument->version);
 
         $setting = Setting::query()->where('group', 'header')->where('key', 'menu')->firstOrFail();

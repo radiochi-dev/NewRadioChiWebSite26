@@ -3,6 +3,7 @@
 return [
     'subscribe' => [
         'pending' => 'We have received your request. Final confirmation is still required from the verification link.',
+        'success' => 'Your subscription is now active.',
     ],
     'validation' => [
         'email_required' => 'Please enter an email address.',
@@ -35,7 +36,7 @@ return [
     'front' => [
         'eyebrow' => 'Newsletter',
         'title' => 'Subscribe to RadioChi',
-        'description' => 'Receive updates, confirm your signup by email and authorize the sending of RadioChi commercial communications.',
+        'description' => 'Receive updates and authorize the sending of RadioChi commercial communications.',
         'email_label' => 'Email address',
         'email_placeholder' => 'you@example.com',
         'privacy_lead' => 'I have read and accept ',
@@ -47,11 +48,11 @@ return [
             'responsible_label' => 'Controller',
             'responsible_value' => ':brand',
             'purpose_label' => 'Purpose',
-            'purpose_value' => 'Manage your subscription, confirm your signup and send you commercial communications and updates from :brand.',
+            'purpose_value' => 'Manage your active subscription and send you commercial communications and updates from :brand.',
             'unsubscribe_label' => 'Unsubscribe',
             'unsubscribe_value' => 'You may unsubscribe at any time from any newsletter email.',
-            'double_opt_in_label' => 'Confirmation',
-            'double_opt_in_value' => 'Your signup is not activated until you confirm the link sent by email.',
+            'double_opt_in_label' => 'Activation',
+            'double_opt_in_value' => 'Your signup becomes active as soon as you submit the form with your explicit consent.',
         ],
         'modal' => [
             'duplicate_title' => 'Subscriber already registered',
@@ -80,7 +81,7 @@ return [
             'responsible_label' => 'Data controller',
             'contact_label' => 'Contact email',
             'purpose_label' => 'Purpose',
-            'purpose_value' => 'Manage the subscription, confirm the signup and send newsletter communications to active subscribers.',
+            'purpose_value' => 'Manage the active subscription and send newsletter communications to active subscribers.',
             'privacy_label' => 'View the privacy policy',
             'unsubscribe_label' => 'Unsubscribe from the newsletter',
         ],

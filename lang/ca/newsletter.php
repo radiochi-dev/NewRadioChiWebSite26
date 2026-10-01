@@ -3,6 +3,7 @@
 return [
     'subscribe' => [
         'pending' => 'Hem rebut la teva sollicitud. Encara falta la confirmacio final des de l enllac de verificacio.',
+        'success' => 'La teva subscripcio ha quedat activada correctament.',
     ],
     'validation' => [
         'email_required' => 'Introdueix un correu electronic.',
@@ -47,11 +48,11 @@ return [
             'responsible_label' => 'Responsable',
             'responsible_value' => ':brand',
             'purpose_label' => 'Finalitat',
-            'purpose_value' => 'Gestionar la teva subscripcio, confirmar l alta i enviar-te comunicacions comercials i novetats de :brand.',
+            'purpose_value' => 'Gestionar la teva subscripcio activa i enviar-te comunicacions comercials i novetats de :brand.',
             'unsubscribe_label' => 'Baixa',
             'unsubscribe_value' => 'Et pots donar de baixa en qualsevol moment des de qualsevol correu de newsletter.',
-            'double_opt_in_label' => 'Confirmacio',
-            'double_opt_in_value' => 'L alta no s activa fins que confirmes l enllac rebut per correu.',
+            'double_opt_in_label' => 'Activacio',
+            'double_opt_in_value' => 'L alta queda activada en el moment d enviar el formulari amb el teu consentiment exprés.',
         ],
         'modal' => [
             'duplicate_title' => 'Subscriptor ja registrat',
@@ -80,7 +81,7 @@ return [
             'responsible_label' => 'Responsable del tractament',
             'contact_label' => 'Correu de contacte',
             'purpose_label' => 'Finalitat',
-            'purpose_value' => 'Gestionar la subscripcio, confirmar l alta i enviar comunicacions de newsletter a subscriptors actius.',
+            'purpose_value' => 'Gestionar la subscripcio activa i enviar comunicacions de newsletter a subscriptors actius.',
             'privacy_label' => 'Consultar la politica de privacitat',
             'unsubscribe_label' => 'Donar-se de baixa de la newsletter',
         ],

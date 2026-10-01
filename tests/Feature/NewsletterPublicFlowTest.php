@@ -2,11 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Mail\NewsletterDoubleOptIn;
 use App\Models\NewsletterSubscriber;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -15,10 +13,8 @@ class NewsletterPublicFlowTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_public_subscribe_creates_pending_subscriber_with_legal_trace(): void
+    public function test_public_subscribe_creates_active_subscriber_with_legal_trace(): void
     {
-        Mail::fake();
-
         $response = $this->from('/en')->post('/newsletter/subscribe', [
             'locale' => 'en',
             'email' => 'NewUser@GMAIL.COM',
@@ -33,28 +29,18 @@ class NewsletterPublicFlowTest extends TestCase
             ->where('email', 'newuser@gmail.com')
             ->firstOrFail();
 
-        $this->assertFalse($subscriber->is_active);
-        $this->assertNull($subscriber->subscribed_at);
+        $this->assertTrue($subscriber->is_active);
+        $this->assertNotNull($subscriber->subscribed_at);
         $this->assertNull($subscriber->unsubscribed_at);
-        $this->assertNotNull($subscriber->confirmation_token);
-        $this->assertSame(64, strlen((string) $subscriber->confirmation_token));
+        $this->assertNull($subscriber->confirmation_token);
         $this->assertNotNull($subscriber->unsubscribe_token);
         $this->assertSame(64, strlen((string) $subscriber->unsubscribe_token));
         $this->assertSame('127.0.0.0', $subscriber->ip_address);
-        $this->assertSame('v1.1', $subscriber->consent_text_version);
-
-        Mail::assertQueued(NewsletterDoubleOptIn::class, function (NewsletterDoubleOptIn $mailable) use ($subscriber): bool {
-            return $mailable->hasTo('newuser@gmail.com')
-                && $mailable->envelope()->subject === 'Confirm your newsletter subscription'
-                && data_get($mailable->headers()->text, 'List-Unsubscribe-Post') === 'List-Unsubscribe=One-Click'
-                && str_contains((string) data_get($mailable->headers()->text, 'List-Unsubscribe'), $subscriber->unsubscribe_token);
-        });
+        $this->assertSame('v1.2', $subscriber->consent_text_version);
     }
 
-    public function test_public_subscribe_reuses_unsubscribed_subscriber_with_new_confirmation_token(): void
+    public function test_public_subscribe_reactivates_unsubscribed_subscriber_immediately(): void
     {
-        Mail::fake();
-
         $subscriber = NewsletterSubscriber::query()->create([
             'email' => 'legacy@gmail.com',
             'is_active' => false,
@@ -75,20 +61,16 @@ class NewsletterPublicFlowTest extends TestCase
         $subscriber->refresh();
 
         $this->assertSame('legacy@gmail.com', $subscriber->email);
-        $this->assertFalse($subscriber->is_active);
-        $this->assertNull($subscriber->subscribed_at);
+        $this->assertTrue($subscriber->is_active);
+        $this->assertNotNull($subscriber->subscribed_at);
         $this->assertNull($subscriber->unsubscribed_at);
-        $this->assertNotSame(str_repeat('a', 64), $subscriber->confirmation_token);
+        $this->assertNull($subscriber->confirmation_token);
         $this->assertSame(str_repeat('b', 64), $subscriber->unsubscribe_token);
-        $this->assertSame('v1.1', $subscriber->consent_text_version);
-
-        Mail::assertQueued(NewsletterDoubleOptIn::class, 1);
+        $this->assertSame('v1.2', $subscriber->consent_text_version);
     }
 
     public function test_public_subscribe_with_honeypot_returns_neutral_success_without_persisting_or_queueing(): void
     {
-        Mail::fake();
-
         $this->from('/de')->post('/newsletter/subscribe', [
             'locale' => 'de',
             'email' => 'botcase@gmail.com',
@@ -100,13 +82,10 @@ class NewsletterPublicFlowTest extends TestCase
         $this->assertDatabaseMissing('newsletter_subscribers', [
             'email' => 'botcase@gmail.com',
         ]);
-        Mail::assertNothingQueued();
     }
 
     public function test_public_subscribe_is_throttled_after_five_attempts_per_minute_with_localized_error(): void
     {
-        Mail::fake();
-
         for ($index = 1; $index <= 5; $index++) {
             $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.55', 'HTTP_USER_AGENT' => 'NewsletterThrottleTest/1.0'])
                 ->post('/newsletter/subscribe', [
@@ -134,8 +113,6 @@ class NewsletterPublicFlowTest extends TestCase
 
     public function test_public_subscribe_rejects_duplicate_active_subscriber(): void
     {
-        Mail::fake();
-
         NewsletterSubscriber::query()->create([
             'email' => 'repeat@gmail.com',
             'is_active' => true,
@@ -143,7 +120,7 @@ class NewsletterPublicFlowTest extends TestCase
             'unsubscribed_at' => null,
             'confirmation_token' => null,
             'unsubscribe_token' => str_repeat('c', 64),
-            'consent_text_version' => 'v1.1',
+            'consent_text_version' => 'v1.2',
         ]);
 
         $this->from('/')->post('/newsletter/subscribe', [
@@ -155,17 +132,16 @@ class NewsletterPublicFlowTest extends TestCase
             ->assertInvalid(['email']);
 
         $this->assertSame(1, NewsletterSubscriber::query()->count());
-        Mail::assertNothingQueued();
     }
 
-    public function test_signed_confirmation_activates_the_subscriber(): void
+    public function test_signed_confirmation_still_activates_legacy_pending_subscriber(): void
     {
         $subscriber = NewsletterSubscriber::query()->create([
             'email' => 'confirm@gmail.com',
             'is_active' => false,
             'confirmation_token' => str_repeat('d', 64),
             'unsubscribe_token' => str_repeat('e', 64),
-            'consent_text_version' => 'v1.1',
+            'consent_text_version' => 'v1.2',
         ]);
 
         $url = URL::temporarySignedRoute('newsletter.confirm', now()->addMinutes(30), [
@@ -195,7 +171,7 @@ class NewsletterPublicFlowTest extends TestCase
             'is_active' => false,
             'confirmation_token' => str_repeat('x', 64),
             'unsubscribe_token' => str_repeat('y', 64),
-            'consent_text_version' => 'v1.1',
+            'consent_text_version' => 'v1.2',
         ]);
 
         $url = URL::temporarySignedRoute('newsletter.confirm', CarbonImmutable::now()->subMinute(), [
@@ -224,7 +200,7 @@ class NewsletterPublicFlowTest extends TestCase
             'is_active' => false,
             'confirmation_token' => str_repeat('f', 64),
             'unsubscribe_token' => str_repeat('g', 64),
-            'consent_text_version' => 'v1.1',
+            'consent_text_version' => 'v1.2',
         ]);
 
         $this->get('/newsletter/confirm/'.$subscriber->confirmation_token.'?locale=fr')
@@ -247,7 +223,7 @@ class NewsletterPublicFlowTest extends TestCase
             'is_active' => true,
             'subscribed_at' => now()->subDays(2),
             'unsubscribe_token' => str_repeat('h', 64),
-            'consent_text_version' => 'v1.1',
+            'consent_text_version' => 'v1.2',
         ]);
 
         $this->get('/newsletter/unsubscribe/'.$subscriber->unsubscribe_token.'?locale=it')
@@ -272,3 +248,4 @@ class NewsletterPublicFlowTest extends TestCase
         $this->assertNotNull($subscriber->unsubscribed_at);
     }
 }
+

@@ -3,6 +3,7 @@
 return [
     'subscribe' => [
         'pending' => 'Hemos recibido tu solicitud. Falta la confirmacion final desde el enlace de verificacion.',
+        'success' => 'Tu suscripcion ha quedado activada correctamente.',
     ],
     'validation' => [
         'email_required' => 'Introduce un correo electronico.',
@@ -35,7 +36,7 @@ return [
     'front' => [
         'eyebrow' => 'Newsletter',
         'title' => 'Suscribete a RadioChi',
-        'description' => 'Recibe novedades, confirma tu alta por correo y autoriza el envio de comunicaciones comerciales de RadioChi.',
+        'description' => 'Recibe novedades y autoriza el envio de comunicaciones comerciales de RadioChi.',
         'email_label' => 'Correo electronico',
         'email_placeholder' => 'tuemail@dominio.com',
         'privacy_lead' => 'He leido y acepto ',
@@ -47,11 +48,11 @@ return [
             'responsible_label' => 'Responsable',
             'responsible_value' => ':brand',
             'purpose_label' => 'Finalidad',
-            'purpose_value' => 'Gestionar tu suscripcion, confirmar el alta y enviarte comunicaciones comerciales y novedades de :brand.',
+            'purpose_value' => 'Gestionar tu suscripcion activa y enviarte comunicaciones comerciales y novedades de :brand.',
             'unsubscribe_label' => 'Baja',
             'unsubscribe_value' => 'Puedes darte de baja en cualquier momento desde cualquier correo de newsletter.',
-            'double_opt_in_label' => 'Confirmacion',
-            'double_opt_in_value' => 'Tu alta no se activa hasta que confirmes el enlace recibido por correo.',
+            'double_opt_in_label' => 'Activacion',
+            'double_opt_in_value' => 'Tu alta queda activada en el momento de enviar el formulario con tu consentimiento expreso.',
         ],
         'modal' => [
             'duplicate_title' => 'Suscriptor ya registrado',
@@ -80,7 +81,7 @@ return [
             'responsible_label' => 'Responsable del tratamiento',
             'contact_label' => 'Correo de contacto',
             'purpose_label' => 'Finalidad',
-            'purpose_value' => 'Gestionar la suscripcion, confirmar el alta y enviar comunicaciones de newsletter a suscriptores activos.',
+            'purpose_value' => 'Gestionar la suscripcion activa y enviar comunicaciones de newsletter a suscriptores activos.',
             'privacy_label' => 'Consultar la politica de privacidad',
             'unsubscribe_label' => 'Darse de baja de la newsletter',
         ],

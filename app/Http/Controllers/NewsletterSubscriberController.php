@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\NewsletterDoubleOptIn;
 use App\Models\NewsletterSubscriber;
 use App\Support\NewsletterLegalConsent;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -25,7 +23,7 @@ class NewsletterSubscriberController extends Controller
         $this->activateLocale($locale);
 
         if (filled($request->input('website'))) {
-            return $this->redirectToHome($locale)->with('success', __('newsletter.subscribe.pending'));
+            return $this->redirectToHome($locale)->with('success', __('newsletter.subscribe.success'));
         }
 
         $validated = Validator::make(
@@ -57,10 +55,10 @@ class NewsletterSubscriberController extends Controller
 
         $attributes = [
             'email' => $validated['email'],
-            'is_active' => false,
-            'subscribed_at' => null,
+            'is_active' => true,
+            'subscribed_at' => now(),
             'unsubscribed_at' => null,
-            'confirmation_token' => Str::random(64),
+            'confirmation_token' => null,
             'ip_address' => $this->anonymizeIpAddress($request->ip()),
             'user_agent' => Str::limit((string) $request->userAgent(), 65535, ''),
             'consent_text_version' => NewsletterLegalConsent::consentVersion(),
@@ -72,13 +70,7 @@ class NewsletterSubscriberController extends Controller
             $subscriber = NewsletterSubscriber::query()->create($attributes);
         }
 
-        $subscriber = $subscriber->fresh();
-
-        Mail::to($subscriber->email, $subscriber->name ?: null)
-            ->locale($locale)
-            ->queue(new NewsletterDoubleOptIn($subscriber, $locale));
-
-        return $this->redirectToHome($locale)->with('success', __('newsletter.subscribe.pending'));
+        return $this->redirectToHome($locale)->with('success', __('newsletter.subscribe.success'));
     }
 
     public function confirm(Request $request, string $token): Response

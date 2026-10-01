@@ -490,10 +490,10 @@ Hay que ejecutar en este orden:
 - **Estado:** `Fase 6 completada`
 - **Avance de la incidencia:** `86%`
 - ~~La fuente legal publicada para newsletter pasa a ser multidioma y versionada mediante `NewsletterLegalContent`, con textos ya alineados a la existencia real de la newsletter.~~
-- ~~Se fija `consent_text_version = v1.1` como contrato unico en dominio, controlador, payload y tests.~~
+- ~~Se fija `consent_text_version = v1.2` como contrato unico en dominio, controlador, payload y tests.~~
 - ~~El formulario visible de `Contact` incorpora resumen legal multidioma con responsable, finalidad comercial, baja y doble confirmacion.~~
 - ~~Se anade el comando `legal:sync-newsletter-transparency` y se ejecuta para sincronizar el entorno actual sin depender de un reinicio completo del import legacy.~~
-- ~~La copia versionada aceptada queda conservada en `docs/legal/newsletter-consent/v1.1.md`.~~
+- ~~La copia versionada aceptada queda conservada en `docs/legal/newsletter-consent/v1.2.md`.~~
 - Pendiente: QA final y cierre de despliegue.
 
 ## Incidencia relacionada: newsletter publica legal - QA final
@@ -527,3 +527,10 @@ Hay que ejecutar en este orden:
 - **Estado:** `Aplicado`
 - [x] ~~La normalizacion de `soundcloudEmbedUrl` se añade al payload publico de `music.tracks` sin alterar las cadenas localizadas existentes del bloque musical.~~
 - [x] ~~La correccion del widget SoundCloud y la CSP del reproductor oficial no introduce nuevas claves de traduccion ni cambia el contrato multiidioma de `Home.jsx`.~~
+
+## Ajuste posterior: Newsletter single opt-in multidioma
+
+- **Estado:** `Aplicado`
+- [x] ~~Los mensajes localizados del formulario newsletter dejan de hablar de confirmacion por correo para reflejar activacion inmediata con consentimiento expreso.~~
+- [x] ~~La version de consentimiento publicada pasa a `v1.2`, manteniendo la misma cobertura idiomatica `es/en/ca/fr/it/de`.~~
+- [x] ~~Los documentos legales sincronizados desde `NewsletterLegalContent` eliminan la referencia activa a `double opt-in` y alinean finalidades, activacion y trazabilidad con el flujo real.~~

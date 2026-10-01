@@ -66,7 +66,7 @@ class Phase7PublicCmsPayloadTest extends TestCase
         $this->assertSame('https://soundcloud.com/cms-profile', collect(data_get($payload, 'contactData.footerSocialLinks'))->firstWhere('platform', 'soundcloud')['url']);
         $this->assertSame('Newsletter', data_get($payload, 'contactData.newsletterForm.eyebrow'));
         $this->assertSame('Suscribete a RadioChi', data_get($payload, 'contactData.newsletterForm.title'));
-        $this->assertSame('v1.1', data_get($payload, 'contactData.newsletterForm.consentVersion'));
+        $this->assertSame('v1.2', data_get($payload, 'contactData.newsletterForm.consentVersion'));
         $this->assertSame('Este suscriptor ya existe.', data_get($payload, 'contactData.newsletterForm.messages.duplicateError'));
         $this->assertSame('Suscriptor ya registrado', data_get($payload, 'contactData.newsletterForm.modal.duplicateTitle'));
         $this->assertFalse(data_get($payload, 'calendarData.visible'));
@@ -110,7 +110,7 @@ class Phase7PublicCmsPayloadTest extends TestCase
         $this->assertSame('Welcome from CMS', data_get($payload, 'content.home.slides.0.title'));
         $this->assertSame('Terms via CMS', data_get($payload, 'content.termsPolicyCookies.terms_button'));
         $this->assertSame('Newsletter', data_get($payload, 'contactData.newsletterForm.eyebrow'));
-        $this->assertSame('v1.1', data_get($payload, 'contactData.newsletterForm.consentVersion'));
+        $this->assertSame('v1.2', data_get($payload, 'contactData.newsletterForm.consentVersion'));
         $this->assertSame('Subscriber already registered', data_get($payload, 'contactData.newsletterForm.modal.duplicateTitle'));
         $this->assertSame('UPCOMING EVENTS', data_get($payload, 'calendarData.translations.title'));
         $this->assertSame('English description from CMS', data_get($payload, 'seo.description'));
@@ -180,3 +180,4 @@ class Phase7PublicCmsPayloadTest extends TestCase
                 ->where('content.home.slides.0.title', 'Bienvenidos a RadioChi'));
     }
 }
+

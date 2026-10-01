@@ -1025,7 +1025,7 @@ Avance validado en esta iteracion:
 - ~~Los documentos publicos de `privacy`, `terms` y `cookies` pasan a publicarse desde `NewsletterLegalContent`, ya alineados con la existencia real de la newsletter y con el deber de informacion RGPD/LSSI.~~
 - ~~Se anadio el comando `legal:sync-newsletter-transparency` y se ejecuto sobre el entorno actual para sincronizar documentos y labels legales sin reinicializar el CMS completo.~~
 - ~~El formulario publico de newsletter ya muestra responsable, finalidad, baja en cualquier momento y doble confirmacion dentro de `Contact`.~~
-- ~~La copia versionada del consentimiento aceptado queda conservada en `docs/legal/newsletter-consent/v1.1.md`.~~
+- ~~La copia versionada del consentimiento aceptado queda conservada en `docs/legal/newsletter-consent/v1.2.md`.~~
 - ~~Regresion funcional validada con `Phase5LegacyImportTest`, `NewsletterPublicFlowTest`, `NewsletterMailablesTest`, `Phase7PublicCmsPayloadTest`, `BackofficePhase8OperationalModulesTest` y build frontend.~~
 - Pendiente en siguientes fases: QA final, endurecimiento adicional y cierre de despliegue.
 
@@ -1064,3 +1064,10 @@ Avance validado en esta iteracion:
 - [x] ~~El payload publico de `music.tracks` expone ahora `soundcloudEmbedUrl` normalizada para el widget, manteniendo separada la URL de datos legada y evitando iframes con origen invalido.~~
 - [x] ~~La inicializacion frontend del widget SoundCloud se blinda para no enlazarse a un `iframe` sin embed valido y para limpiar listeners/intervalos al cambiar de track.~~
 - [x] ~~La CSP mantiene `frame-src` restringido, pero incorpora `https://w.soundcloud.com` para permitir el player oficial tanto en local como en produccion sin abrir orígenes innecesarios.~~
+
+## Ajuste adicional: Newsletter single opt-in trazable
+
+- **Estado:** `Aplicado`
+- [x] ~~La suscripcion publica desde `Contact` activa el registro en el mismo POST cuando existe checkbox legal expreso, manteniendo `lowercase`, `subscribed_at`, `ip_address` anonimizada, `user_agent` y `unsubscribe_token`.~~
+- [x] ~~Se elimina del flujo vigente el envio de `NewsletterDoubleOptIn`; la confirmacion queda solo como compatibilidad para registros antiguos que aun conserven token pendiente.~~
+- [x] ~~Se versiona el consentimiento a `v1.2` y se actualizan textos legales y de UX para reflejar activacion inmediata y baja real en cada correo.~~

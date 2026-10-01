@@ -3,6 +3,7 @@
 return [
     'subscribe' => [
         'pending' => 'Abbiamo ricevuto la tua richiesta. La conferma finale e ancora necessaria tramite il link di verifica.',
+        'success' => 'La tua iscrizione e ora attiva.',
     ],
     'validation' => [
         'email_required' => 'Inserisci un indirizzo email.',
@@ -35,7 +36,7 @@ return [
     'front' => [
         'eyebrow' => 'Newsletter',
         'title' => 'Iscriviti a RadioChi',
-        'description' => 'Ricevi aggiornamenti, conferma l iscrizione via email e autorizza l invio di comunicazioni commerciali di RadioChi.',
+        'description' => 'Ricevi novita e autorizza l invio di comunicazioni commerciali di RadioChi.',
         'email_label' => 'Email',
         'email_placeholder' => 'tu@dominio.com',
         'privacy_lead' => 'Ho letto e accetto ',
@@ -47,11 +48,11 @@ return [
             'responsible_label' => 'Titolare',
             'responsible_value' => ':brand',
             'purpose_label' => 'Finalita',
-            'purpose_value' => 'Gestire la tua iscrizione, confermare l adesione e inviarti comunicazioni commerciali e aggiornamenti di :brand.',
+            'purpose_value' => 'Gestire la tua iscrizione attiva e inviarti comunicazioni commerciali e novita di :brand.',
             'unsubscribe_label' => 'Disiscrizione',
             'unsubscribe_value' => 'Puoi disiscriverti in qualsiasi momento da qualsiasi email della newsletter.',
-            'double_opt_in_label' => 'Conferma',
-            'double_opt_in_value' => 'La tua iscrizione non viene attivata finche non confermi il link ricevuto via email.',
+            'double_opt_in_label' => 'Attivazione',
+            'double_opt_in_value' => 'La tua iscrizione si attiva nel momento in cui invii il modulo con il tuo consenso esplicito.',
         ],
         'modal' => [
             'duplicate_title' => 'Iscritto gia registrato',
@@ -80,7 +81,7 @@ return [
             'responsible_label' => 'Titolare del trattamento',
             'contact_label' => 'Email di contatto',
             'purpose_label' => 'Finalita',
-            'purpose_value' => 'Gestire l iscrizione, confermare l adesione e inviare comunicazioni newsletter agli iscritti attivi.',
+            'purpose_value' => 'Gestire l iscrizione attiva e inviare comunicazioni newsletter agli iscritti attivi.',
             'privacy_label' => 'Consulta la politica sulla privacy',
             'unsubscribe_label' => 'Annulla l iscrizione alla newsletter',
         ],

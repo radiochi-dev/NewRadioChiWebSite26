@@ -908,7 +908,7 @@ Criterio de salida:
 - ~~`NewsletterLegalContent` pasa a ser la fuente canonica multidioma de `terms`, `privacy` y `cookies` para newsletter, reemplazando la dependencia activa del contenido legacy contradictorio.~~
 - ~~Se incorpora el comando `legal:sync-newsletter-transparency` para sincronizar documentos legales y botones publicos del CMS sobre entornos ya existentes.~~
 - ~~El payload de `Home` expone `consentVersion` y un resumen legal visible con responsable, finalidad, baja y doble opt-in.~~
-- ~~La version aceptada queda documentada en `docs/legal/newsletter-consent/v1.1.md` y validada por tests feature + build.~~
+- ~~La version aceptada queda documentada en `docs/legal/newsletter-consent/v1.2.md` y validada por tests feature + build.~~
 - Pendiente: fase final de QA/endurecimiento antes de despliegue productivo.
 
 ## Incidencia adicional: newsletter publica legal - cierre QA Fase 7
@@ -935,3 +935,10 @@ Criterio de salida:
 - [x] ~~Backend: `BuildPublicHomePayloadAction` normaliza `soundcloudEmbedUrl` con formato oficial `https://w.soundcloud.com/player/?url=...` para tracks heredados con URLs crudas o mixtas.~~
 - [x] ~~Frontend React: el `iframe` oculto de SoundCloud consume la URL de embed normalizada y el efecto del widget limpia listeners, intervalos y estados al reciclarse entre tracks.~~
 - [x] ~~Seguridad: `SecurityHeaders` permite solo `https://w.soundcloud.com` en `frame-src`, preservando la CSP cerrada en produccion y evitando el bloqueo del reproductor oficial.~~
+
+## Ajuste adicional: Newsletter single opt-in trazable
+
+- **Estado:** `Aplicado`
+- [x] ~~`NewsletterSubscriberController@store` activa la suscripcion en el POST publico con consentimiento expreso y elimina la cola del correo de confirmacion del flujo vigente.~~
+- [x] ~~`BuildPublicHomePayloadAction` publica el nuevo mensaje de exito y la version `v1.2` del consentimiento para la tarjeta de `Contact`.~~
+- [x] ~~La ruta `newsletter.confirm` se conserva como fallback para registros legacy con `confirmation_token`, sin condicionar ya las altas nuevas.~~

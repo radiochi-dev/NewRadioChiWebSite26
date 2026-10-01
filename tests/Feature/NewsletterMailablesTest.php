@@ -59,7 +59,7 @@ class NewsletterMailablesTest extends TestCase
             'email' => 'mailtest@gmail.com',
             'confirmation_token' => str_repeat('a', 64),
             'unsubscribe_token' => str_repeat('b', 64),
-            'consent_text_version' => 'v1.1',
+            'consent_text_version' => 'v1.2',
         ]);
 
         $mailable = new NewsletterDoubleOptIn($subscriber, 'es');
@@ -120,7 +120,7 @@ class NewsletterMailablesTest extends TestCase
             'is_active' => true,
             'subscribed_at' => now()->subDay(),
             'unsubscribe_token' => str_repeat('c', 64),
-            'consent_text_version' => 'v1.1',
+            'consent_text_version' => 'v1.2',
         ]);
 
         (new SendNewsletterCampaignJob($campaign->id))->handle();
@@ -159,7 +159,7 @@ class NewsletterMailablesTest extends TestCase
             'is_active' => true,
             'subscribed_at' => now()->subDay(),
             'unsubscribe_token' => str_repeat('u', 64),
-            'consent_text_version' => 'v1.1',
+            'consent_text_version' => 'v1.2',
         ]);
 
         $mailable = new NewsletterCampaignMail($campaign, $subscriber, 'en');
@@ -169,3 +169,4 @@ class NewsletterMailablesTest extends TestCase
             ->assertSeeInHtml('/newsletter/unsubscribe/'.$subscriber->unsubscribe_token);
     }
 }
+

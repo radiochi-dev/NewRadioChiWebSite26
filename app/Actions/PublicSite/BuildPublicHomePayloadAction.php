@@ -454,7 +454,7 @@ class BuildPublicHomePayloadAction
             'privacyTail' => __('newsletter.front.privacy_tail', locale: $locale),
             'submitIdle' => __('newsletter.front.submit_idle', locale: $locale),
             'submitLoading' => __('newsletter.front.submit_loading', locale: $locale),
-            'success' => __('newsletter.subscribe.pending', locale: $locale),
+            'success' => __('newsletter.subscribe.success', locale: $locale),
             'modal' => [
                 'duplicateTitle' => __('newsletter.front.modal.duplicate_title', locale: $locale),
                 'duplicateBody' => __('newsletter.front.modal.duplicate_body', locale: $locale),

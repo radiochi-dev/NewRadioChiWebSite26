@@ -247,7 +247,7 @@ class BackofficePhase8OperationalModulesTest extends TestCase
         $this->assertNull($subscriber->confirmation_token);
         $this->assertNotEmpty($subscriber->unsubscribe_token);
         $this->assertSame(64, strlen((string) $subscriber->unsubscribe_token));
-        $this->assertSame('v1.1', $subscriber->consent_text_version);
+        $this->assertSame('v1.2', $subscriber->consent_text_version);
 
         $this->actingAs($editor)
             ->post('/backoffice/newsletter-subscribers/draft/'.$subscriber->id, [
@@ -278,7 +278,7 @@ class BackofficePhase8OperationalModulesTest extends TestCase
         $this->assertNull($subscriber->confirmation_token);
         $this->assertNotEmpty($subscriber->unsubscribe_token);
         $this->assertSame(64, strlen((string) $subscriber->unsubscribe_token));
-        $this->assertSame('v1.1', $subscriber->consent_text_version);
+        $this->assertSame('v1.2', $subscriber->consent_text_version);
     }
 
     public function test_editor_can_operate_manual_unsubscribe_and_reactivate_from_backoffice_without_rgpd_delete(): void
@@ -456,3 +456,4 @@ class BackofficePhase8OperationalModulesTest extends TestCase
         return $user;
     }
 }
+

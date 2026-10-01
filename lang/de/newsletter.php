@@ -3,6 +3,7 @@
 return [
     'subscribe' => [
         'pending' => 'Wir haben deine Anfrage erhalten. Die finale Bestatigung uber den Verifizierungslink ist noch erforderlich.',
+        'success' => 'Dein Abonnement ist jetzt aktiv.',
     ],
     'validation' => [
         'email_required' => 'Bitte gib eine E Mail Adresse ein.',
@@ -35,7 +36,7 @@ return [
     'front' => [
         'eyebrow' => 'Newsletter',
         'title' => 'Bei RadioChi anmelden',
-        'description' => 'Erhalte Neuigkeiten, bestatige deine Anmeldung per E Mail und erteile die Einwilligung fur kommerzielle Mitteilungen von RadioChi.',
+        'description' => 'Erhalte Neuigkeiten und erteile die Einwilligung fur kommerzielle Mitteilungen von RadioChi.',
         'email_label' => 'E Mail Adresse',
         'email_placeholder' => 'du@domain.de',
         'privacy_lead' => 'Ich habe ',
@@ -47,11 +48,11 @@ return [
             'responsible_label' => 'Verantwortlicher',
             'responsible_value' => ':brand',
             'purpose_label' => 'Zweck',
-            'purpose_value' => 'Deine Anmeldung verwalten, sie bestaetigen und dir kommerzielle Mitteilungen sowie Neuigkeiten von :brand senden.',
+            'purpose_value' => 'Dein aktives Abonnement verwalten und dir kommerzielle Mitteilungen sowie Neuigkeiten von :brand senden.',
             'unsubscribe_label' => 'Abmeldung',
             'unsubscribe_value' => 'Du kannst dich jederzeit uber jede Newsletter E Mail abmelden.',
-            'double_opt_in_label' => 'Bestaetigung',
-            'double_opt_in_value' => 'Deine Anmeldung wird erst aktiviert, wenn du den per E Mail gesendeten Link bestaetigst.',
+            'double_opt_in_label' => 'Aktivierung',
+            'double_opt_in_value' => 'Deine Anmeldung wird mit dem Absenden des Formulars und deiner ausdruecklichen Einwilligung aktiv.',
         ],
         'modal' => [
             'duplicate_title' => 'Abonnent bereits registriert',
@@ -80,7 +81,7 @@ return [
             'responsible_label' => 'Verantwortlicher',
             'contact_label' => 'Kontakt E Mail',
             'purpose_label' => 'Zweck',
-            'purpose_value' => 'Die Anmeldung verwalten, die Einwilligung bestatigen und Newsletter Mitteilungen an aktive Abonnenten senden.',
+            'purpose_value' => 'Das aktive Abonnement verwalten und Newsletter Mitteilungen an aktive Abonnenten senden.',
             'privacy_label' => 'Datenschutzerklarung ansehen',
             'unsubscribe_label' => 'Newsletter abbestellen',
         ],

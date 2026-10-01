@@ -3,6 +3,7 @@
 return [
     'subscribe' => [
         'pending' => 'Nous avons bien recu votre demande. La confirmation finale reste necessaire via le lien de verification.',
+        'success' => 'Votre abonnement est maintenant actif.',
     ],
     'validation' => [
         'email_required' => 'Veuillez saisir une adresse email.',
@@ -35,7 +36,7 @@ return [
     'front' => [
         'eyebrow' => 'Newsletter',
         'title' => 'Abonnez-vous a RadioChi',
-        'description' => 'Recevez les nouveautes, confirmez votre inscription par email et autorisez l envoi de communications commerciales de RadioChi.',
+        'description' => 'Recevez les nouveautes et autorisez l envoi de communications commerciales de RadioChi.',
         'email_label' => 'Adresse email',
         'email_placeholder' => 'vous@domaine.com',
         'privacy_lead' => 'J ai lu et j accepte ',
@@ -47,11 +48,11 @@ return [
             'responsible_label' => 'Responsable',
             'responsible_value' => ':brand',
             'purpose_label' => 'Finalite',
-            'purpose_value' => 'Gerer votre inscription, confirmer votre abonnement et vous envoyer des communications commerciales et des nouveautes de :brand.',
+            'purpose_value' => 'Gerer votre abonnement actif et vous envoyer des communications commerciales et des nouveautes de :brand.',
             'unsubscribe_label' => 'Desinscription',
             'unsubscribe_value' => 'Vous pouvez vous desinscrire a tout moment depuis n importe quel email de newsletter.',
-            'double_opt_in_label' => 'Confirmation',
-            'double_opt_in_value' => 'Votre inscription n est pas activee tant que vous n avez pas confirme le lien recu par email.',
+            'double_opt_in_label' => 'Activation',
+            'double_opt_in_value' => 'Votre inscription devient active des l envoi du formulaire avec votre consentement explicite.',
         ],
         'modal' => [
             'duplicate_title' => 'Abonne deja enregistre',
@@ -80,7 +81,7 @@ return [
             'responsible_label' => 'Responsable du traitement',
             'contact_label' => 'Email de contact',
             'purpose_label' => 'Finalite',
-            'purpose_value' => 'Gerer l inscription, confirmer l abonnement et envoyer des communications newsletter aux abonnes actifs.',
+            'purpose_value' => 'Gerer l abonnement actif et envoyer des communications newsletter aux abonnes actifs.',
             'privacy_label' => 'Consulter la politique de confidentialite',
             'unsubscribe_label' => 'Se desinscrire de la newsletter',
         ],

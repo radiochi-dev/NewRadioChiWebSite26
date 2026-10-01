@@ -586,17 +586,17 @@ Ejecucion real completada en esta fase:
 
 Ejecucion real completada en esta fase:
 
-- se creo `NewsletterLegalConsent` como fuente unica de verdad para `consent_text_version = v1.1` y la version documental `2026.09`;
+- se creo `NewsletterLegalConsent` como fuente unica de verdad para `consent_text_version = v1.2` y la version documental `2026.09`;
 - se creo `NewsletterLegalContent` como fuente legal versionada y multidioma para `terms`, `privacy` y `cookies`, evitando depender de textos legacy contradictorios como fuente activa de publicacion;
 - `ImportLegacyContentAction` ya no publica los documentos legales de newsletter desde el JSON legacy contradictorio, sino desde la fuente canonica versionada;
 - se implemento `SyncNewsletterTransparencyLegalDocsAction` y el comando `php artisan legal:sync-newsletter-transparency` para sincronizar el entorno actual sin tener que reinicializar toda la base de datos;
 - se ejecuto la sincronizacion real del entorno y quedaron publicados `3` documentos legales con `18` traducciones y version `2026.09`;
-- `NewsletterSubscriber` y `NewsletterSubscriberController` quedaron alineados con `consent_text_version = v1.1`;
+- `NewsletterSubscriber` y `NewsletterSubscriberController` quedaron alineados con `consent_text_version = v1.2`;
 - el payload publico de `BuildPublicHomePayloadAction` expone ahora:
   - `consentVersion`
-  - resumen legal visible del formulario con responsable, finalidad, baja y doble confirmacion;
-- `Home.jsx` y `app.css` muestran ese resumen legal multidioma en la tarjeta newsletter de `Contact` sin crear una UI nueva ajena al layout existente;
-- se conservo la copia versionada aceptada en `docs/legal/newsletter-consent/v1.1.md`;
+  - resumen legal visible del formulario con responsable, finalidad, baja y activacion inmediata;
+- `Home.jsx` y `app.css` quedaron alineados con el copy multidioma vigente de la tarjeta newsletter de `Contact` sin crear una UI nueva ajena al layout existente;
+- se conservo la copia versionada aceptada en `docs/legal/newsletter-consent/v1.2.md`;
 - validacion final ejecutada:
   - `php artisan legal:sync-newsletter-transparency`
   - `php artisan test tests/Feature/Phase5LegacyImportTest.php tests/Feature/NewsletterPublicFlowTest.php tests/Feature/NewsletterMailablesTest.php tests/Feature/Phase7PublicCmsPayloadTest.php tests/Feature/BackofficePhase8OperationalModulesTest.php`
@@ -738,7 +738,7 @@ Solucion:
 La integracion se considerara cerrada solo si:
 
 - el alta publica requiere consentimiento expreso;
-- no se activa ningun suscriptor sin double opt-in o alta administrativa deliberada;
+- no se activa ningun suscriptor sin consentimiento expreso trazable o alta administrativa deliberada;
 - todos los correos newsletter incluyen baja visible y headers correctos;
 - el backoffice refleja el estado real de DB y permite operar bajas/reactivaciones/borrado;
 - la politica de privacidad y el texto del formulario quedan alineados con el tratamiento real;
@@ -750,3 +750,11 @@ La integracion se considerara cerrada solo si:
 - se corrige la propia migracion pendiente para PostgreSQL soltando y recreando la vista `automation_newsletter_subscribers` antes y despues del cambio de esquema, evitando el bloqueo por dependencia sobre `is_active`;
 - tras ejecutar `php artisan migrate --force`, el alta publica deja de romper por esquema y vuelve a quedar alineada con el flujo legal implementado;
 - la maquetacion de `Contact` se endurece con bandas verticales reservadas para `newsletter`, `marquee`, `redes sociales` y `sponsors`, de forma que los botones sociales queden entre carruseles sin invadirlos.
+
+## Ajuste posterior de criterio: single opt-in trazable
+
+- **Estado:** `Aplicado`
+- [x] ~~El alta publica de newsletter pasa a `single opt-in`: el suscriptor queda activo en el momento de enviar el formulario con checkbox legal expreso, sin enviar correo de confirmacion.~~
+- [x] ~~Se mantiene la trazabilidad exigida para defensa legal y operativa: `email` en lowercase, `subscribed_at`, `ip_address` anonimizada, `user_agent`, `consent_text_version` y `unsubscribe_token`.~~
+- [x] ~~La ruta de confirmacion se conserva solo como compatibilidad para registros legacy que aun conserven `confirmation_token` previo.~~
+- [x] ~~Se actualizan textos multidioma, payload publico y documentos legales para eliminar referencias activas a `double opt-in` en el flujo vigente.~~
