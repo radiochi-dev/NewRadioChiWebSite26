@@ -17,6 +17,22 @@ Sustituir el backoffice actual basado en `Filament + Livewire + Blade` por un ba
 - **Superficies legacy retiradas en Fase 10**: `/dashboard`, `/dashboard/api/*`, `/admin/*` y runtime `Filament + Livewire`.
 - **Stack base del repo**: `Laravel 13`, `React 19`, `Inertia 3`, `Tailwind 4`, `PostgreSQL`, `Docker Desktop`.
 
+## Ultima pasada validada
+
+- [x] ~~El payload publico activo deja de exponer rutas runtime `\/assets\/img\/...` en `home`, `about`, `music`, `media` y `contact` cuando existe equivalente gestionado por Vite en `resources\/images\/...`.~~
+- [x] ~~El branding compartido del backoffice deja de depender de `asset('assets\/img\/logos\/RC_Logo_white.svg')` y pasa a resolverse con `Vite::asset(...)`.~~
+- [x] ~~Se mantiene el smoke visual real de backoffice y la consola queda limpia de errores propios tras la normalizacion de assets, quedando solo el aviso informativo de React DevTools en entorno local.~~
+- [x] ~~Validacion reciente de esta pasada: `npm run build` OK y tests focales en Docker (`Phase7PublicCmsPayloadTest`, `BackofficeLoginExperienceTest`) OK con 7 tests y 95 assertions.~~
+
+## Hotfix inmediato de regresiones publicas
+
+- [x] ~~Restaurado el estilo del titular del hero mediante selectores por clase (`legacy-home-title`, `legacy-home-subtitle`, `legacy-home-description`) para evitar que el contenido visible herede estilos de parrafo por cambio semantico.~~
+- [x] ~~Restaurado el calculo correcto de `translateY` en `usePublicFullpageNavigation` para que el fullpage vuelva a desplazar todas las secciones de forma coherente.~~
+- [x] ~~Restaurada la estabilidad del control `play/pause` del header evitando reenganchar el widget de SoundCloud en cada cambio de estado.~~
+- [x] ~~Auditado el corte de rutas oficiales del backoffice: el modulo `pages` mantiene `canCreate = false` para `editor`, por lo que `BackofficePhase9RouteCutoverTest` se alinea al contrato vigente validando `events/create` como formulario oficial y `pages` como indice de solo edicion estructural.~~
+- [x] ~~Podados los archivos huérfanos del refactor fallido del front publico que ya no tenian importadores activos, evitando dejar restos engañosos en `resources/js/Components/public` y `resources/js/hooks`.~~
+- [x] ~~Revalidacion de cierre: `docker compose exec -T app php artisan test` OK (`124 tests`, `1531 assertions`) y `npm run build` OK.~~
+
 ## Nota tecnica obligatoria
 
 ### Verdad arquitectonica
@@ -942,3 +958,37 @@ Criterio de salida:
 - [x] ~~`NewsletterSubscriberController@store` activa la suscripcion en el POST publico con consentimiento expreso y elimina la cola del correo de confirmacion del flujo vigente.~~
 - [x] ~~`BuildPublicHomePayloadAction` publica el nuevo mensaje de exito y la version `v1.2` del consentimiento para la tarjeta de `Contact`.~~
 - [x] ~~La ruta `newsletter.confirm` se conserva como fallback para registros legacy con `confirmation_token`, sin condicionar ya las altas nuevas.~~
+
+## Ajuste adicional: limpieza segura legacy batch 2
+
+- **Estado:** `Aplicado`
+- [x] ~~Se elimina `resources/js/legacy/content.js` al quedar fuera del runtime React/Inertia y del backend operativo, evitando mantener un modulo legacy muerto como falsa fuente de verdad.~~
+- [x] ~~La importacion legacy sigue cubierta y trazable moviendo la referencia canonica a `app/Actions/Legacy/LegacyImportStaticData.php`, sin tocar el frontend publico ni el contrato editorial vivo.~~
+
+## Ajuste adicional: limpieza segura legacy batch 3
+
+- **Estado:** `Aplicado`
+- [x] ~~Se eliminan los JSON `legacy/i18n` que quedaron fuera del contrato real del backend y del payload publico (`awards`, `blog`, `experience`, `global`, `portfolio`, `services`, `skills`, `testimonials`).~~
+- [x] ~~La limpieza mantiene intacta la capa efectiva de importacion y reduce residuo documental/runtime sin abrir cambios visuales ni funcionales en el front publico.~~
+
+## Ajuste adicional: endurecimiento seguro fase A-B del front publico
+
+- **Estado:** `Aplicado parcialmente`
+- [x] ~~Se incorpora `dompurify@3.4.16` y un componente `SafeHtml` para sanear el HTML legal consumido por React sin alterar el payload CMS ni el contenido almacenado en backend.~~
+- [x] ~~`Home.jsx` limita los listeners de scroll fullpage al contenedor real y protege la navegacion de teclado cuando el foco esta en elementos interactivos o hay overlays abiertos.~~
+- [x] ~~`LegacyIntro.jsx` y `LegacyHeader.jsx` dejan de depender de listeners globales en `capture` que no eran imprescindibles para el comportamiento vigente.~~
+- [x] ~~La auditoria HTML del front queda cerrada: no quedan sinks directos adicionales fuera de `SafeHtml`, por lo que la exposicion publica de HTML crudo queda encapsulada en un unico punto controlado.~~
+- [x] ~~La navegacion fullpage sale a `usePublicFullpageNavigation`, reduciendo acoplamiento dentro de `Home.jsx` y separando scroll/hash/teclado del resto del contenido publico.~~
+- [x] ~~La `Fase D` arranca extrayendo el chrome de la home legacy a componentes dedicados y rebajando `Home.jsx` a 1293 lineas.~~
+- [x] ~~La optimizacion real del bundle inicial queda aplicada en `resources/js/app.jsx`: Inertia pasa de resolver paginas con `import.meta.glob(..., { eager: true })` a carga lazy por pagina, alineada con la recomendacion oficial para Vite.~~
+- [x] ~~El build deja de emitir warning de chunk grande y la entrada `app` queda en `354.82 kB`, con `Home` aislado en un chunk propio de `188.47 kB`.~~
+- [x] ~~La auditoria final de CSS legacy muerto queda cerrada eliminando dos selectores sin uso real (`.legacy-about-bg.secondary` y `.legacy-player-header`) tras busqueda cruzada completa.~~
+- [x] ~~La fragmentacion estructural de `Home.jsx` continua moviendo `calendar`, `media` y `contact` a `PublicHomeSections.jsx`, dejando el archivo principal en 1064 lineas.~~
+- [x] ~~La fragmentacion estructural pendiente de `Home.jsx` queda completada moviendo `home`, `about` y `music` a `PublicPrimarySections.jsx`; el archivo principal baja a 901 lineas sin alterar el contrato funcional publico.~~
+- [x] ~~El nuevo ciclo de perfeccionamiento arranca extrayendo la integracion de SoundCloud a `useSoundCloudWidget`, de modo que `Home.jsx` deja de gestionar directamente `window.SC`, el script externo y el polling del reproductor.~~
+- [x] ~~La politica de interaccion global del front publico se centraliza en `usePublicFullpageNavigation`, mientras `LegacyHeader` y `LegacyIntro` dejan de duplicar listeners globales innecesarios.~~
+- [x] ~~La hoja `resources/css/app.css` deja de ser un monolito fisico: se divide en modulos CSS contiguos e importados desde la entrada, manteniendo la misma cascada y el mismo artefacto final de estilos.~~
+- [x] ~~La optimizacion del backoffice pasa por `CrudFieldRenderer`: `ImageField` y `RichTextField` se cargan bajo demanda, reduciendo el chunk base del renderer de ~418 kB a ~9 kB y desplazando el editor rico al momento real de uso.~~
+- [x] ~~Los fondos usados por el front y el backoffice dejan de depender de rutas absolutas crudas en `public/assets`: pasan a assets gestionados por Vite desde `resources/images/bg`, desapareciendo los warnings de build asociados a esos archivos.~~
+- [x] ~~La regresion de `BackofficePhase7RichContentPersistenceTest` no se corrige tocando funcionalidad, sino alineando los tests con el baseline actual de migraciones que ya inserta un `social_link` global de YouTube.~~
+- [x] ~~La CSP local se ajusta de forma quirurgica para HMR: `img-src` permite los origenes Vite solo en entorno `local` y con `public/hot`, limpiando la consola del navegador sin relajar produccion.~~

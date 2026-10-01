@@ -60,6 +60,8 @@ export default function RichTextField({
             heading: {
                 levels: [2, 3, 4],
             },
+            link: false,
+            underline: false,
         }),
         Underline,
         Highlight.configure({ multicolor: true }),

@@ -22,7 +22,7 @@
 - [x] ~~Marcar visualmente el idioma activo en el menu de locales del backoffice y usar `ES` como fallback por defecto cuando no llegue uno explicitamente seleccionado.~~
 - [x] ~~Corregir el menu de idioma del primer contenedor en los editores page-centric (`pages/*/edit`), marcando el locale activo tambien en las acciones de cabecera del `BackofficeLayout`.~~
 - [ ] Completar la cobertura tipada de todos los formularios secundarios restantes del CMS onepage.
-- [ ] Validar integralmente frontend publico + backoffice editorial con pruebas y navegador.
+- [x] ~~Validar integralmente frontend publico + backoffice editorial con pruebas y navegador.~~
 
 ## Resumen ejecutivo
 
@@ -156,6 +156,17 @@ Se ha corregido la mezcla incorrecta entre paginas y bloques tecnicos:
   - `BackofficePhase6CrudPersistenceTest`: 13 tests OK, 282 assertions.
   - `BackofficePhase7RichContentPersistenceTest`: 10 tests OK, 176 assertions.
   - `npm run build`: OK, con warnings ya conocidos de assets runtime/chunk size sin error bloqueante.
+  - pasada adicional de cierre sobre assets/SEO/accesibilidad:
+    - `Phase7PublicCmsPayloadTest`: 5 tests OK, 84 assertions.
+    - `BackofficeLoginExperienceTest`: 2 tests OK, 11 assertions.
+    - smoke real en navegador sobre `\/es` y branding del backoffice sin errores propios de consola.
+  - hotfix posterior de regresiones publicas:
+    - `scroll` fullpage revalidado de `home -> about -> home` en navegador real.
+    - `play/pause` del header revalidado a primer clic en pestaña limpia.
+    - titular visual del hero restaurado a su escala correcta sin tocar traducciones ni contenido CMS.
+  - auditoria de integridad posterior:
+    - `BackofficePhase9RouteCutoverTest` queda alineado con el contrato real del modulo `pages` (sin create directo para `editor`) y la suite completa vuelve a verde.
+    - se eliminan los archivos huérfanos del refactor fallido del front publico que ya no participaban en runtime.
 
 ## Auditoria del estado actual del CMS multidioma
 
@@ -534,3 +545,35 @@ Hay que ejecutar en este orden:
 - [x] ~~Los mensajes localizados del formulario newsletter dejan de hablar de confirmacion por correo para reflejar activacion inmediata con consentimiento expreso.~~
 - [x] ~~La version de consentimiento publicada pasa a `v1.2`, manteniendo la misma cobertura idiomatica `es/en/ca/fr/it/de`.~~
 - [x] ~~Los documentos legales sincronizados desde `NewsletterLegalContent` eliminan la referencia activa a `double opt-in` y alinean finalidades, activacion y trazabilidad con el flujo real.~~
+
+## Ajuste posterior: limpieza segura legacy batch 2
+
+- **Estado:** `Aplicado`
+- [x] ~~Se elimina `resources/js/legacy/content.js` tras confirmar que el flujo multidioma publico ya no lo consume y que el payload CMS sale de base de datos/acciones backend.~~
+- [x] ~~La fuente legacy residual necesaria para reconstruccion/importacion queda concentrada en `app/Actions/Legacy/LegacyImportStaticData.php`, reduciendo ruido y evitando duplicidad de contenido historico.~~
+
+## Ajuste posterior: limpieza segura legacy batch 3
+
+- **Estado:** `Aplicado`
+- [x] ~~Se podan los JSON legacy multidioma no inventariados (`awards`, `blog`, `experience`, `global`, `portfolio`, `services`, `skills`, `testimonials`) al no formar parte ya del flujo page-centric ni del payload publico CMS.~~
+- [x] ~~La base multidioma efectiva queda centrada solo en los JSON legacy todavia auditados por el importador, sin mantener traducciones fosiles fuera del contrato real.~~
+
+## Ajuste posterior: endurecimiento seguro fase A-B del front publico
+
+- **Estado:** `Aplicado parcialmente`
+- [x] ~~El contenido legal localizado se sigue sirviendo desde CMS sin mutarlo, pero el render publico pasa por `SafeHtml`, evitando exponer HTML crudo directo en `Home.jsx` y `Legal/Show.jsx`.~~
+- [x] ~~El aislamiento de listeners fullpage y la poda de `capture` en `LegacyIntro`/`LegacyHeader` no introduce nuevas claves de traduccion ni modifica el contrato multiidioma existente.~~
+- [x] ~~La auditoria completa de superficies HTML localizadas queda cerrada: no quedan renderizados HTML directos fuera del encapsulado `SafeHtml`.~~
+- [x] ~~La fragmentacion inicial de `Home.jsx` ya esta en marcha mediante `usePublicFullpageNavigation` y componentes publicos auxiliares, sin tocar el contrato multidioma del contenido.~~
+- [x] ~~La optimizacion de bundle pendiente queda resuelta al activar carga lazy por pagina en Inertia/Vite, sin alterar rutas localizadas ni el contrato de contenido multidioma.~~
+- [x] ~~El front publico sigue sirviendo el mismo contenido localizado, pero ya no arrastra todas las paginas React dentro del chunk inicial.~~
+- [x] ~~El cierre de `Fase C` no introduce nuevas claves ni contratos: solo retira dos selectores CSS legacy muertos sin referencias activas.~~
+- [x] ~~La nueva fragmentacion de `Home.jsx` mueve `calendar`, `media` y `contact` a componentes publicos dedicados sin alterar payloads multidioma ni contenido editorial.~~
+- [x] ~~La fragmentacion final mueve tambien `home`, `about` y `music` a `PublicPrimarySections.jsx`, manteniendo intacto el contenido localizado y reduciendo aun mas el acoplamiento del `Home.jsx` principal.~~
+- [x] ~~La extraccion de SoundCloud a `useSoundCloudWidget` no altera payloads ni traducciones: solo encapsula el runtime del widget y mantiene intacto el contenido localizado ya servido por CMS.~~
+- [x] ~~La unificacion de listeners globales del front no altera contenido localizado ni navegacion multidioma: solo concentra la senal de interaccion y elimina duplicidades innecesarias en `LegacyHeader` y `LegacyIntro`.~~
+- [x] ~~La particion fisica de `app.css` en modulos no introduce nuevas claves ni contratos; preserva exactamente los mismos estilos publicos y de backoffice ya existentes.~~
+- [x] ~~La carga diferida de `ImageField` y `RichTextField` en backoffice no modifica payloads multidioma ni formularios traducidos: solo cambia el momento de carga del JS pesado asociado a esos campos.~~
+- [x] ~~La normalizacion de fondos a assets gestionados por Vite no altera textos ni contenido localizado; solo evita warnings de empaquetado y mantiene estable el despliegue con rutas resueltas por el bundler.~~
+- [x] ~~La estabilizacion de `BackofficePhase7RichContentPersistenceTest` no introduce nuevas claves ni payloads: corrige un supuesto obsoleto sobre el baseline de datos iniciales.~~
+- [x] ~~La limpieza final de consola en desarrollo tampoco afecta al contenido multidioma: solo amplia `img-src` local para que Vite HMR pueda servir imagenes sin errores visuales ni mensajes CSP espurios.~~

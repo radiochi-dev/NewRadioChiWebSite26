@@ -15,6 +15,8 @@ use App\Support\NewsletterLegalConsent;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Vite;
+use Illuminate\Support\Str;
 
 class BuildPublicHomePayloadAction
 {
@@ -186,7 +188,7 @@ class BuildPublicHomePayloadAction
                 $translation = $this->blockTranslationContent($block->translations, $locale);
 
                 return [
-                    'logo' => data_get($block->settings, 'logo'),
+                    'logo' => $this->normalizePublicAssetPath(data_get($block->settings, 'logo')),
                     'logoAlt' => $this->descriptiveAlt(
                         subject: data_get($translation, 'title'),
                         fallback: 'Logo promocional del slide principal de RadioChi'
@@ -195,13 +197,13 @@ class BuildPublicHomePayloadAction
                     'title' => data_get($translation, 'title'),
                     'subtitle' => data_get($translation, 'subtitle'),
                     'description' => data_get($translation, 'description'),
-                    'personImage' => data_get($block->settings, 'personImage'),
+                    'personImage' => $this->normalizePublicAssetPath(data_get($block->settings, 'personImage')),
                     'personImageAlt' => $this->descriptiveAlt(
                         subject: data_get($translation, 'title'),
                         context: 'imagen promocional',
                         fallback: 'Imagen promocional principal de RadioChi'
                     ),
-                    'elipseImage' => data_get($block->settings, 'elipseImage'),
+                    'elipseImage' => $this->normalizePublicAssetPath(data_get($block->settings, 'elipseImage')),
                     'buttonText' => data_get($translation, 'buttonText'),
                     'link' => data_get($translation, 'link'),
                     'event' => data_get($translation, 'event'),
@@ -226,8 +228,8 @@ class BuildPublicHomePayloadAction
                     'title' => data_get($translation, 'title'),
                     'subtitle' => data_get($translation, 'subtitle'),
                     'content' => data_get($translation, 'content'),
-                    'image' => data_get($block->settings, 'image'),
-                    'image2' => data_get($block->settings, 'image2'),
+                    'image' => $this->normalizePublicAssetPath(data_get($block->settings, 'image')),
+                    'image2' => $this->normalizePublicAssetPath(data_get($block->settings, 'image2')),
                     'chartTitle' => data_get($translation, 'chartTitle'),
                     'chartSubtitle' => data_get($translation, 'chartSubtitle'),
                 ];
@@ -246,7 +248,7 @@ class BuildPublicHomePayloadAction
 
                 return [
                     'id' => data_get($track->settings, 'legacy_id', $track->id),
-                    'label-img' => $track->label_image_path,
+                    'label-img' => $this->normalizePublicAssetPath($track->label_image_path),
                     'labelImageAlt' => $this->descriptiveAlt(
                         subject: $translation?->artist_name ?? $translation?->title ?? $track->slug,
                         context: 'logo del sello musical',
@@ -256,7 +258,7 @@ class BuildPublicHomePayloadAction
                     'heroTitle' => $translation?->hero_title,
                     'subtitle' => $translation?->subtitle ?? $translation?->title,
                     'description' => $translation?->description,
-                    'image' => $track->cover_image_path,
+                    'image' => $this->normalizePublicAssetPath($track->cover_image_path),
                     'soundcloudUrl' => $track->stream_url,
                     'soundcloudEmbedUrl' => $this->normalizeSoundCloudEmbedUrl($track->stream_url, $track->external_url),
                     'year' => $track->year ? (string) $track->year : null,
@@ -300,6 +302,55 @@ class BuildPublicHomePayloadAction
         }
 
         return null;
+    }
+
+    private function normalizePublicAssetPath(?string $path): ?string
+    {
+        if (! is_string($path)) {
+            return null;
+        }
+
+        $trimmed = trim($path);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (Str::startsWith($trimmed, ['http://', 'https://', 'data:'])) {
+            return $trimmed;
+        }
+
+        $resourcePath = $this->managedAssetResourcePath($trimmed);
+
+        if ($resourcePath !== null && is_file(base_path($resourcePath))) {
+            return Vite::asset($resourcePath);
+        }
+
+        return $trimmed;
+    }
+
+    private function managedAssetResourcePath(string $path): ?string
+    {
+        $normalized = '/'.ltrim(str_replace('\\', '/', trim($path)), '/');
+
+        $overrides = [
+            '/assets/img/logos/RC_Logo_white.png' => 'resources/images/logos/RC_Logo_white.png',
+            '/assets/img/logos/RC_Logo_white.svg' => 'resources/images/logos/RC_Logo_white.svg',
+            '/assets/img/media/Abraxas2.webp' => 'resources/images/media/Abraxas2.webp',
+            '/assets/img/media/Decadance1.webp' => 'resources/images/media/Decadance1.webp',
+            '/assets/img/media/PrideGranCanarias1.webp' => 'resources/images/media/PrideGranCanarias1.webp',
+            '/assets/img/media/SitgesPride1.webp' => 'resources/images/media/SitgesPride1.webp',
+        ];
+
+        if (array_key_exists($normalized, $overrides)) {
+            return $overrides[$normalized];
+        }
+
+        if (! Str::startsWith($normalized, '/assets/img/')) {
+            return null;
+        }
+
+        return 'resources/images/legacy/'.ltrim(Str::after($normalized, '/assets/img/'), '/');
     }
 
     private function normalizeAbsoluteUrl(?string $url): ?string
@@ -358,7 +409,7 @@ class BuildPublicHomePayloadAction
                     'dateEnd' => $event->event_ends_at?->format('d-m-y') ?? ' ',
                     'location' => $location,
                     'country' => $country,
-                    'logo' => $event->poster_path,
+                    'logo' => $this->normalizePublicAssetPath($event->poster_path),
                     'logoAlt' => $this->descriptiveAlt(
                         subject: $event->title,
                         context: 'cartel del evento'.($location ? ' en '.$location : ''),
@@ -390,7 +441,7 @@ class BuildPublicHomePayloadAction
         return $mediaAssets
             ->filter(fn (MediaAsset $asset): bool => data_get($asset->metadata, 'kind') === 'photo')
             ->map(fn (MediaAsset $asset): array => [
-                'src' => $asset->path,
+                'src' => $this->normalizePublicAssetPath($asset->path),
                 'alt' => $this->descriptiveAlt(
                     subject: data_get($asset->metadata, 'caption'),
                     context: data_get($asset->metadata, 'date'),
@@ -429,7 +480,7 @@ class BuildPublicHomePayloadAction
             ->map(fn (Partner $partner): array => [
                 'name' => $partner->name,
                 'url' => $partner->website_url,
-                'imgSrc' => $partner->logo_path,
+                'imgSrc' => $this->normalizePublicAssetPath($partner->logo_path),
                 'imgAlt' => $this->descriptiveAlt(
                     subject: $partner->name,
                     context: 'logo del colaborador o sponsor',

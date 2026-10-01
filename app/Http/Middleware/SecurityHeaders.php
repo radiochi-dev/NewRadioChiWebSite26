@@ -45,6 +45,8 @@ class SecurityHeaders
         ];
 
         if ($this->shouldAllowLocalViteHmr()) {
+            $directives['img-src'] = array_merge($directives['img-src'], $this->localViteHttpOrigins());
+            $directives['font-src'] = array_merge($directives['font-src'], $this->localViteHttpOrigins());
             $directives['style-src'] = array_merge($directives['style-src'], $this->localViteHttpOrigins());
             $directives['script-src'] = array_merge($directives['script-src'], $this->localViteHttpOrigins());
             $directives['connect-src'] = array_merge(

@@ -8,6 +8,26 @@
 - **Siguiente fase segura activa**: `Activacion controlada GA4`
 - **Avance de la fase actual**: `85%`
 
+### Pasada de mejora continua cerrada
+
+**Estado:** COMPLETADA
+
+- [x] ~~Migrar al pipeline de Vite los assets runtime vivos que seguian saliendo del payload legacy/CMS (`home`, `about`, `music`, `media`, `contact` y branding del backoffice), sin reescribir a ciegas el contenido editorial.~~
+- [x] ~~Normalizar en backend las rutas `\/assets\/img\/...` hacia `Vite::asset(...)` al construir el payload publico y las props compartidas de Inertia, manteniendo fallback conservador para no romper contenido no migrado.~~
+- [x] ~~Validar con `npm run build` que los assets quedan empaquetados correctamente tras la migracion.~~
+- [x] ~~Revalidar por navegador real `\/es` y backoffice, comprobando que la consola queda limpia salvo el aviso informativo de React DevTools.~~
+- [x] ~~Mantener la decision SEO del locale por defecto (`es`) canonicalizando a `\/`, con `x-default` y `alternates.es` alineados al root como URL preferida.~~
+
+### Hotfix de regresiones del front publico
+
+**Estado:** COMPLETADA
+
+- [x] ~~Restaurar el tamaño visual correcto del titular de los slides del hero sin volver a degradar la semantica del contenido.~~
+- [x] ~~Corregir la navegacion fullpage para que cada seccion vuelva a posicionarse en su eje correcto y el scroll vuelva a responder en ambos sentidos.~~
+- [x] ~~Corregir la sincronizacion del boton `play/pause` del header con el widget de SoundCloud para que responda al primer clic.~~
+- [x] ~~Cerrar la auditoria de integridad posterior a los hotfix: el test desalineado `BackofficePhase9RouteCutoverTest` queda ajustado al contrato real del modulo `pages` y la suite completa vuelve a verde (`124 tests`, `1531 assertions`).~~
+- [x] ~~Eliminar del arbol los archivos huérfanos del refactor fallido del front publico (`resources/js/Components/public/*`, `resources/js/hooks/*`) al confirmar que ya no participan en runtime.~~
+
 ### Fase post-plan. Analitica publica GA4
 
 **Estado:** COMPLETADA
@@ -563,11 +583,11 @@ Sacar el sitio del modo JSON legacy y pasarlo a PostgreSQL + CMS.
 
 Inventario real validado en esta iteracion:
 - ~~Se auditaron los 6 locales activos (`es`, `en`, `ca`, `fr`, `it`, `de`) y se verifico la presencia de los ficheros runtime realmente consumidos por el frontend legacy.~~
-- ~~Ademas del listado inicial del plan, se detectaron y migraron tambien `header.json` y `seo.json` porque `resources/js/legacy/content.js` los usa de forma efectiva en runtime.~~
+- ~~Ademas del listado inicial del plan, se detectaron y migraron tambien `header.json` y `seo.json` porque formaban parte del contrato legacy efectivo usado por la capa de importacion y reconstruccion del payload.~~
 - ~~`resources/js/legacy/data/calendarevents.json` se inventario como fuente real de eventos + traducciones del calendario.~~
 - ~~`resources/js/legacy/data/events.json` se inventario y migro como bloque auxiliar de enlaces/fechas legacy.~~
 - ~~`resources/js/legacy/data/videos.json` se detecto vacio; se documento como artefacto residual y no como fuente efectiva de datos.~~
-- ~~Se documento que los arrays reales de media, sponsors, social links y marquees viven hoy en `resources/js/legacy/content.js` y `resources/js/Pages/Home.jsx`, no en JSON separados.~~
+- ~~Se documento que los arrays reales de media, sponsors, social links y marquees quedaron consolidados en `app/Actions/Legacy/LegacyImportStaticData.php`, mientras el runtime publico final consume payload reconstruido y `resources/js/Pages/Home.jsx`.~~
 
 ### Paso 5.2
 ~~Crear importadores idempotentes por dominio:~~
@@ -1071,3 +1091,38 @@ Avance validado en esta iteracion:
 - [x] ~~La suscripcion publica desde `Contact` activa el registro en el mismo POST cuando existe checkbox legal expreso, manteniendo `lowercase`, `subscribed_at`, `ip_address` anonimizada, `user_agent` y `unsubscribe_token`.~~
 - [x] ~~Se elimina del flujo vigente el envio de `NewsletterDoubleOptIn`; la confirmacion queda solo como compatibilidad para registros antiguos que aun conserven token pendiente.~~
 - [x] ~~Se versiona el consentimiento a `v1.2` y se actualizan textos legales y de UX para reflejar activacion inmediata y baja real en cada correo.~~
+
+## Ajuste adicional: limpieza segura legacy batch 2
+
+- **Estado:** `Aplicado`
+- [x] ~~Se retira `resources/js/legacy/content.js` tras verificar que ya no tenia importadores reales ni participaba en runtime, importacion ni tests funcionales.~~
+- [x] ~~`ImportLegacyContentAction` pasa a declarar `app/Actions/Legacy/LegacyImportStaticData.php` como fuente canonica de los arrays legacy que siguen siendo necesarios para importacion segura.~~
+- [x] ~~La metadata `source` de media legacy queda alineada con esa fuente canonica para no conservar referencias historicas falsas dentro del CMS.~~
+
+## Ajuste adicional: limpieza segura legacy batch 3
+
+- **Estado:** `Aplicado`
+- [x] ~~Se podan los JSON `resources/js/legacy/i18n/*` fuera del inventario efectivo (`awards`, `blog`, `experience`, `global`, `portfolio`, `services`, `skills`, `testimonials`) tras verificar que no participan en runtime, importadores ni tests funcionales.~~
+- [x] ~~La capa legacy efectiva queda reducida a los JSON realmente inventariados por `ImportLegacyContentAction`, disminuyendo ruido y superficie de mantenimiento sin tocar el frontend publico vivo.~~
+
+## Ajuste adicional: endurecimiento seguro fase A-B del front publico
+
+- **Estado:** `Aplicado parcialmente`
+- [x] ~~Se sanea el render HTML legal publico mediante `SafeHtml` + `DOMPurify` en el modal legal de `Home.jsx` y en `Legal/Show.jsx`, manteniendo intacto el contenido editorial pero eliminando la exposicion directa de HTML crudo en runtime publico.~~
+- [x] ~~La navegacion fullpage deja de enganchar `wheel/touchstart/touchend` sobre `document` y pasa a escuchar solo dentro del contenedor `fullpage`, reduciendo secuestro global de eventos y evitando interferir con overlays o elementos interactivos.~~
+- [x] ~~Se eliminan listeners legacy en `capture` no imprescindibles de `LegacyIntro` y `LegacyHeader`, conservando el comportamiento visible pero acotando mejor su alcance.~~
+- [x] ~~La auditoria completa de superficies HTML del front queda cerrada: tras la revision global solo permanece `dangerouslySetInnerHTML` dentro de `SafeHtml`, ya encapsulado y saneado.~~
+- [x] ~~La separacion estructural de `Fase B` avanza sacando la navegacion fullpage a `usePublicFullpageNavigation`, dejando `Home.jsx` libre de la orquestacion directa de scroll/hash/teclado.~~
+- [x] ~~`Fase D` queda iniciada con la extraccion del chrome publico (`footer`, progreso, lightbox y modales) a componentes dedicados, reduciendo `Home.jsx` de 1668 a 1293 lineas sin alterar el markup de secciones activas.~~
+- [x] ~~La parte dura de `Fase D` queda resuelta activando el code-splitting oficial de paginas Inertia en `resources/js/app.jsx`, eliminando `eager: true` del `import.meta.glob()` y pasando a carga bajo demanda por pagina.~~
+- [x] ~~El bundle inicial deja de salir como chunk gigante: `app` baja a `354.82 kB` y `Home` queda separado en su propio chunk de `188.47 kB`, desapareciendo el warning de chunk > 500 kB en build.~~
+- [x] ~~`Fase C` queda cerrada con una ultima pasada de CSS legacy muerto: se retiran `.legacy-about-bg.secondary` y `.legacy-player-header`, ambos sin referencias vivas en runtime ni en vistas.~~
+- [x] ~~`Fase D` se remata a nivel estructural extrayendo `calendar`, `media` y `contact` a `PublicHomeSections.jsx`, reduciendo `Home.jsx` de 1293 a 1064 lineas sin alterar el contenido ni la animacion publica.~~
+- [x] ~~Se completa la fragmentacion estructural restante de `Fase D` moviendo `home`, `about` y `music` a `PublicPrimarySections.jsx`, dejando `Home.jsx` en 901 lineas y concentrado en estado, efectos y orquestacion.~~
+- [x] ~~Se inicia el nuevo plan de perfeccionamiento encapsulando SoundCloud en `useSoundCloudWidget`, sacando de `Home.jsx` la carga del script, el binding/unbinding del widget, el polling de posicion y el control imperative del reproductor.~~
+- [x] ~~Se unifican listeners globales del front publico: `LegacyHeader` deja de escuchar directamente `scroll/wheel/touch/key` y consume una señal de interaccion emitida por `usePublicFullpageNavigation`; `LegacyIntro` elimina su `keydown` global y pasa a resolverlo desde su propio root enfocado.~~
+- [x] ~~`resources/css/app.css` se parte en modulos contiguos (`app-base`, `public-core`, `public-animations`, `public-responsive`) preservando el mismo orden efectivo de la cascada y sin alterar el CSS generado en build.~~
+- [x] ~~`CrudFieldRenderer` deja de arrastrar `ImageField` y `RichTextField` en su chunk base: ambos pasan a `lazy()` con `Suspense`, reduciendo el renderer principal a ~9 kB y moviendo el peso rico a carga diferida real.~~
+- [x] ~~Se normalizan los fondos criticos para que Vite los gestione como assets reales desde `resources/images/bg`, eliminando los warnings de build asociados a `bg-texture-2.png`, `PrideGranCanarias2Bg.webp` y `mapa-mundi.png`.~~
+- [x] ~~La suite `BackofficePhase7RichContentPersistenceTest` se estabiliza frente al baseline real de migraciones: los asserts dejan de asumir tablas vacias y pasan a medir el numero esperado de filas segun el estado inicial del proyecto.~~
+- [x] ~~La verificacion final en navegador deja la consola limpia de errores propios: tras ampliar `img-src` local para Vite HMR, solo queda el aviso informativo de React DevTools en desarrollo.~~

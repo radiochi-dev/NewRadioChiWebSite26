@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react'
+import SafeHtml from '../../Components/SafeHtml'
 
 export default function LegalShow({ title, summary, content }) {
     return (
@@ -10,9 +11,10 @@ export default function LegalShow({ title, summary, content }) {
                     {summary ? (
                         <p className="mt-4 text-sm leading-7 text-white/70 sm:text-base">{summary}</p>
                     ) : null}
-                    <article
+                    <SafeHtml
+                        as="article"
                         className="newsletter-legal-content mt-8 text-sm leading-7 text-white/80 sm:text-base"
-                        dangerouslySetInnerHTML={{ __html: content ?? '' }}
+                        html={content}
                     />
                 </div>
             </main>

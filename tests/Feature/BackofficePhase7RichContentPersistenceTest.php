@@ -68,6 +68,14 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
             'is_active' => true,
         ]);
 
+        $expectedRowsByUrl = [
+            '/backoffice/music-tracks' => MusicTrack::query()->count(),
+            '/backoffice/media-assets' => MediaAsset::query()->count(),
+            '/backoffice/partners' => Partner::query()->count(),
+            '/backoffice/social-links' => SocialLink::query()->where('location', 'global')->count(),
+            '/backoffice/downloadable-files' => DownloadableFile::query()->count(),
+        ];
+
         foreach ([
             '/backoffice/music-tracks' => 'Tracks musicales',
             '/backoffice/media-assets' => 'Assets',
@@ -81,7 +89,7 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
                 ->assertInertia(fn (Assert $inertia) => $inertia
                     ->component('Backoffice/Preview/ModuleIndex')
                     ->where('title', $title)
-                    ->has('table.rows', 1));
+                    ->has('table.rows', $expectedRowsByUrl[$url]));
         }
 
         $this->actingAs($editor)
@@ -329,6 +337,8 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
             'is_active' => true,
         ]);
 
+        $expectedGlobalSocialLinks = SocialLink::query()->where('location', 'global')->count();
+
         $this->actingAs($editor)
             ->from('/backoffice/social-links/create')
             ->post('/backoffice/social-links/draft', [
@@ -341,7 +351,7 @@ class BackofficePhase7RichContentPersistenceTest extends TestCase
             ])
             ->assertRedirect('/backoffice/social-links/create');
 
-        $this->assertDatabaseCount('social_links', 1);
+        $this->assertSame($expectedGlobalSocialLinks, SocialLink::query()->where('location', 'global')->count());
         $this->assertDatabaseHas('social_links', [
             'platform' => 'spotify',
             'url' => 'https://spotify.com/original',

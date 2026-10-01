@@ -1,14 +1,29 @@
-import ImageField from './ImageField'
-import RichTextField from './RichTextField'
+import { Suspense, lazy } from 'react'
 import Input from '../ui/Input'
 import Select from '../ui/Select'
 import Textarea from '../ui/Textarea'
+
+const ImageField = lazy(() => import('./ImageField'))
+const RichTextField = lazy(() => import('./RichTextField'))
 
 function PanelField({ field }) {
     return (
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
             <p className="text-sm font-semibold text-white">{field.label}</p>
             <p className="mt-2 text-sm leading-6 text-white/60">{field.help}</p>
+        </div>
+    )
+}
+
+function AsyncFieldFallback({ label, hint, error }) {
+    return (
+        <div className={`rounded-[24px] border bg-slate-900/70 px-4 py-4 ${error ? 'border-rose-400/60' : 'border-white/10'}`}>
+            <div className="space-y-2">
+                <span className="text-sm font-medium text-white">{label}</span>
+                <div className="h-32 animate-pulse rounded-2xl bg-white/5" />
+                {error ? <span className="block text-xs text-rose-200">{error}</span> : null}
+                {hint ? <span className="block text-xs text-white/45">{hint}</span> : null}
+            </div>
         </div>
     )
 }
@@ -86,16 +101,22 @@ export default function CrudFieldRenderer({ field, form, disabled = false, media
     }
 
     if (field.type === 'image') {
-        return <ImageField field={field} form={form} disabled={disabled} library={mediaLibrary} uploadUrl={mediaUploadUrl} />
+        return (
+            <Suspense fallback={<AsyncFieldFallback label={field.label} hint={field.help} error={form.errors[field.key]} />}>
+                <ImageField field={field} form={form} disabled={disabled} library={mediaLibrary} uploadUrl={mediaUploadUrl} />
+            </Suspense>
+        )
     }
 
     if (field.type === 'richtext') {
         return (
-            <RichTextField
-                {...common}
-                value={form.data[field.key] ?? ''}
-                onChange={(value) => form.setData(field.key, value)}
-            />
+            <Suspense fallback={<AsyncFieldFallback label={field.label} hint={field.help} error={form.errors[field.key]} />}>
+                <RichTextField
+                    {...common}
+                    value={form.data[field.key] ?? ''}
+                    onChange={(value) => form.setData(field.key, value)}
+                />
+            </Suspense>
         )
     }
 

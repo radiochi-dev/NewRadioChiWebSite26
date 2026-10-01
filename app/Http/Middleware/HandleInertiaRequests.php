@@ -6,6 +6,7 @@ use App\Actions\Backoffice\BuildBackofficeNavigationAction;
 use App\Models\User;
 use App\Support\Backoffice\BackofficePath;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Vite;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -69,7 +70,7 @@ class HandleInertiaRequests extends Middleware
             'backoffice' => [
                 'branding' => [
                     'name' => 'RadioChi Backoffice',
-                    'logo' => asset('assets/img/logos/RC_Logo_white.svg'),
+                    'logo' => Vite::asset('resources/images/logos/RC_Logo_white.svg'),
                     'officialPrefix' => BackofficePath::official(),
                 ],
                 'locale' => app()->getLocale(),

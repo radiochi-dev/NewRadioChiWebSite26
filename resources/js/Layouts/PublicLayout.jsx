@@ -25,7 +25,6 @@ export default function PublicLayout({ title, locale, locales, currentPath, menu
     return (
         <>
             <Head title={title}>
-                <link rel="stylesheet" href="/assets/fonts/Inter/style.css" />
                 <meta name="description" content={seo.description} />
                 <link rel="canonical" href={seo.canonical} />
                 <meta property="og:type" content={seo.ogType} />

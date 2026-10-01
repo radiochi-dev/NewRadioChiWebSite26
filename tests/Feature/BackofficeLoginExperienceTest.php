@@ -19,8 +19,13 @@ class BackofficeLoginExperienceTest extends TestCase
                 ->component('Backoffice/Auth/Login')
                 ->where('title', 'Entre a su cuenta')
                 ->where('description', 'Acceso protegido al backoffice de RadioChi.')
-                ->where('footer.legalLinks.0.label', 'Términos y Condiciones'))
+                ->where('footer.legalLinks.0.label', 'Términos y Condiciones')
+                ->where('backoffice.branding.name', 'RadioChi Backoffice'))
             ->assertSee('Entre a su cuenta');
+
+        $brandingLogo = data_get($response->viewData('page')['props'] ?? [], 'backoffice.branding.logo');
+        $this->assertIsString($brandingLogo);
+        $this->assertStringNotContainsString('/assets/img/', $brandingLogo);
 
         $contentSecurityPolicy = (string) $response->headers->get('Content-Security-Policy');
 

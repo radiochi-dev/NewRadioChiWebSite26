@@ -1,20 +1,24 @@
 import { motion } from 'framer-motion'
+import abraxas2Image from '../../../images/media/Abraxas2.webp'
+import decadance1Image from '../../../images/media/Decadance1.webp'
+import prideGranCanarias1Image from '../../../images/media/PrideGranCanarias1.webp'
+import sitgesPride1Image from '../../../images/media/SitgesPride1.webp'
 
 const photos = [
     {
-        src: '/assets/img/media/Abraxas2.webp',
+        src: abraxas2Image,
         alt: 'Fotografia del evento Abraxas en la galeria de RadioChi',
     },
     {
-        src: '/assets/img/media/Decadance1.webp',
+        src: decadance1Image,
         alt: 'Fotografia del evento Decadance en la galeria de RadioChi',
     },
     {
-        src: '/assets/img/media/PrideGranCanarias1.webp',
+        src: prideGranCanarias1Image,
         alt: 'Fotografia de Pride Gran Canaria en la galeria de RadioChi',
     },
     {
-        src: '/assets/img/media/SitgesPride1.webp',
+        src: sitgesPride1Image,
         alt: 'Fotografia de Sitges Pride en la galeria de RadioChi',
     },
 ]

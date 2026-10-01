@@ -33,11 +33,19 @@ class BackofficePhase9RouteCutoverTest extends TestCase
                 ->where('table.path', '/backoffice/events'));
 
         $this->actingAs($editor)
-            ->get('/backoffice/pages/create')
+            ->get('/backoffice/events/create')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Backoffice/Preview/ModuleForm')
-                ->where('form.action', '/backoffice/pages/draft'));
+                ->where('form.action', '/backoffice/events/draft'));
+
+        $this->actingAs($editor)
+            ->get('/backoffice/pages')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Backoffice/Preview/ModuleIndex')
+                ->where('title', 'Paginas')
+                ->where('capabilities.canCreate', false));
     }
 
     public function test_official_backoffice_draft_flow_redirects_to_official_edit_route(): void

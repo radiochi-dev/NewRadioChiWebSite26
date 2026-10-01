@@ -60,7 +60,7 @@ class ImportLegacyContentAction
     ];
 
     public const CODE_SOURCES = [
-        'resources/js/legacy/content.js',
+        'app/Actions/Legacy/LegacyImportStaticData.php',
         'resources/js/Pages/Home.jsx',
     ];
 
@@ -363,7 +363,7 @@ class ImportLegacyContentAction
                         'position' => $index + 1,
                         'caption' => $photo['caption'],
                         'date' => $photo['date'],
-                        'source' => 'resources/js/legacy/content.js',
+                        'source' => 'app/Actions/Legacy/LegacyImportStaticData.php',
                     ],
                 ],
             );
@@ -385,7 +385,7 @@ class ImportLegacyContentAction
                         'title' => $video['title'],
                         'date' => $video['date'],
                         'duration' => $video['duration'],
-                        'source' => 'resources/js/legacy/content.js',
+                        'source' => 'app/Actions/Legacy/LegacyImportStaticData.php',
                     ],
                 ],
             );

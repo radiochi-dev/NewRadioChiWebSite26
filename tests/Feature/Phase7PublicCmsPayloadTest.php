@@ -77,6 +77,12 @@ class Phase7PublicCmsPayloadTest extends TestCase
         $this->assertSame(['home', 'about', 'music', 'media', 'contact'], data_get($payload, 'visibleSections'));
         $this->assertArrayNotHasKey('calendarEvents', data_get($payload, 'content.header.menu'));
         $this->assertSame('Descripcion SEO desde CMS', data_get($payload, 'seo.description'));
+        $this->assertStringNotContainsString('/assets/img/', (string) data_get($payload, 'content.home.slides.0.logo'));
+        $this->assertStringNotContainsString('/assets/img/', (string) data_get($payload, 'content.home.slides.0.personImage'));
+        $this->assertStringNotContainsString('/assets/img/', (string) data_get($payload, 'content.about.scrollytelling.steps.0.image'));
+        $this->assertStringNotContainsString('/assets/img/', (string) data_get($payload, 'content.music.tracks.0.image'));
+        $this->assertStringNotContainsString('/assets/img/', (string) data_get($payload, 'mediaData.photos.0.src'));
+        $this->assertStringNotContainsString('/assets/img/', (string) data_get($payload, 'contactData.sponsorLogos.0.imgSrc'));
     }
 
     public function test_phase_7_localized_route_uses_locale_specific_cms_content_and_seo(): void

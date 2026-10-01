@@ -1,5 +1,6 @@
 import { Head, usePage } from '@inertiajs/react'
 import { useMemo, useState } from 'react'
+import bgTexture2 from '../../images/bg/bg-texture-2.png'
 import BackofficeFlashMessages from '../Components/Backoffice/BackofficeFlashMessages'
 import BackofficeSidebar from '../Components/Backoffice/BackofficeSidebar'
 import BackofficeTopbar from '../Components/Backoffice/BackofficeTopbar'
@@ -37,14 +38,12 @@ export default function BackofficeLayout({
 
     return (
         <>
-            <Head title={title}>
-                <link rel="stylesheet" href="/assets/fonts/Inter/style.css" />
-            </Head>
+            <Head title={title} />
 
             <div className="relative h-full overflow-hidden bg-slate-950 text-white">
                 <div className="pointer-events-none absolute inset-0">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.14),transparent_32%),radial-gradient(circle_at_top_right,rgba(217,70,239,0.16),transparent_30%),radial-gradient(circle_at_bottom_center,rgba(56,189,248,0.08),transparent_34%)]" />
-                    <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: "url('/assets/img/bg/bg-texture-2.png')" }} />
+                    <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: `url(${bgTexture2})` }} />
                 </div>
 
                 <div className="relative flex h-full min-h-0">

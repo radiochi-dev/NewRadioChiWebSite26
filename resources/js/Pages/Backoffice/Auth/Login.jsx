@@ -1,6 +1,8 @@
 import { Head, useForm } from '@inertiajs/react'
 import { FiArrowRight, FiEye, FiEyeOff } from 'react-icons/fi'
 import { useState } from 'react'
+import bgTexture2 from '../../../../images/bg/bg-texture-2.png'
+import logoWhiteSvg from '../../../../images/logos/RC_Logo_white.svg'
 import BackofficeLoginFooter from '../../../Components/Backoffice/BackofficeLoginFooter'
 
 function FieldError({ message }) {
@@ -31,16 +33,14 @@ export default function Login({ title, description, footer }) {
 
     return (
         <>
-            <Head title={title}>
-                <link rel="stylesheet" href="/assets/fonts/Inter/style.css" />
-            </Head>
+            <Head title={title} />
 
             <div className="min-h-screen overflow-hidden bg-black text-white">
                 <div className="pointer-events-none fixed inset-0">
                     <div className="absolute inset-0 bg-[linear-gradient(-45deg,#ff1493,#000,#00ffff,#000,#8a2be2,#000,#ff00ff,#000,#1e90ff)] bg-[length:600%_600%] animate-[backoffice-login-gradient_15s_ease_infinite]" />
                     <div
                         className="absolute inset-0 opacity-[0.14]"
-                        style={{ backgroundImage: "url('/assets/img/bg/bg-texture-2.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+                        style={{ backgroundImage: `url(${bgTexture2})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
                     />
                 </div>
 
@@ -49,7 +49,7 @@ export default function Login({ title, description, footer }) {
                         <div className="w-full max-w-2xl">
                             <div className="mx-auto max-w-xl text-center">
                                 <img
-                                    src="/assets/img/logos/RC_Logo_white.svg"
+                                    src={logoWhiteSvg}
                                     alt="RadioChi Backoffice"
                                     className="mx-auto mb-6 h-auto w-[min(15rem,65vw)] drop-shadow-[0_0_28px_rgba(255,255,255,0.2)]"
                                 />
