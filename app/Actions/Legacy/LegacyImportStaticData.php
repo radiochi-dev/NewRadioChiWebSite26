@@ -53,6 +53,7 @@ class LegacyImportStaticData
             ['platform' => 'instagram', 'label' => 'Instagram', 'url' => 'https://www.instagram.com/mrchiloveyou/', 'icon_key' => 'instagram', 'location' => 'global'],
             ['platform' => 'soundcloud', 'label' => 'SoundCloud', 'url' => 'https://soundcloud.com/mrchi1', 'icon_key' => 'soundcloud', 'location' => 'global'],
             ['platform' => 'spotify', 'label' => 'Spotify', 'url' => 'https://open.spotify.com/', 'icon_key' => 'spotify', 'location' => 'global'],
+            ['platform' => 'youtube', 'label' => 'YouTube', 'url' => 'https://www.youtube.com/channel/TUCANALAQUI', 'icon_key' => 'youtube', 'location' => 'global'],
         ];
     }
 

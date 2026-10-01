@@ -32,11 +32,11 @@ class BackofficeShellPreviewTest extends TestCase
                 ->where('auth.capabilities.hasBackofficeAccess', true)
                 ->where('auth.capabilities.canManageBackofficeContent', true)
                 ->where('backoffice.branding.name', 'RadioChi Backoffice')
-                ->has('backoffice.navigation', 7)
+                ->has('backoffice.navigation', 6)
                 ->where('backoffice.navigation.1.label', 'Editorial / contenido')
                 ->where('backoffice.navigation.2.label', 'Media')
                 ->where('backoffice.navigation.3.label', 'Marketing')
-                ->where('backoffice.navigation.6.label', 'Configuracion')
+                ->where('backoffice.navigation.5.label', 'Configuracion')
                 ->has('summaryCards', 6)
                 ->has('quickActions', 3)
                 ->has('recentTables', 4));
@@ -72,9 +72,9 @@ class BackofficeShellPreviewTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Backoffice/Dashboard/Index')
-                ->where('backoffice.navigation.6.items.0.slug', 'users')
-                ->where('backoffice.navigation.6.items.0.label', 'Usuarios')
-                ->where('backoffice.navigation.6.items.1.slug', 'settings')
-                ->where('backoffice.navigation.6.items.1.label', 'Configuracion del sitio'));
+                ->where('backoffice.navigation.5.items.0.slug', 'users')
+                ->where('backoffice.navigation.5.items.0.label', 'Usuarios')
+                ->where('backoffice.navigation.5.items.1.slug', 'settings')
+                ->where('backoffice.navigation.5.items.1.label', 'Configuracion del sitio'));
     }
 }

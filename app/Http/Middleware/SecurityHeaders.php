@@ -30,18 +30,62 @@ class SecurityHeaders
 
     private function contentSecurityPolicy(Request $request): string
     {
-        return implode('; ', [
-            "default-src 'self'",
-            "img-src 'self' https: data:",
-            "media-src 'self' https:",
-            "font-src 'self' https: data:",
-            "style-src 'self' 'unsafe-inline' https:",
-            "script-src 'self' 'unsafe-inline' https:",
-            "connect-src 'self' https:",
-            "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
-            "object-src 'none'",
-            "base-uri 'self'",
-            "form-action 'self'",
-        ]);
+        $directives = [
+            'default-src' => ["'self'"],
+            'img-src' => ["'self'", 'https:', 'data:'],
+            'media-src' => ["'self'", 'https:'],
+            'font-src' => ["'self'", 'https:', 'data:'],
+            'style-src' => ["'self'", "'unsafe-inline'", 'https:'],
+            'script-src' => ["'self'", "'unsafe-inline'", 'https:'],
+            'connect-src' => ["'self'", 'https:'],
+            'frame-src' => ['https://www.youtube.com', 'https://www.youtube-nocookie.com', 'https://w.soundcloud.com'],
+            'object-src' => ["'none'"],
+            'base-uri' => ["'self'"],
+            'form-action' => ["'self'"],
+        ];
+
+        if ($this->shouldAllowLocalViteHmr()) {
+            $directives['style-src'] = array_merge($directives['style-src'], $this->localViteHttpOrigins());
+            $directives['script-src'] = array_merge($directives['script-src'], $this->localViteHttpOrigins());
+            $directives['connect-src'] = array_merge(
+                $directives['connect-src'],
+                $this->localViteHttpOrigins(),
+                $this->localViteWsOrigins(),
+            );
+        }
+
+        return implode('; ', array_map(
+            static fn (string $directive, array $sources): string => $directive . ' ' . implode(' ', array_values(array_unique($sources))),
+            array_keys($directives),
+            $directives,
+        ));
+    }
+
+    private function shouldAllowLocalViteHmr(): bool
+    {
+        // Keep Vite dev-server origins scoped to local development only.
+        return app()->environment('local') && is_file(public_path('hot'));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function localViteHttpOrigins(): array
+    {
+        return [
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function localViteWsOrigins(): array
+    {
+        return [
+            'ws://localhost:5173',
+            'ws://127.0.0.1:5173',
+        ];
     }
 }

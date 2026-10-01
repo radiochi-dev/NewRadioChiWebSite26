@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Backoffice;
 use App\Actions\Backoffice\BuildBackofficeCrudModulePayloadAction;
 use App\Actions\Backoffice\BuildBackofficePhase6CrudPayloadAction;
 use App\Actions\Backoffice\SaveBackofficePhase6ModuleAction;
+use App\Actions\Newsletter\ManageNewsletterSubscriberBackofficeAction;
 use App\Actions\Newsletter\QueueNewsletterCampaign;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backoffice\BackofficePreviewActionRequest;
 use App\Http\Requests\Backoffice\BackofficePreviewDraftRequest;
 use App\Http\Requests\Backoffice\BackofficePreviewIndexRequest;
 use App\Models\NewsletterCampaign;
+use App\Models\NewsletterSubscriber;
 use App\Models\Page;
 use App\Models\PageBlock;
 use App\Models\User;
@@ -29,6 +31,7 @@ class PreviewController extends Controller
         private readonly BuildBackofficeCrudModulePayloadAction $crudPayload,
         private readonly BuildBackofficePhase6CrudPayloadAction $phase6Payload,
         private readonly SaveBackofficePhase6ModuleAction $savePhase6Module,
+        private readonly ManageNewsletterSubscriberBackofficeAction $manageNewsletterSubscriber,
         private readonly QueueNewsletterCampaign $queueNewsletterCampaign,
     ) {
     }
@@ -191,6 +194,27 @@ class PreviewController extends Controller
 
             return redirect(BackofficePath::active('newsletter-campaigns/'.$campaign->getKey().'/edit'))
                 ->with('success', 'Campana newsletter encolada correctamente.');
+        }
+
+        if ($module === 'newsletter-subscribers' && in_array($action, ['unsubscribe', 'reactivate', 'forget'], true)) {
+            $subscriber = NewsletterSubscriber::query()->findOrFail((string) $request->validated('record'));
+
+            if ($action === 'forget') {
+                abort_unless($request->user()?->isSuperAdmin() === true, 403);
+            }
+
+            $email = $subscriber->email;
+            $recordId = $subscriber->getKey();
+
+            $this->manageNewsletterSubscriber->execute($subscriber, $action);
+
+            return match ($action) {
+                'unsubscribe' => redirect()->back()->with('success', 'Suscriptor dado de baja correctamente.'),
+                'reactivate' => redirect()->back()->with('success', 'Suscriptor reactivado correctamente.'),
+                'forget' => redirect(BackofficePath::active('newsletter-subscribers'))
+                    ->with('success', sprintf('Suscriptor %s eliminado definitivamente con cascada de logs RGPD.', $email ?? '#'.$recordId)),
+                default => redirect()->back(),
+            };
         }
 
         return redirect()->back()->with('success', 'Accion `'.$action.'` validada para `'.$module.'` en la superficie oficial del backoffice.');

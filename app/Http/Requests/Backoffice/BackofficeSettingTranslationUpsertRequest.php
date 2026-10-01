@@ -32,6 +32,12 @@ class BackofficeSettingTranslationUpsertRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if (! $this->has('locale') && filled($this->query('locale'))) {
+            $this->merge([
+                'locale' => (string) $this->query('locale'),
+            ]);
+        }
+
         if ($this->has('value') && is_string($this->input('value')) && $this->looksLikeJson((string) $this->input('value'))) {
             $this->merge([
                 'value' => $this->decodeJsonField('value'),

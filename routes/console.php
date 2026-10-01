@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Automation\DispatchN8nWorkflowAction;
+use App\Actions\Legal\SyncNewsletterTransparencyLegalDocsAction;
 use App\Actions\Legacy\ImportLegacyContentAction;
 use App\Jobs\SendNewsletterCampaignJob;
 use App\Jobs\SyncInstagramFeedJob;
@@ -80,6 +81,20 @@ Artisan::command('legacy:import-content', function (ImportLegacyContentAction $a
 
     return self::SUCCESS;
 })->purpose('Import legacy JSON and hardcoded legacy content into CMS tables');
+
+Artisan::command('legal:sync-newsletter-transparency', function (SyncNewsletterTransparencyLegalDocsAction $action) {
+    $summary = $action->execute();
+
+    $this->info('Newsletter legal transparency content synchronized successfully.');
+    $this->table(['Metric', 'Value'], [
+        ['legal_documents', $summary['legal_documents']],
+        ['legal_document_translations', $summary['legal_document_translations']],
+        ['button_translations', $summary['button_translations']],
+        ['legal_document_version', $summary['version']],
+    ]);
+
+    return self::SUCCESS;
+})->purpose('Synchronize public legal documents and labels for newsletter transparency');
 
 Artisan::command('automation:provision-database-access', function () {
     if (DB::getDriverName() !== 'pgsql') {

@@ -9,6 +9,7 @@ export default function LegacyHeader({
     locales,
     currentPath,
     menu,
+    visibleSections = [],
     socialLinks = [],
     legalLabels = {},
     isPlaying,
@@ -21,6 +22,7 @@ export default function LegacyHeader({
     const [menuOpen, setMenuOpen] = useState(false)
     const [blurActive, setBlurActive] = useState(false)
     const findSocialLink = (platform) => socialLinks.find((link) => link.platform === platform) ?? { url: '#', label: platform }
+    const calendarVisible = visibleSections.includes('calendar')
 
     useEffect(() => {
         let timeoutId = null
@@ -67,7 +69,7 @@ export default function LegacyHeader({
             <header className={`legacy-header ${blurActive ? 'blur-active' : ''}`}>
                 <div className="legacy-header-inner">
                     <a href="#home" onClick={(e) => (e.preventDefault(), go('home'))} className="legacy-header-logo-link">
-                        <img src="/assets/img/logos/RC_Logo_white.png" alt="RadioChi" className="legacy-header-logo" />
+                        <img src="/assets/img/logos/RC_Logo_white.png" alt="Logo de RadioChi" className="legacy-header-logo" />
                     </a>
                     <div className="legacy-header-right">
                         <button onClick={onTogglePlay} className="legacy-header-icon" aria-label="Reproducir/Pausar música">
@@ -110,7 +112,9 @@ export default function LegacyHeader({
                     <a href="#home" onClick={(e) => (e.preventDefault(), go('home'))}>{menu?.home}</a>
                     <a href="#about" onClick={(e) => (e.preventDefault(), go('about'))}>{menu?.about}</a>
                     <a href="#music" onClick={(e) => (e.preventDefault(), go('music'))}>{menu?.music}</a>
-                    <a href="#calendar" onClick={(e) => (e.preventDefault(), go('calendar'))}>{menu?.calendarEvents}</a>
+                    {calendarVisible && (
+                        <a href="#calendar" onClick={(e) => (e.preventDefault(), go('calendar'))}>{menu?.calendarEvents}</a>
+                    )}
                     <a href="#contact" onClick={(e) => (e.preventDefault(), go('contact'))}>{menu?.contact}</a>
                     <div className="legacy-side-divider" />
                     <button className="legacy-side-policy" onClick={() => { setMenuOpen(false); onOpenLegalModal?.('terms') }}>{legalLabels.terms_button ?? 'Términos y Condiciones'}</button>

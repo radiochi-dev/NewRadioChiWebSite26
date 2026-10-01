@@ -139,6 +139,9 @@ Se ha corregido la mezcla incorrecta entre paginas y bloques tecnicos:
 - `pages/home/edit` deja de mostrar el bloque sobrante `Modo EDIT` y sustituye la lista lineal de hero por un editor inline con tabs dentro del mismo contenedor: `Contenido base`, `Slide 01`, `Slide 02`, etc.
 - desde esa misma superficie page-centric ya existe `Nuevo slide` y cada tab de slide expone su propia accion `Eliminar`, manteniendo el idioma activo sobre el mismo contenedor sin abrir una pantalla separada por item.
 - el redirect de guardado de traducciones de pagina/bloque ya conserva `focus` para devolver el editor inline a la pestaña concreta que se estaba editando.
+- se cierra la regla publica de `Calendar`: el payload ya calcula eventos futuros vigentes, oculta la seccion y la entrada de navegacion cuando no alcanza el umbral editorial, y permite forzar visibilidad desde `calendar.visibility` en modo manual sin romper scroll/hash/progress del `Home` legacy.
+- se completa la auditoria de `alt` descriptivo en el front publico principal: hero, logos, tracks, posters de eventos, thumbnails de video, sponsors y lightbox consumen ahora textos alternativos enriquecidos desde payload o desde copy explicito en componentes estaticos.
+- se corrige la incidencia de paridad en `Contact`: la capa `mapa-mundi` vuelve a respetar la jerarquia visual de la referencia Astro, queda por encima del fondo animado y recupera el zoom `1.8 -> 1` sin el overlay oscuro extra que la estaba tapando en la migracion React/Inertia.
 - los formularios del backoffice dejan de mostrar tanto el panel `Modo EDIT` como la tarjeta-resumen `Modo`, reduciendo ruido visual en todas las superficies CRUD.
 - los componentes compartidos de campos (`Input`, `Textarea`, `Select`, `RichTextField`, `ImageField`, toggles y checkboxes de tabla) quedan ajustados para tema oscuro: iconos de fecha/hora aclarados, checks con `accent-color` consistente y SVG de controles con contraste suficiente.
 - los botones del backoffice (`Button`, tabs editoriales, toggle de filtros y CTA de login) abandonan el gradient y pasan a un patron unico mas sobrio: fondo transparente + borde/texto del color de acento en reposo, y fondo lleno del mismo color con contraste alto en hover/active/focus-visible.
@@ -146,6 +149,9 @@ Se ha corregido la mezcla incorrecta entre paginas y bloques tecnicos:
 - los menús de idioma que viven en `actions` del `BackofficeLayout` ya soportan `active`, de modo que `pages/home/edit`, `pages/login/edit` y el resto del flujo page-centric marcan el locale seleccionado con el mismo estado visual relleno.
 - el bloque `Configuracion` deja de mezclar conceptos: `users` pasa a ser un modulo administrativo independiente para cuentas y roles del backoffice, mientras `settings` se presenta como `Configuracion del sitio` para los ajustes globales reutilizados por el frontend.
 - se auditan warnings de clases Tailwind en la shell React/Inertia del backoffice y se sustituyen utilidades arbitrarias simplificables por su forma canonica (`bg-white/3`, `bg-white/4`, `bg-white/6`, `bg-cyan-400/5`, etc.); la comprobacion por build confirma que el import `BackofficeTopbar -> BackofficeBreadcrumbs` no esta roto en codigo.
+- `/backoffice/settings` deja de exponer el listado tecnico de claves y pasa a un dashboard de configuracion guiado por secciones funcionales del sitio. El locale activo filtra los accesos a editores traducibles (`header`, `footer`, `legal`, `contact`) y el bloque `Correo y newsletter` enlaza con los modulos operativos reales y muestra el estado actual del mailer/cola sin inventar otro subsistema paralelo.
+- refinamiento posterior del dashboard de `Configuracion`: YouTube deja de vivir como setting visible y pasa a depender de `social-links` como fuente unica; el editor de traducciones de settings elimina el selector `Idioma` redundante cuando el locale ya esta resuelto desde cabecera/URL; y `Documentos legales` se retira del sidebar para entrar desde el propio bloque de configuracion y descargar la navegacion lateral.
+- se introducen dos ajustes funcionales nuevos no tecnicos en `settings`: `general.site_profile` y `media.upload_defaults`. Con ellos, `Configuracion` ya expone campos reales para titulo del sitio, descripcion corta, correo administrativo, zona horaria, formatos, permiso de registro y politica/tamanos de uploads, mientras `Correo` e `Integraciones` permanecen como superficies de estado operativo inspiradas en Strapi para no meter secretos SMTP/N8N/Ollama en la base de datos.
 - validacion reciente cerrada en runtime Docker del proyecto:
   - `BackofficePhase6CrudPersistenceTest`: 13 tests OK, 282 assertions.
   - `BackofficePhase7RichContentPersistenceTest`: 10 tests OK, 176 assertions.
@@ -439,3 +445,85 @@ Hay que ejecutar en este orden:
 3. implementar el selector de idioma en cabecera del editor de pagina;
 4. migrar `home` como primera pagina piloto;
 5. despues extender el patron al resto de paginas.
+
+## Incidencia relacionada: newsletter publica legal - estado transversal
+
+- **Estado:** `Fase 2 backend completada`
+- **Avance de la incidencia:** `40%`
+- ~~Backend publico de newsletter ya operativo con locale `es/en/ca/fr/it/de` para mensajes de alta, confirmacion y baja.~~
+- ~~No se ha tocado la maquetacion de `Home` ni `Contact`; el feedback publico vive en una pagina Inertia aislada para no contaminar el frontend actual.~~
+- ~~La re-suscripcion de un correo dado de baja ya renueva `confirmation_token` y deja el registro de nuevo en estado pendiente.~~
+- Pendiente: integracion del formulario visible en `Contact` y la capa de correo legal completa.
+
+## Incidencia relacionada: newsletter publica legal - correo y docs
+
+- **Estado:** `Fase 3 backend completada`
+- **Avance de la incidencia:** `50%`
+- ~~El sistema ya envia mailables de newsletter con footer legal comun y headers `List-Unsubscribe` / `List-Unsubscribe-Post`.~~
+- ~~Se habilito una pagina publica minima para documentos legales enlazable desde los correos sin tocar el layout actual de `Home`.~~
+- ~~Las campanas dejan de salir por HTML directo y pasan por un `Mailable` reusable preparado para evolucion futura.~~
+- Pendiente: formulario visible en `Contact` y UX publica del alta dentro del frontend legacy.
+
+## Incidencia relacionada: newsletter publica legal - formulario en Contact
+
+- **Estado:** `Fase 4 frontend completada`
+- **Avance de la incidencia:** `57%`
+- ~~El formulario visible de newsletter ya vive dentro de la seccion real `Contact` de `Home.jsx`, respetando la composicion legacy con redes, sponsors y marquee.~~
+- ~~El flujo usa `useForm`, normaliza el email a lowercase en tiempo real, envia `privacy_accepted`, `website` y `locale`, y muestra validacion/feedback inline sin salir de la pagina.~~
+- ~~La Politica de Privacidad se abre desde el propio bloque newsletter reutilizando el modal legal actual o la ruta legal publica.~~
+- ~~El caso de suscriptor duplicado ya muestra un modal localizado por idioma en lugar de insertar un registro nuevo o degradar la UX con errores crudos.~~
+- ~~La cobertura del payload publico se amplia para `contactData.newsletterForm` y la validacion final se cierra con tests feature y `npm run build`.~~
+- Pendiente: operativa RGPD avanzada del backoffice de suscriptores y cierre legal multidioma previo a produccion.
+
+## Incidencia relacionada: newsletter publica legal - backoffice suscriptores
+
+- **Estado:** `Fase 5 operativa completada`
+- **Avance de la incidencia:** `71%`
+- ~~El modulo de suscriptores del backoffice ya permite baja manual, reactivacion y borrado RGPD definitivo dentro del shell React/Inertia existente.~~
+- ~~La tabla reutilizable soporta acciones por fila con POST y confirmacion explicita para operaciones sensibles.~~
+- ~~La ficha del suscriptor muestra datos legales operativos en solo lectura y reserva el borrado definitivo a `super_admin`.~~
+- ~~La regresion de permisos y acciones queda validada en tests feature reales y el build frontend sigue en verde.~~
+- Pendiente: actualizacion legal multidioma de privacidad/LSSI y versionado explicito del texto consentido antes de produccion.
+
+## Incidencia relacionada: newsletter publica legal - transparencia multidioma
+
+- **Estado:** `Fase 6 completada`
+- **Avance de la incidencia:** `86%`
+- ~~La fuente legal publicada para newsletter pasa a ser multidioma y versionada mediante `NewsletterLegalContent`, con textos ya alineados a la existencia real de la newsletter.~~
+- ~~Se fija `consent_text_version = v1.1` como contrato unico en dominio, controlador, payload y tests.~~
+- ~~El formulario visible de `Contact` incorpora resumen legal multidioma con responsable, finalidad comercial, baja y doble confirmacion.~~
+- ~~Se anade el comando `legal:sync-newsletter-transparency` y se ejecuta para sincronizar el entorno actual sin depender de un reinicio completo del import legacy.~~
+- ~~La copia versionada aceptada queda conservada en `docs/legal/newsletter-consent/v1.1.md`.~~
+- Pendiente: QA final y cierre de despliegue.
+
+## Incidencia relacionada: newsletter publica legal - QA final
+
+- **Estado:** `Fase 7 completada`
+- **Avance de la incidencia:** `100%`
+- ~~Se completan los casos de endurecimiento del flujo publico: honeypot, throttling y confirmacion con signed URL expirada.~~
+- ~~La validacion integral queda cerrada con `43 tests` y `612 assertions` sobre newsletter, legal sync, payload publico, backoffice y shell oficial.~~
+- ~~Se valida visualmente el bloque newsletter en `Contact`, incluyendo resumen legal multidioma visible en la tarjeta publica.~~
+- ~~El build final se mantiene en verde; solo quedan warnings conocidos de Vite sin bloqueo funcional inmediato.~~
+- Integracion newsletter legal cerrada en esta fase.
+
+## Ajuste posterior: tarjeta newsletter en Contact
+
+- **Estado:** `Aplicado`
+- ~~Se retira de la tarjeta visible el resumen legal corto para no duplicar informacion ya presente en los documentos legales publicados.~~
+- ~~La tarjeta newsletter se recoloca por encima de redes sociales y se reduce el tamano visual de los iconos sociales para mejorar la maquetacion de `Contact`.~~
+- ~~Correccion adicional de layout: formulario realmente centrado en horizontal y redes sociales centradas entre el marquee y el carrusel de sponsors, con hover visible.~~
+- ~~Correccion adicional de robustez visual: `Contact` pasa a usar bandas verticales reservadas para evitar que marquee, redes y sponsors se vuelvan a pisar en composicion responsive.~~
+
+## Ajuste posterior: Contact responsive final
+
+- **Estado:** `Aplicado`
+- [x] ~~Se elimina la duplicidad visual de redes sociales dentro de `Contact`; las salidas sociales siguen vivas en el footer compartido y no requieren nueva traduccion.~~
+- [x] ~~La tarjeta newsletter queda centrada en ambos ejes y con fondo ligeramente mas opaco, manteniendo intactos los textos localizados ya servidos por `contactData.newsletterForm`.~~
+- [x] ~~El carrusel de sponsors se convierte en una marquesina continua sin huecos visibles, evitando el salto de loop que rompía la percepcion visual del bloque multiidioma.~~
+- [x] ~~La banda tipografica inferior se adapta tambien por altura de viewport para que las frases localizadas no se corten en composiciones bajas.~~
+
+## Ajuste posterior: SoundCloud sin impacto en payload localizado
+
+- **Estado:** `Aplicado`
+- [x] ~~La normalizacion de `soundcloudEmbedUrl` se añade al payload publico de `music.tracks` sin alterar las cadenas localizadas existentes del bloque musical.~~
+- [x] ~~La correccion del widget SoundCloud y la CSP del reproductor oficial no introduce nuevas claves de traduccion ni cambia el contrato multiidioma de `Home.jsx`.~~

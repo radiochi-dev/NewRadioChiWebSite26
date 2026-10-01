@@ -146,16 +146,20 @@ class BackofficePreviewDraftRequest extends FormRequest
                 'settings' => ['nullable', 'array'],
             ],
             'settings' => [
-                'group' => ['required', 'string', 'max:120'],
+                'group' => $record === ''
+                    ? ['required', 'string', 'max:120']
+                    : ['nullable', 'string', 'max:120'],
                 'key' => [
-                    'required',
+                    ...($record === '' ? ['required'] : ['nullable']),
                     'string',
                     'max:255',
                     Rule::unique('settings', 'key')
                         ->where(fn ($query) => $query->where('group', $this->input('group')))
                         ->ignore($record),
                 ],
-                'type' => ['required', 'string', Rule::in(['string', 'json', 'boolean', 'number', 'url', 'html'])],
+                'type' => $record === ''
+                    ? ['required', 'string', Rule::in(['string', 'json', 'boolean', 'number', 'url', 'html'])]
+                    : ['nullable', 'string', Rule::in(['string', 'json', 'boolean', 'number', 'url', 'html'])],
                 'value' => ['nullable', 'array'],
                 'locale' => $this->usesIntegratedSettingTranslation($record)
                     ? ['required', 'string', 'max:5', Rule::in(BackofficeLocales::values())]
@@ -269,6 +273,8 @@ class BackofficePreviewDraftRequest extends FormRequest
             ],
             'newsletter-campaigns' => [],
             'newsletter-subscribers' => [
+                'email' => Str::lower(trim((string) $this->input('email'))),
+                'name' => trim((string) $this->input('name')),
                 'is_active' => $this->boolean('is_active'),
             ],
             'pages' => [
@@ -287,7 +293,7 @@ class BackofficePreviewDraftRequest extends FormRequest
                 'is_public' => $this->boolean('is_public'),
                 'value' => $this->usesIntegratedSettingTranslation((string) $this->route('record'))
                     ? $this->typedSettingValuePayload((string) $this->route('record'))
-                    : $this->decodeJsonField('value'),
+                    : ($this->typedSettingRecordValuePayload((string) $this->route('record')) ?? $this->decodeJsonField('value')),
                 'settings' => $this->decodeJsonField('settings'),
             ],
             'users' => [
@@ -445,6 +451,67 @@ class BackofficePreviewDraftRequest extends FormRequest
 
         if ($this->has('value') && ! is_array($this->input('value'))) {
             Arr::set($base, 'value', $this->input('value'));
+        }
+
+        return $base;
+    }
+
+    private function typedSettingRecordValuePayload(?string $record = null): ?array
+    {
+        if ($this->has('value') && is_string($this->input('value')) && $this->looksLikeJson((string) $this->input('value'))) {
+            return $this->decodeJsonField('value');
+        }
+
+        if (! is_string($record) || trim($record) === '') {
+            return null;
+        }
+
+        $setting = Setting::query()->find($record);
+
+        if (! $setting instanceof Setting) {
+            return null;
+        }
+
+        $mapping = match ($setting->group.'.'.$setting->key) {
+            'general.site_profile' => [
+                'site_title' => 'site_title',
+                'site_tagline' => 'site_tagline',
+                'admin_email' => 'admin_email',
+                'timezone' => 'timezone',
+                'date_format' => 'date_format',
+                'time_format' => 'time_format',
+                'registration_enabled' => 'registration_enabled',
+            ],
+            'media.upload_defaults' => [
+                'organize_by_date' => 'organize_by_date',
+                'thumbnail_width' => 'thumbnail.width',
+                'thumbnail_height' => 'thumbnail.height',
+                'medium_width' => 'medium.width',
+                'medium_height' => 'medium.height',
+                'large_width' => 'large.width',
+                'large_height' => 'large.height',
+            ],
+            'calendar.visibility' => [
+                'mode' => 'mode',
+                'manual_enabled' => 'manual_enabled',
+                'minimum_upcoming_events' => 'minimum_upcoming_events',
+                'lookahead_days' => 'lookahead_days',
+            ],
+            default => [],
+        };
+
+        if ($mapping === []) {
+            return null;
+        }
+
+        $base = is_array($setting->value) ? $setting->value : [];
+
+        foreach ($mapping as $field => $key) {
+            if (! $this->has($field)) {
+                continue;
+            }
+
+            Arr::set($base, $key, $this->input($field));
         }
 
         return $base;

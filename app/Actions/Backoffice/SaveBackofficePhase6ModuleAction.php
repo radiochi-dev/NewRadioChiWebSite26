@@ -324,24 +324,24 @@ class SaveBackofficePhase6ModuleAction
     private function saveSetting(array $data, ?string $record): Setting
     {
         $setting = $record ? Setting::query()->findOrFail($record) : new Setting();
-        $payload = Arr::only($data, [
-            'group',
-            'key',
-            'type',
-            'is_translatable',
-            'is_public',
-            'position',
-            'settings',
-        ]);
+        $payload = [
+            'group' => $data['group'] ?? $setting->group,
+            'key' => $data['key'] ?? $setting->key,
+            'type' => $data['type'] ?? $setting->type,
+            'is_translatable' => array_key_exists('is_translatable', $data) ? $data['is_translatable'] : $setting->is_translatable,
+            'is_public' => array_key_exists('is_public', $data) ? $data['is_public'] : $setting->is_public,
+            'position' => $data['position'] ?? $setting->position ?? 0,
+            'settings' => array_key_exists('settings', $data) ? $data['settings'] : $setting->settings,
+        ];
 
-        $payload['value'] = ($data['is_translatable'] ?? false)
+        $payload['value'] = ($payload['is_translatable'] ?? false)
             ? null
-            : ($data['value'] ?? null);
+            : ($data['value'] ?? $setting->value);
 
         $setting->fill($payload);
         $setting->save();
 
-        if (($data['is_translatable'] ?? false) && isset($data['locale'])) {
+        if (($payload['is_translatable'] ?? false) && isset($data['locale'])) {
             $this->saveSettingTranslation($setting, [
                 'locale' => $data['locale'],
                 'value' => is_array($data['value'] ?? null) ? $data['value'] : [],

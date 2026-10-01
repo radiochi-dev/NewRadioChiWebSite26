@@ -136,7 +136,15 @@ export default function DataTable({ table }) {
                                                     key={`${row.id}-${action.label}`}
                                                     href={action.href}
                                                     variant={action.variant}
+                                                    method={action.method ?? 'get'}
+                                                    data={action.data}
                                                     disabled={!action.enabled}
+                                                    preserveScroll={action.method && action.method !== 'get'}
+                                                    onClick={(event) => {
+                                                        if (action.confirmText && !window.confirm(action.confirmText)) {
+                                                            event.preventDefault()
+                                                        }
+                                                    }}
                                                 >
                                                     {action.label}
                                                 </Button>

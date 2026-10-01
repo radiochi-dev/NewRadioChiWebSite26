@@ -1,13 +1,38 @@
 import { motion } from 'framer-motion'
 
 const photos = [
-    '/assets/img/media/Abraxas2.webp',
-    '/assets/img/media/Decadance1.webp',
-    '/assets/img/media/PrideGranCanarias1.webp',
-    '/assets/img/media/SitgesPride1.webp',
+    {
+        src: '/assets/img/media/Abraxas2.webp',
+        alt: 'Fotografia del evento Abraxas en la galeria de RadioChi',
+    },
+    {
+        src: '/assets/img/media/Decadance1.webp',
+        alt: 'Fotografia del evento Decadance en la galeria de RadioChi',
+    },
+    {
+        src: '/assets/img/media/PrideGranCanarias1.webp',
+        alt: 'Fotografia de Pride Gran Canaria en la galeria de RadioChi',
+    },
+    {
+        src: '/assets/img/media/SitgesPride1.webp',
+        alt: 'Fotografia de Sitges Pride en la galeria de RadioChi',
+    },
 ]
 
-const videos = ['3CJOX4v3hww', 'L_NqmQPf1Mw', '0dSI9i1G3dc']
+const videos = [
+    {
+        id: '3CJOX4v3hww',
+        alt: 'Miniatura del video de RadioChi en YouTube 3CJOX4v3hww',
+    },
+    {
+        id: 'L_NqmQPf1Mw',
+        alt: 'Miniatura del video de RadioChi en YouTube L_NqmQPf1Mw',
+    },
+    {
+        id: '0dSI9i1G3dc',
+        alt: 'Miniatura del video de RadioChi en YouTube 0dSI9i1G3dc',
+    },
+]
 
 export default function MediaSection({ content }) {
     return (
@@ -16,30 +41,30 @@ export default function MediaSection({ content }) {
                 <h2 className="text-center text-4xl font-bold md:text-6xl">{content.title}</h2>
                 <h3 className="mt-10 text-xl font-semibold">{content.photos}</h3>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-                    {photos.map((src) => (
+                    {photos.map((photo) => (
                         <motion.img
-                            key={src}
+                            key={photo.src}
                             initial={{ opacity: 0, scale: 0.96 }}
                             whileInView={{ opacity: 1, scale: 1 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.35 }}
-                            src={src}
-                            alt="RadioChi media"
+                            src={photo.src}
+                            alt={photo.alt}
                             className="h-40 w-full rounded-xl object-cover"
                         />
                     ))}
                 </div>
                 <h3 className="mt-10 text-xl font-semibold">{content.videos}</h3>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                    {videos.map((id) => (
+                    {videos.map((video) => (
                         <a
-                            key={id}
-                            href={`https://www.youtube.com/watch?v=${id}`}
+                            key={video.id}
+                            href={`https://www.youtube.com/watch?v=${video.id}`}
                             target="_blank"
                             rel="noreferrer"
                             className="group overflow-hidden rounded-xl border border-white/20 bg-white/10"
                         >
-                            <img src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`} alt="Video preview" className="h-44 w-full object-cover transition group-hover:scale-105" />
+                            <img src={`https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`} alt={video.alt} className="h-44 w-full object-cover transition group-hover:scale-105" />
                         </a>
                     ))}
                 </div>

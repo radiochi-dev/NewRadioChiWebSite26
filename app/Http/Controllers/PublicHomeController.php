@@ -63,6 +63,7 @@ class PublicHomeController extends Controller
             'mediaData' => $homePayload['mediaData'],
             'contactData' => $homePayload['contactData'],
             'events' => $homePayload['events'],
+            'visibleSections' => $homePayload['visibleSections'],
             'seo' => $homePayload['seo'],
             'analytics' => $analyticsConfig->execute(),
         ]);

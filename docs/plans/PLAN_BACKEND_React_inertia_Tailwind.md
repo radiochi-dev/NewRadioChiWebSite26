@@ -669,6 +669,11 @@ Validacion real en esta fase:
 - [x] ~~Correccion del selector de idiomas en el primer contenedor page-centric: `BackofficeLayout` ya soporta acciones activas y `BuildBackofficePhase6CrudPayloadAction` marca el locale activo en `editorialPageLocaleActions()`.~~
 - [x] ~~Bloque `Configuracion` reestructurado con criterio WordPress/Strapi: nace el modulo real `users` restringido a `super_admin`, con datos personales + rol editable, y `settings` pasa a mostrarse como `Configuracion del sitio` para dejar claro que no es la gestion de usuarios.~~
 - [x] ~~Auditoria de warnings utilitarios Tailwind en el backoffice: se normalizan clases de opacidad simplificables (`bg-white/[0.04]`, `bg-white/[0.03]`, `bg-cyan-400/[0.05]`, etc.) a su forma canonica y se valida que `BackofficeTopbar -> BackofficeBreadcrumbs` compila sin error real de import en Vite.~~
+- [x] ~~`/backoffice/settings` deja de ser un listado CRUD tecnico y pasa a un dashboard guiado de configuracion del sitio, organizado por bloques reales (`General`, `Header, footer y legal`, `Contacto y contenido compartido`, `Correo y newsletter`) con selector de idioma y enlaces a los editores/modulos operativos ya existentes.~~
+- [x] ~~Refinado posterior de `Configuracion del sitio`: YouTube deja de figurar en settings y pasa a consolidarse como fuente unica en `social-links`; el editor de traducciones de settings oculta el campo `Idioma` redundante y `Documentos legales` sale del sidebar para entrar desde `Configuracion`, que ahora se estructura en `General`, `Header, footer y legal`, `Media y uploads`, `Correo y newsletter` e `Integraciones y automatizacion`.~~
+- [x] ~~Nuevos ajustes funcionales persistidos para `Configuracion`: se backfillean `general.site_profile` y `media.upload_defaults` para cubrir identidad del sitio, correo administrativo, zona horaria, formatos, politica de registro y tamanos/organizacion de uploads sin exponer credenciales sensibles del sistema en la UI.~~
+- [x] ~~Cierre del issue publico de `Calendar` y auditoria SEO de medios: `BuildPublicHomePayloadAction`, `PublicHomeController`, `Home.jsx`, `LegacyHeader.jsx` y la migracion de settings ya soportan visibilidad automatica/manual de `Calendar`, ocultan la entrada de navegacion cuando procede y consumen `alt` descriptivo en las imagenes publicas principales sin romper la navegacion fullpage legacy.~~
+- [x] ~~Correccion de la incidencia visual en `Contact`: `resources/css/app.css` restituye la jerarquia de capas de la referencia Astro para que `mapa-mundi` vuelva a renderizarse sobre `legacy-animated-bg` y mantenga el zoom de entrada correcto sin el overlay oscuro que anulaba su lectura.~~
 
 Criterio de salida:
 - el backend React/Inertia cubre el 100% del alcance funcional actual del admin.
@@ -850,3 +855,83 @@ Criterio de salida:
 - ~~Mitigacion aplicada en `docker-compose.yml`: volumen Docker nativo para `/var/www/html/vendor` y `composer install` automatico cuando falta `vendor/autoload.php` o cambia `composer.lock`.~~
 - ~~Verificacion inicial completada: `GET /backoffice/login` baja aprox. de `8559.48 ms` a `2902.9 ms` observado desde cliente; `public/index.php` baja aprox. de `6357-7282 ms` a `370-752 ms` segun corrida.~~
 - ~~Validacion final completada con confirmacion manual de mejora sustancial en navegador real tras el ajuste de runtime Docker/PHP.~~
+
+## Incidencia adicional: newsletter publica legal - backend Fase 2
+
+- **Estado:** `Backend publico completado`
+- **Avance de la incidencia:** `40%`
+- ~~Rutas publicas creadas para `subscribe`, `confirm` y `unsubscribe`, con `throttle:5,1` en el alta.~~
+- ~~Controller publico implementado con lowercase defensivo, honeypot, trazabilidad minima, confirmacion por firma y baja idempotente `GET/POST`.~~
+- ~~Superficie Inertia `Newsletter/Status` anadida para feedback publico de confirmacion y baja sin alterar `Home.jsx`.~~
+- ~~Cobertura de tests backend completada y verificada en verde junto con regresion de `Phase4EditorialBaselineTest` y `BackofficePhase8OperationalModulesTest`.~~
+- Pendiente: mailables con `List-Unsubscribe`, formulario publico en `Contact` y operativa avanzada RGPD en el panel de suscriptores.
+
+## Incidencia adicional: newsletter publica legal - backend Fase 3
+
+- **Estado:** `Mailables y correo legal completados`
+- **Avance de la incidencia:** `50%`
+- ~~Mailables `NewsletterDoubleOptIn` y `NewsletterCampaignMail` implementados con `Envelope`, `Content`, metadata y headers legales soportados por Laravel 13.~~
+- ~~Base comun `BaseNewsletterMailable` anadida para centralizar `List-Unsubscribe`, `List-Unsubscribe-Post` y footer legal.~~
+- ~~Pipeline de confirmacion ya encola el double opt-in real; el job de campanas ya no usa `Mail::html(...)`.~~
+- ~~Ruta publica minima para documentos legales anadida para soportar enlace real a la politica de privacidad desde email.~~
+- ~~Cobertura de tests completada para render, headers, politica publica y envio de campanas.~~
+- Pendiente: integracion visual del formulario en `Contact` y acciones RGPD avanzadas en backoffice.
+
+## Incidencia adicional: newsletter publica legal - frontend Fase 4
+
+- **Estado:** `Formulario publico completado`
+- **Avance de la incidencia:** `57%`
+- ~~Formulario newsletter visible integrado en la seccion `Contact` de `Home.jsx`, sin crear una superficie paralela ni alterar la estructura legacy del frontend publico.~~
+- ~~`useForm` de Inertia conectado a `/newsletter/subscribe` con `email`, `privacy_accepted`, `website` y `locale`.~~
+- ~~Lowercase en tiempo real, validacion cliente basica, spinner y feedback inline ya activos en el flujo publico.~~
+- ~~Enlace a politica de privacidad reutilizando el modal legal del front y fallback a la ruta publica legal cuando el contenido no venga embebido en payload.~~
+- ~~Modal localizado para suscriptor duplicado implementado y enlazado al mensaje backend `newsletter.validation.already_subscribed`.~~
+- ~~Cobertura de payload publico ampliada en `Phase7PublicCmsPayloadTest` y validacion final ejecutada con `NewsletterPublicFlowTest` + `npm run build`.~~
+- Pendiente: acciones RGPD avanzadas en backoffice y alineacion legal completa de textos antes del despliegue productivo.
+
+## Incidencia adicional: newsletter publica legal - backoffice Fase 5
+
+- **Estado:** `Acciones operativas completadas`
+- **Avance de la incidencia:** `71%`
+- ~~El shell React/Inertia del backoffice ya resuelve `unsubscribe`, `reactivate` y `forget` para `newsletter-subscribers` sin abrir una superficie paralela.~~
+- ~~El indice reutilizable soporta acciones `POST` por fila con confirmacion explicita cuando la accion lo requiere.~~
+- ~~La ficha del suscriptor expone trazas legales en solo lectura (`consent_text_version`, `ip_address`, `user_agent`, tokens) y separa la accion contextual de la zona peligrosa RGPD.~~
+- ~~`super_admin` conserva el borrado definitivo con cascada de `newsletter_logs`; `editor` y `marketing` quedan limitados a baja/reactivacion; `readonly` permanece bloqueado.~~
+- ~~Cobertura validada con `BackofficePhase8OperationalModulesTest`, `BackofficePhase11QualityGateTest` y build frontend del backoffice.~~
+- Pendiente: alineacion legal multidioma de privacidad y versionado del texto consentido antes de produccion.
+
+## Incidencia adicional: newsletter publica legal - transparencia Fase 6
+
+- **Estado:** `Textos legales alineados`
+- **Avance de la incidencia:** `86%`
+- ~~`NewsletterLegalConsent` centraliza la version de consentimiento y elimina hardcodes dispersos en modelo/controlador/tests.~~
+- ~~`NewsletterLegalContent` pasa a ser la fuente canonica multidioma de `terms`, `privacy` y `cookies` para newsletter, reemplazando la dependencia activa del contenido legacy contradictorio.~~
+- ~~Se incorpora el comando `legal:sync-newsletter-transparency` para sincronizar documentos legales y botones publicos del CMS sobre entornos ya existentes.~~
+- ~~El payload de `Home` expone `consentVersion` y un resumen legal visible con responsable, finalidad, baja y doble opt-in.~~
+- ~~La version aceptada queda documentada en `docs/legal/newsletter-consent/v1.1.md` y validada por tests feature + build.~~
+- Pendiente: fase final de QA/endurecimiento antes de despliegue productivo.
+
+## Incidencia adicional: newsletter publica legal - cierre QA Fase 7
+
+- **Estado:** `Validacion integral completada`
+- **Avance de la incidencia:** `100%`
+- ~~Casos de endurecimiento cerrados en el flujo publico: honeypot, throttle y signed URL expirada.~~
+- ~~Suite final ejecutada sobre esquema, flujo newsletter, legal sync, payload publico, backoffice y shell oficial con `43 tests` / `612 assertions`.~~
+- ~~Smoke visual del `Home > Contact` validado en navegador local, comprobando formulario y resumen legal visible.~~
+- ~~Build final correcto; solo permanecen warnings conocidos de Vite no bloqueantes para esta integracion.~~
+- Integracion newsletter legal cerrada tecnicamente a falta del despliegue operativo que corresponda al proyecto.
+
+## Ajuste adicional: Contact responsive final
+
+- **Estado:** `Aplicado`
+- [x] ~~La seccion `Contact` elimina las redes sociales duplicadas y deja el footer como unico punto visual de salida a plataformas externas.~~
+- [x] ~~El formulario newsletter queda centrado de verdad en horizontal y vertical, manteniendo `framer-motion` solo para la animacion interna y sin volver a pisar el `transform` de posicionamiento.~~
+- [x] ~~La cinta de sponsors deja de depender de un unico track duplicado y pasa a una marquesina continua con cuatro secuencias, corrigiendo el salto visible del loop en el borde inferior.~~
+- [x] ~~La composicion responsive vertical se ajusta por altura de viewport para que marquee y sponsors no invadan la tarjeta newsletter ni recorten la tipografia.~~
+
+## Ajuste adicional: SoundCloud widget y politica CSP
+
+- **Estado:** `Aplicado`
+- [x] ~~Backend: `BuildPublicHomePayloadAction` normaliza `soundcloudEmbedUrl` con formato oficial `https://w.soundcloud.com/player/?url=...` para tracks heredados con URLs crudas o mixtas.~~
+- [x] ~~Frontend React: el `iframe` oculto de SoundCloud consume la URL de embed normalizada y el efecto del widget limpia listeners, intervalos y estados al reciclarse entre tracks.~~
+- [x] ~~Seguridad: `SecurityHeaders` permite solo `https://w.soundcloud.com` en `frame-src`, preservando la CSP cerrada en produccion y evitando el bloqueo del reproductor oficial.~~

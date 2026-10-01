@@ -86,7 +86,13 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
             ->assertInertia(fn (Assert $inertia) => $inertia
                 ->component('Backoffice/Preview/ModuleIndex')
                 ->where('title', 'Configuracion del sitio')
-                ->has('table.rows', 1));
+                ->has('settingsDashboard.localeActions', 6)
+                ->has('settingsDashboard.sections', 5)
+                ->where('settingsDashboard.sections.0.title', 'General del sitio')
+                ->where('settingsDashboard.sections.1.title', 'Header, footer y legal')
+                ->where('settingsDashboard.sections.2.title', 'Media y uploads')
+                ->where('settingsDashboard.sections.3.title', 'Correo y newsletter')
+                ->where('settingsDashboard.sections.4.title', 'Integraciones y automatizacion'));
 
         $this->actingAs($editor)
             ->get('/backoffice/seo-metas')
@@ -527,9 +533,9 @@ class BackofficePhase6CrudPersistenceTest extends TestCase
                 ->component('Backoffice/Preview/ModuleForm')
                 ->where('form.localeActions.0.label', 'ES')
                 ->where('form.localeActions.4.label', 'IT +')
-                ->where('form.sections.1.title', 'Contenido traducible · IT')
-                ->where('form.sections.1.fields.0.key', 'copyright')
-                ->where('form.sections.1.fields.1.key', 'rights'));
+                ->where('form.sections.0.title', 'Contenido traducible · IT')
+                ->where('form.sections.0.fields.0.key', 'copyright')
+                ->where('form.sections.0.fields.1.key', 'rights'));
 
         $this->postWithCsrf($editor, '/backoffice/settings/draft/'.$setting->id.'?locale=it', [
                 'group' => 'footer',

@@ -30,7 +30,6 @@ class BuildBackofficeNavigationAction
             $this->group('Editorial / contenido', ['pages', 'events']),
             $this->group('Media', ['media-assets', 'downloadable-files']),
             $this->group('Marketing', ['newsletter-subscribers', 'newsletter-campaigns', 'partners', 'social-links']),
-            $this->group('Legal y Footer', ['legal-documents']),
             $this->group('SEO', ['redirect-rules', 'seo-metas']),
             $this->group('Configuracion', ['users', 'settings'], $user),
         ];

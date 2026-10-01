@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useForm } from '@inertiajs/react'
+import { AnimatePresence, motion } from 'framer-motion'
 import PublicLayout from '../Layouts/PublicLayout'
 import LegacyHeader from '../Components/legacy/LegacyHeader'
 import LegacyIntro from '../Components/legacy/LegacyIntro'
@@ -8,7 +10,14 @@ import { AiFillInstagram } from 'react-icons/ai'
 import { FaFacebookSquare, FaSpotify } from 'react-icons/fa'
 import { ImSoundcloud2 } from 'react-icons/im'
 
-const sectionIds = ['home', 'about', 'music', 'calendar', 'media', 'contact']
+const DEFAULT_SECTION_IDS = ['home', 'about', 'music', 'calendar', 'media', 'contact']
+const buildVisibleSectionIds = (sections) => {
+    const requestedSections = Array.isArray(sections) && sections.length > 0
+        ? sections.filter((sectionId, index, values) => DEFAULT_SECTION_IDS.includes(sectionId) && values.indexOf(sectionId) === index)
+        : DEFAULT_SECTION_IDS
+
+    return DEFAULT_SECTION_IDS.filter((sectionId) => requestedSections.includes(sectionId))
+}
 const shuffleArray = (items) => {
     const next = [...items]
     for (let index = next.length - 1; index > 0; index -= 1) {
@@ -68,7 +77,7 @@ const MediaCarouselRow = ({
                                 onClick={() => onOpen(item, idx)}
                             >
                                 <div className="legacy-media-figure">
-                                    <img src={itemType === 'video' ? item.thumbnail : item.src} alt={itemType === 'video' ? item.title : item.alt} />
+                                    <img src={itemType === 'video' ? item.thumbnail : item.src} alt={itemType === 'video' ? (item.thumbnailAlt ?? item.title) : item.alt} />
                                     <span className="legacy-media-badge">{label}</span>
                                     {itemType === 'video' && (
                                         <span className="legacy-media-play" aria-hidden="true">
@@ -101,8 +110,9 @@ const MediaCarouselRow = ({
     </div>
 )
 
-export default function Home({ locale, locales, currentPath, events, seo, content, calendarData, mediaData, contactData, analytics }) {
+export default function Home({ locale, locales, currentPath, events, seo, content, calendarData, mediaData, contactData, visibleSections, analytics }) {
     const legacy = content ?? {}
+    const sectionIds = useMemo(() => buildVisibleSectionIds(visibleSections), [visibleSections])
     const [activeSectionIndex, setActiveSectionIndex] = useState(() => {
         if (typeof window === 'undefined') {
             return 0
@@ -132,8 +142,13 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
     const [musicItemsPerView, setMusicItemsPerView] = useState(3)
     const [musicTouchStartX, setMusicTouchStartX] = useState(0)
     const [policyModal, setPolicyModal] = useState(null)
+    const [newsletterModal, setNewsletterModal] = useState(null)
+    const [newsletterFeedback, setNewsletterFeedback] = useState(null)
+    const [newsletterEmailTouched, setNewsletterEmailTouched] = useState(false)
+    const [newsletterPrivacyTouched, setNewsletterPrivacyTouched] = useState(false)
     const soundcloudRef = useRef(null)
     const soundcloudWidgetRef = useRef(null)
+    const newsletterEmailInputRef = useRef(null)
     const positionIntervalRef = useRef(null)
     const calendarScrollRef = useRef(null)
     const sectionRefs = useRef([])
@@ -171,9 +186,61 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
     const contactSocialLinks = contactData?.socialLinks ?? []
     const footerSocialLinks = contactData?.footerSocialLinks ?? []
     const marqueeRows = contactData?.marqueeRows ?? []
+    const newsletterFormContent = contactData?.newsletterForm ?? {}
+    const {
+        data: newsletterForm,
+        setData: setNewsletterFormData,
+        post: postNewsletterSubscription,
+        processing: newsletterProcessing,
+        errors: newsletterErrors,
+        clearErrors: clearNewsletterErrors,
+        reset: resetNewsletterForm,
+        setError: setNewsletterError,
+    } = useForm({
+        email: '',
+        privacy_accepted: false,
+        website: '',
+        locale,
+    })
+    const sectionIndexMap = useMemo(
+        () => Object.fromEntries(sectionIds.map((sectionId, index) => [sectionId, index])),
+        [sectionIds],
+    )
+    const activeSectionId = sectionIds[activeSectionIndex] ?? sectionIds[0] ?? 'home'
+    const homeSectionIndex = sectionIndexMap.home ?? 0
+    const aboutSectionIndex = sectionIndexMap.about ?? 0
+    const musicSectionIndex = sectionIndexMap.music ?? 0
+    const calendarSectionIndex = sectionIndexMap.calendar ?? -1
+    const mediaSectionIndex = sectionIndexMap.media ?? 0
+    const contactSectionIndex = sectionIndexMap.contact ?? 0
     const activeTrack = tracks[currentTrack]
+    const activeTrackSoundCloudEmbedUrl = activeTrack?.soundcloudEmbedUrl || activeTrack?.soundcloudUrl || ''
+    const activeTrackHasSoundCloudEmbed = /^https:\/\/w\.soundcloud\.com\/player\/\?/i.test(activeTrackSoundCloudEmbedUrl)
     const activeAboutStep = aboutSteps[aboutTextIndex]
     const policyContent = legacy.termsPolicyCookies ?? {}
+    const newsletterEmailValue = (newsletterForm.email ?? '').trim()
+    const newsletterEmailNormalized = newsletterEmailValue.toLowerCase().replace(/\s+/g, '')
+    const newsletterEmailLooksValid = newsletterEmailValue === ''
+        ? false
+        : (newsletterEmailInputRef.current?.validity.valid ?? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newsletterEmailValue))
+    const newsletterClientEmailError = newsletterEmailTouched
+        ? (newsletterEmailValue === ''
+            ? newsletterFormContent.messages?.emailRequired
+            : (!newsletterEmailLooksValid ? newsletterFormContent.messages?.emailInvalid : ''))
+        : ''
+    const newsletterEmailError = newsletterErrors.email || newsletterClientEmailError
+    const newsletterPrivacyError = newsletterErrors.privacy_accepted
+        || (newsletterPrivacyTouched && !newsletterForm.privacy_accepted
+            ? newsletterFormContent.messages?.privacyAccepted
+            : '')
+    const buildPhotoLightbox = useCallback((photo, index) => ({
+        type: 'image',
+        index,
+        src: photo.src,
+        alt: photo.alt,
+        title: photo.caption,
+        subtitle: photo.date,
+    }), [])
     const findSocialLink = (links, platform) => links.find((link) => link.platform === platform) ?? { url: '#', label: platform }
     const trackAnalytics = (eventName, params = {}) => {
         trackPublicEvent(analytics, eventName, {
@@ -254,8 +321,95 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
             setPolicyModal({ title: policyContent.cookies?.title, content: policyContent.cookies?.content })
         }
     }
+    const openPrivacyPolicy = () => {
+        if (policyContent.privacy?.title || policyContent.privacy?.content) {
+            openLegalModal('privacy')
+            return
+        }
+
+        window.open(locale === 'es' ? '/legal/privacy' : `/${locale}/legal/privacy`, '_blank', 'noopener,noreferrer')
+    }
+    const handleNewsletterEmailChange = (event) => {
+        setNewsletterFormData('email', event.target.value.toLowerCase().replace(/\s+/g, ''))
+        setNewsletterFeedback(null)
+        setNewsletterModal(null)
+
+        if (newsletterErrors.email) {
+            clearNewsletterErrors('email')
+        }
+    }
+    const handleNewsletterPrivacyChange = (event) => {
+        setNewsletterFormData('privacy_accepted', event.target.checked)
+        setNewsletterFeedback(null)
+        setNewsletterModal(null)
+
+        if (event.target.checked && newsletterErrors.privacy_accepted) {
+            clearNewsletterErrors('privacy_accepted')
+        }
+    }
+    const handleNewsletterSubmit = (event) => {
+        event.preventDefault()
+        setNewsletterEmailTouched(true)
+        setNewsletterPrivacyTouched(true)
+        setNewsletterFeedback(null)
+        setNewsletterModal(null)
+        clearNewsletterErrors()
+
+        const normalizedEmail = newsletterEmailNormalized
+        let hasClientErrors = false
+
+        if (normalizedEmail === '') {
+            setNewsletterError('email', newsletterFormContent.messages?.emailRequired ?? '')
+            hasClientErrors = true
+        } else if (!newsletterEmailLooksValid) {
+            setNewsletterError('email', newsletterFormContent.messages?.emailInvalid ?? '')
+            hasClientErrors = true
+        }
+
+        if (!newsletterForm.privacy_accepted) {
+            setNewsletterError('privacy_accepted', newsletterFormContent.messages?.privacyAccepted ?? '')
+            hasClientErrors = true
+        }
+
+        if (hasClientErrors) {
+            return
+        }
+
+        postNewsletterSubscription('/newsletter/subscribe', {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+            onSuccess: (page) => {
+                resetNewsletterForm()
+                setNewsletterFormData('locale', locale)
+                setNewsletterEmailTouched(false)
+                setNewsletterPrivacyTouched(false)
+                clearNewsletterErrors()
+                setNewsletterFeedback({
+                    tone: 'success',
+                    message: page?.props?.flash?.success ?? newsletterFormContent.success,
+                })
+            },
+            onError: (errors) => {
+                if (errors.email === newsletterFormContent.messages?.duplicateError) {
+                    setNewsletterModal({
+                        title: newsletterFormContent.modal?.duplicateTitle,
+                        message: newsletterFormContent.modal?.duplicateBody,
+                    })
+                    return
+                }
+
+                if (errors.email) {
+                    setNewsletterFeedback({
+                        tone: 'error',
+                        message: errors.email,
+                    })
+                }
+            },
+        })
+    }
     const openPhotoLightbox = (photo, index) => {
-        setLightbox({ type: 'image', index, src: photo.src, title: photo.caption, subtitle: photo.date })
+        setLightbox(buildPhotoLightbox(photo, index))
     }
     const openVideoLightbox = (video) => {
         if (soundcloudWidgetRef.current) {
@@ -277,6 +431,31 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
     useEffect(() => {
         isScrollingRef.current = isScrolling
     }, [isScrolling])
+
+    useEffect(() => {
+        setNewsletterFormData('locale', locale)
+    }, [locale, setNewsletterFormData])
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || sectionIds.length === 0) {
+            return
+        }
+
+        const hash = window.location.hash.replace('#', '').split('/')[0]
+        const hashIndex = sectionIds.indexOf(hash)
+        const nextIndex = hashIndex >= 0
+            ? hashIndex
+            : Math.min(activeSectionIndexRef.current, sectionIds.length - 1)
+
+        if (nextIndex !== activeSectionIndexRef.current) {
+            setActiveSectionIndex(nextIndex)
+            activeSectionIndexRef.current = nextIndex
+        }
+
+        if (hash && hashIndex < 0) {
+            window.history.replaceState(null, '', `#${sectionIds[nextIndex]}`)
+        }
+    }, [sectionIds])
 
     useEffect(() => {
         const shouldAnimate = didMountSectionsRef.current
@@ -354,20 +533,25 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
             if (lightbox.type === 'image' && e.key === 'ArrowLeft') {
                 setLightbox((prev) => {
                     if (!prev) return prev
-                    return { ...prev, index: Math.max(0, prev.index - 1), src: photos[Math.max(0, prev.index - 1)].src, title: photos[Math.max(0, prev.index - 1)].caption, subtitle: photos[Math.max(0, prev.index - 1)].date }
+                    const index = Math.max(0, prev.index - 1)
+                    const photo = photos[index]
+
+                    return photo ? buildPhotoLightbox(photo, index) : prev
                 })
             }
             if (lightbox.type === 'image' && e.key === 'ArrowRight') {
                 setLightbox((prev) => {
                     if (!prev) return prev
-                    const idx = Math.min(photos.length - 1, prev.index + 1)
-                    return { ...prev, index: idx, src: photos[idx].src, title: photos[idx].caption, subtitle: photos[idx].date }
+                    const index = Math.min(photos.length - 1, prev.index + 1)
+                    const photo = photos[index]
+
+                    return photo ? buildPhotoLightbox(photo, index) : prev
                 })
             }
         }
         window.addEventListener('keydown', onKeyDown)
         return () => window.removeEventListener('keydown', onKeyDown)
-    }, [lightbox, photos])
+    }, [buildPhotoLightbox, lightbox, photos])
 
     useEffect(() => {
         const updatePerView = () => {
@@ -505,10 +689,10 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
     }, [activeSectionIndex, aboutImages, aboutSteps])
 
     useEffect(() => {
-        if (activeSectionIndex === 3 && calendarScrollRef.current) {
+        if (activeSectionId === 'calendar' && calendarScrollRef.current) {
             calendarScrollRef.current.scrollTop = 0
         }
-    }, [activeSectionIndex])
+    }, [activeSectionId])
 
     useEffect(() => {
         setPlayerDuration(0)
@@ -523,45 +707,131 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                 positionIntervalRef.current = null
             }
         }
+        let active = true
+        let scriptLoadHandler = null
+
+        if (!activeTrackHasSoundCloudEmbed || !soundcloudRef.current) {
+            cleanup()
+            soundcloudWidgetRef.current = null
+            setWidgetReady(false)
+            setPlayerPosition(0)
+            setPlayerDuration(0)
+            return cleanup
+        }
+
         const bindWidget = () => {
-            if (!window.SC || !soundcloudRef.current) {
+            if (!active || !window.SC || !window.SC.Widget || !soundcloudRef.current) {
                 return
             }
+
             const widget = window.SC.Widget(soundcloudRef.current)
             soundcloudWidgetRef.current = widget
-            widget.bind(window.SC.Widget.Events.READY, () => {
+            setWidgetReady(false)
+
+            const handleReady = () => {
+                if (!active) {
+                    return
+                }
+
                 setWidgetReady(true)
-                widget.getDuration((duration) => setPlayerDuration(duration || 0))
+                widget.getPosition((position) => {
+                    if (active) {
+                        setPlayerPosition(position || 0)
+                    }
+                })
+                widget.getDuration((duration) => {
+                    if (active) {
+                        setPlayerDuration(duration || 0)
+                    }
+                })
                 widget.setVolume(isMuted ? 0 : 100)
+
                 if (isPlaying) {
                     widget.play()
                 } else {
                     widget.pause()
                 }
-            })
-            widget.bind(window.SC.Widget.Events.PLAY, () => setIsPlaying(true))
-            widget.bind(window.SC.Widget.Events.PAUSE, () => setIsPlaying(false))
-            widget.bind(window.SC.Widget.Events.FINISH, () => {
-                setCurrentTrack((prev) => (prev + 1) % tracks.length)
-            })
+            }
+
+            const handlePlay = () => {
+                if (active) {
+                    setIsPlaying(true)
+                }
+            }
+
+            const handlePause = () => {
+                if (active) {
+                    setIsPlaying(false)
+                }
+            }
+
+            const handleFinish = () => {
+                if (active) {
+                    setCurrentTrack((prev) => (prev + 1) % tracks.length)
+                }
+            }
+
+            widget.bind(window.SC.Widget.Events.READY, handleReady)
+            widget.bind(window.SC.Widget.Events.PLAY, handlePlay)
+            widget.bind(window.SC.Widget.Events.PAUSE, handlePause)
+            widget.bind(window.SC.Widget.Events.FINISH, handleFinish)
+
+            setPlayerPosition(0)
+            setPlayerDuration(0)
             cleanup()
             positionIntervalRef.current = window.setInterval(() => {
-                widget.getPosition((position) => setPlayerPosition(position || 0))
-                widget.getDuration((duration) => setPlayerDuration(duration || 0))
+                widget.getPosition((position) => {
+                    if (active) {
+                        setPlayerPosition(position || 0)
+                    }
+                })
+                widget.getDuration((duration) => {
+                    if (active) {
+                        setPlayerDuration(duration || 0)
+                    }
+                })
             }, 500)
         }
 
         if (window.SC && window.SC.Widget) {
             bindWidget()
         } else {
-            const script = document.createElement('script')
-            script.src = 'https://w.soundcloud.com/player/api.js'
-            script.onload = bindWidget
-            document.body.appendChild(script)
+            let script = document.querySelector('script[data-soundcloud-widget-api="true"]')
+
+            if (!script) {
+                script = document.createElement('script')
+                script.src = 'https://w.soundcloud.com/player/api.js'
+                script.dataset.soundcloudWidgetApi = 'true'
+                document.body.appendChild(script)
+            }
+
+            scriptLoadHandler = () => {
+                bindWidget()
+            }
+
+            script.addEventListener('load', scriptLoadHandler, { once: true })
         }
 
-        return cleanup
-    }, [activeTrack?.id, tracks.length])
+        return () => {
+            active = false
+            cleanup()
+
+            if (scriptLoadHandler) {
+                const script = document.querySelector('script[data-soundcloud-widget-api="true"]')
+                script?.removeEventListener('load', scriptLoadHandler)
+            }
+
+            if (soundcloudWidgetRef.current?.unbind && window.SC?.Widget?.Events) {
+                soundcloudWidgetRef.current.unbind(window.SC.Widget.Events.READY)
+                soundcloudWidgetRef.current.unbind(window.SC.Widget.Events.PLAY)
+                soundcloudWidgetRef.current.unbind(window.SC.Widget.Events.PAUSE)
+                soundcloudWidgetRef.current.unbind(window.SC.Widget.Events.FINISH)
+            }
+
+            soundcloudWidgetRef.current = null
+            setWidgetReady(false)
+        }
+    }, [activeTrack?.id, activeTrackHasSoundCloudEmbed, activeTrackSoundCloudEmbedUrl, tracks.length])
 
     useEffect(() => {
         if (!widgetReady || !soundcloudWidgetRef.current) {
@@ -707,7 +977,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
             document.removeEventListener('keydown', onKeyDown)
             window.removeEventListener('hashchange', onHashLoad)
         }
-    }, [activeSectionIndex, isScrolling])
+    }, [sectionIds])
 
     const goTo = (id) => {
         const idx = sectionIds.indexOf(id)
@@ -772,7 +1042,8 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
     const maxMusicOffset = Math.max(0, tracks.length - musicItemsPerView)
     const musicOffset = Math.min(maxMusicOffset, Math.max(0, currentTrack - Math.floor(musicItemsPerView / 2)))
     const scrollCurrentSectionInternally = (direction, amount = 120) => {
-        const container = activeSectionIndex === 3 ? calendarScrollRef.current : null
+        const currentSectionId = sectionIds[activeSectionIndexRef.current]
+        const container = currentSectionId === 'calendar' ? calendarScrollRef.current : null
 
         if (!container) {
             return false
@@ -802,7 +1073,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
     }
 
     useEffect(() => {
-        if (!policyModal) {
+        if (!policyModal && !newsletterModal) {
             document.body.style.overflow = ''
             document.body.style.position = ''
             document.body.style.width = ''
@@ -813,6 +1084,11 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
         document.body.style.width = '100%'
         const onEsc = (e) => {
             if (e.key === 'Escape') {
+                if (newsletterModal) {
+                    setNewsletterModal(null)
+                    return
+                }
+
                 setPolicyModal(null)
             }
         }
@@ -823,7 +1099,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
             document.body.style.position = ''
             document.body.style.width = ''
         }
-    }, [policyModal])
+    }, [newsletterModal, policyModal])
 
     return (
         <PublicLayout title={legacy.home?.name ?? 'RadioChi'} locale={locale} locales={locales} currentPath={currentPath} menu={legacy.header?.menu ?? {}} seo={seo} analytics={analytics} hideNav>
@@ -845,6 +1121,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                 locales={locales}
                 currentPath={currentPath}
                 menu={legacy.header?.menu}
+                visibleSections={sectionIds}
                 socialLinks={footerSocialLinks}
                 legalLabels={policyContent}
                 isPlaying={isPlaying}
@@ -857,7 +1134,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
 
             <div className="fullpage-container">
                 <div className="fullpage-wrapper">
-                    <section id="home" ref={(element) => { sectionRefs.current[0] = element }} className={`legacy-section ${activeSectionIndex === 0 ? 'is-active' : ''}`} style={getSectionStyle(0)}>
+                    <section id="home" ref={(element) => { sectionRefs.current[homeSectionIndex] = element }} className={`legacy-section ${activeSectionIndex === homeSectionIndex ? 'is-active' : ''}`} style={getSectionStyle(homeSectionIndex)}>
                         <div className="legacy-animated-bg" />
                         <div className="legacy-starshine-layer">
                             <LegacyStarshine />
@@ -869,7 +1146,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                                         {slide.logo && slide.logoPosition === 'left' ? (
                                             <div className="legacy-home-heading">
                                                 <div className="legacy-home-logo-box">
-                                                    <img src={slide.logo} alt={`${slide.title} Logo`} className="legacy-home-logo left" />
+                                                    <img src={slide.logo} alt={slide.logoAlt ?? `${slide.title} Logo`} className="legacy-home-logo left" />
                                                 </div>
                                                 <div className="legacy-home-title-box">
                                                     <h1 className="legacy-home-title left">{slide.title}</h1>
@@ -878,7 +1155,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                                         ) : (
                                             <>
                                                 {slide.logo && (
-                                                    <img src={slide.logo} alt={`${slide.title} Logo`} className="legacy-home-logo top" />
+                                                    <img src={slide.logo} alt={slide.logoAlt ?? `${slide.title} Logo`} className="legacy-home-logo top" />
                                                 )}
                                                 <h1 className="legacy-home-title">{slide.title}</h1>
                                             </>
@@ -904,7 +1181,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                                     )}
                                 </div>
                                 <div className="legacy-home-image">
-                                    <img src={slide.personImage} alt={slide.title} />
+                                    <img src={slide.personImage} alt={slide.personImageAlt ?? slide.title} />
                                 </div>
                                 <div className="legacy-home-elipse" />
                             </div>
@@ -916,7 +1193,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                         </div>
                     </section>
 
-                    <section id="about" ref={(element) => { sectionRefs.current[1] = element }} className={`legacy-section ${activeSectionIndex === 1 ? 'is-active' : ''}`} style={getSectionStyle(1)}>
+                    <section id="about" ref={(element) => { sectionRefs.current[aboutSectionIndex] = element }} className={`legacy-section ${activeSectionIndex === aboutSectionIndex ? 'is-active' : ''}`} style={getSectionStyle(aboutSectionIndex)}>
                         <div className="legacy-animated-bg" />
                         {aboutImages.map((image, idx) => (
                             <div
@@ -936,7 +1213,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                         )}
                     </section>
 
-                    <section id="music" ref={(element) => { sectionRefs.current[2] = element }} className={`legacy-section ${activeSectionIndex === 2 ? 'is-active' : ''}`} style={getSectionStyle(2)}>
+                    <section id="music" ref={(element) => { sectionRefs.current[musicSectionIndex] = element }} className={`legacy-section ${activeSectionIndex === musicSectionIndex ? 'is-active' : ''}`} style={getSectionStyle(musicSectionIndex)}>
                         <div className="legacy-animated-bg" />
                         {activeTrack && (
                             <>
@@ -1097,7 +1374,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                                                     {tracks.map((track, idx) => (
                                                         <button key={track.id} className={`legacy-track-card ${idx === currentTrack ? 'active' : ''}`} style={{ flex: `0 0 calc(${100 / musicItemsPerView}% - 10px)` }} onClick={() => setCurrentTrack(idx)}>
                                                             <div className="legacy-track-card-shell">
-                                                                <img src={track['label-img']} alt={track.title} />
+                                                                <img src={track['label-img']} alt={track.labelImageAlt ?? track.title} />
                                                                 <div>
                                                                     <h4>{track.title}</h4>
                                                                     <p>{track.subtitle}</p>
@@ -1113,9 +1390,9 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                                         <div className="legacy-soundcloud-hidden">
                                             <iframe
                                                 ref={soundcloudRef}
-                                                key={activeTrack.id}
+                                                key={activeTrackSoundCloudEmbedUrl}
                                                 title={activeTrack.title}
-                                                src={activeTrack.soundcloudUrl}
+                                                src={activeTrackSoundCloudEmbedUrl}
                                                 className="legacy-soundcloud"
                                                 allow="autoplay"
                                             />
@@ -1126,40 +1403,42 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                         )}
                     </section>
 
-                    <section id="calendar" ref={(element) => { sectionRefs.current[3] = element }} className={`legacy-section ${activeSectionIndex === 3 ? 'is-active' : ''}`} style={getSectionStyle(3)}>
-                        <div className="legacy-animated-bg" />
-                        <div className="legacy-events-bg" />
-                        <div className="legacy-events-content">
-                            <h2 className="legacy-events-title">{calendarData.translations?.title ?? legacy.header?.menu?.calendarEvents}</h2>
-                            <div ref={calendarScrollRef} className="legacy-events-list">
-                                {sortedEvents.map((event) => (
-                                    <article key={event.id} className="legacy-event-card">
-                                        <img src={event.logo} alt={event.title} />
-                                        <div>
-                                            <h3>{event.title}</h3>
-                                            <p>{event.dateStart || event.dateEnd ? `${event.dateStart} - ${event.dateEnd}` : calendarData.translations?.datesComingSoon}</p>
-                                            <p>{event.location}, {calendarData.translations?.country?.[event.country] ?? event.country}</p>
-                                        </div>
-                                        <a
-                                            href={event.linkEvent}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="legacy-btn small"
-                                            onClick={() => trackAnalytics('event_ticket_click', {
-                                                section: 'calendar',
-                                                event_title: event.title,
-                                                destination_url: event.linkEvent,
-                                            })}
-                                        >
-                                            {calendarData.translations?.buyTickets ?? 'Buy Tickets'}
-                                        </a>
-                                    </article>
-                                ))}
+                    {calendarSectionIndex >= 0 && (
+                        <section id="calendar" ref={(element) => { sectionRefs.current[calendarSectionIndex] = element }} className={`legacy-section ${activeSectionIndex === calendarSectionIndex ? 'is-active' : ''}`} style={getSectionStyle(calendarSectionIndex)}>
+                            <div className="legacy-animated-bg" />
+                            <div className="legacy-events-bg" />
+                            <div className="legacy-events-content">
+                                <h2 className="legacy-events-title">{calendarData.translations?.title ?? legacy.header?.menu?.calendarEvents}</h2>
+                                <div ref={calendarScrollRef} className="legacy-events-list">
+                                    {sortedEvents.map((event) => (
+                                        <article key={event.id} className="legacy-event-card">
+                                            <img src={event.logo} alt={event.logoAlt ?? event.title} />
+                                            <div>
+                                                <h3>{event.title}</h3>
+                                                <p>{event.dateStart || event.dateEnd ? `${event.dateStart} - ${event.dateEnd}` : calendarData.translations?.datesComingSoon}</p>
+                                                <p>{event.location}, {calendarData.translations?.country?.[event.country] ?? event.country}</p>
+                                            </div>
+                                            <a
+                                                href={event.linkEvent}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="legacy-btn small"
+                                                onClick={() => trackAnalytics('event_ticket_click', {
+                                                    section: 'calendar',
+                                                    event_title: event.title,
+                                                    destination_url: event.linkEvent,
+                                                })}
+                                            >
+                                                {calendarData.translations?.buyTickets ?? 'Buy Tickets'}
+                                            </a>
+                                        </article>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+                    )}
 
-                    <section id="media" ref={(element) => { sectionRefs.current[4] = element }} className={`legacy-section ${activeSectionIndex === 4 ? 'is-active' : ''}`} style={getSectionStyle(4)}>
+                    <section id="media" ref={(element) => { sectionRefs.current[mediaSectionIndex] = element }} className={`legacy-section ${activeSectionIndex === mediaSectionIndex ? 'is-active' : ''}`} style={getSectionStyle(mediaSectionIndex)}>
                         <div className="legacy-animated-bg" />
                         <div className="legacy-media-content">
                             <h2 className="legacy-media-title">{legacy.media?.title ?? 'MEDIA'}</h2>
@@ -1205,31 +1484,135 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                         </div>
                     </section>
 
-                    <section id="contact" ref={(element) => { sectionRefs.current[5] = element }} className={`legacy-section ${activeSectionIndex === 5 ? 'is-active' : ''}`} style={getSectionStyle(5)}>
+                    <section id="contact" ref={(element) => { sectionRefs.current[contactSectionIndex] = element }} className={`legacy-section ${activeSectionIndex === contactSectionIndex ? 'is-active' : ''}`} style={getSectionStyle(contactSectionIndex)}>
                         <div className="legacy-animated-bg" />
                         <div className="legacy-contact-bg" />
                         <div className="legacy-contact-content">
-                            <div className="legacy-social">
-                                <a href={findSocialLink(contactSocialLinks, 'facebook').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'facebook').label ?? 'Facebook'} onClick={() => trackAnalytics('social_click', { section: 'contact', platform: 'facebook', destination_url: findSocialLink(contactSocialLinks, 'facebook').url })}>
-                                    <FaFacebookSquare />
-                                </a>
-                                <a href={findSocialLink(contactSocialLinks, 'instagram').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'instagram').label ?? 'Instagram'} onClick={() => trackAnalytics('social_click', { section: 'contact', platform: 'instagram', destination_url: findSocialLink(contactSocialLinks, 'instagram').url })}>
-                                    <AiFillInstagram />
-                                </a>
-                                <a href={findSocialLink(contactSocialLinks, 'soundcloud').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'soundcloud').label ?? 'SoundCloud'} onClick={() => trackAnalytics('social_click', { section: 'contact', platform: 'soundcloud', destination_url: findSocialLink(contactSocialLinks, 'soundcloud').url })}>
-                                    <ImSoundcloud2 />
-                                </a>
-                                <a href={findSocialLink(contactSocialLinks, 'spotify').url} target="_blank" rel="noreferrer" aria-label={findSocialLink(contactSocialLinks, 'spotify').label ?? 'Spotify'} onClick={() => trackAnalytics('social_click', { section: 'contact', platform: 'spotify', destination_url: findSocialLink(contactSocialLinks, 'spotify').url })}>
-                                    <FaSpotify />
-                                </a>
+                            <div className="legacy-contact-newsletter-shell">
+                                <motion.div
+                                    className="legacy-contact-newsletter"
+                                    initial={{ opacity: 0, y: 18 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.45, ease: 'easeOut' }}
+                                >
+                                    <div className="legacy-contact-newsletter-card">
+                                    <div className="legacy-contact-newsletter-copy">
+                                        <span className="legacy-contact-newsletter-eyebrow">{newsletterFormContent.eyebrow ?? 'Newsletter'}</span>
+                                        <h3>{newsletterFormContent.title ?? 'Suscribete a RadioChi'}</h3>
+                                        {newsletterFormContent.description ? <p>{newsletterFormContent.description}</p> : null}
+                                    </div>
+
+                                    <form className="legacy-contact-newsletter-form" onSubmit={handleNewsletterSubmit} noValidate>
+                                        <label className="legacy-contact-newsletter-field">
+                                            <span>{newsletterFormContent.emailLabel}</span>
+                                            <input
+                                                ref={newsletterEmailInputRef}
+                                                type="email"
+                                                id="newsletter-email"
+                                                name="email"
+                                                inputMode="email"
+                                                autoComplete="email"
+                                                autoCapitalize="none"
+                                                autoCorrect="off"
+                                                spellCheck={false}
+                                                maxLength={255}
+                                                required
+                                                value={newsletterForm.email}
+                                                onChange={handleNewsletterEmailChange}
+                                                onBlur={() => setNewsletterEmailTouched(true)}
+                                                placeholder={newsletterFormContent.emailPlaceholder}
+                                                aria-invalid={newsletterEmailError ? 'true' : 'false'}
+                                                aria-describedby={newsletterEmailError ? 'newsletter-email-error' : undefined}
+                                            />
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            name="website"
+                                            tabIndex="-1"
+                                            autoComplete="off"
+                                            value={newsletterForm.website}
+                                            onChange={(event) => setNewsletterFormData('website', event.target.value)}
+                                            className="legacy-contact-newsletter-honeypot"
+                                            aria-hidden="true"
+                                        />
+
+                                        {newsletterEmailError ? (
+                                            <p id="newsletter-email-error" className="legacy-contact-newsletter-error">{newsletterEmailError}</p>
+                                        ) : null}
+
+                                        <label className="legacy-contact-newsletter-consent">
+                                            <input
+                                                type="checkbox"
+                                                id="newsletter-privacy-accepted"
+                                                name="privacy_accepted"
+                                                checked={newsletterForm.privacy_accepted}
+                                                onChange={handleNewsletterPrivacyChange}
+                                                onBlur={() => setNewsletterPrivacyTouched(true)}
+                                                aria-describedby={newsletterPrivacyError ? 'newsletter-privacy-error' : undefined}
+                                            />
+                                            <span>
+                                                {newsletterFormContent.privacyLead}
+                                                <button type="button" className="legacy-contact-newsletter-policy-link" onClick={openPrivacyPolicy}>
+                                                    {newsletterFormContent.privacyLink}
+                                                </button>
+                                                {newsletterFormContent.privacyTail}
+                                            </span>
+                                        </label>
+
+                                        {newsletterPrivacyError ? (
+                                            <p id="newsletter-privacy-error" className="legacy-contact-newsletter-error is-consent">{newsletterPrivacyError}</p>
+                                        ) : null}
+
+                                        <AnimatePresence mode="wait">
+                                            {newsletterFeedback?.message ? (
+                                                <motion.div
+                                                    key={newsletterFeedback.message}
+                                                    initial={{ opacity: 0, y: 8 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -8 }}
+                                                    transition={{ duration: 0.2 }}
+                                                    className={`legacy-contact-newsletter-feedback is-${newsletterFeedback.tone ?? 'success'}`}
+                                                    aria-live="polite"
+                                                >
+                                                    {newsletterFeedback.message}
+                                                </motion.div>
+                                            ) : null}
+                                        </AnimatePresence>
+
+                                        <button
+                                            type="submit"
+                                            className="legacy-contact-newsletter-submit"
+                                            disabled={newsletterProcessing}
+                                        >
+                                            {newsletterProcessing ? (
+                                                <>
+                                                    <span className="legacy-contact-newsletter-spinner" aria-hidden="true" />
+                                                    <span>{newsletterFormContent.submitLoading}</span>
+                                                </>
+                                            ) : (
+                                                <span>{newsletterFormContent.submitIdle}</span>
+                                            )}
+                                        </button>
+                                    </form>
+                                    </div>
+                                </motion.div>
                             </div>
                             <div className="legacy-sponsors">
                                 <div className="legacy-sponsors-box">
-                                    <div className="legacy-sponsors-track">
-                                        {[...sponsorLogos, ...sponsorLogos].map((logo, idx) => (
-                                            <a key={`${logo.name}-${idx}`} href={logo.url} target="_blank" rel="noreferrer">
-                                                <img src={logo.imgSrc} alt={logo.name} />
-                                            </a>
+                                    <div className="legacy-sponsors-marquee">
+                                        {[0, 1, 2, 3].map((copyIndex) => (
+                                            <div
+                                                key={`sponsor-sequence-${copyIndex}`}
+                                                className="legacy-sponsors-sequence"
+                                                aria-hidden={copyIndex > 0 ? 'true' : undefined}
+                                            >
+                                                {sponsorLogos.map((logo, logoIndex) => (
+                                                    <a key={`${logo.name}-${copyIndex}-${logoIndex}`} href={logo.url} target="_blank" rel="noreferrer">
+                                                        <img src={logo.imgSrc} alt={logo.imgAlt ?? logo.name} />
+                                                    </a>
+                                                ))}
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
@@ -1278,7 +1661,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                 <div className="legacy-progress-bg" />
                 <div className="legacy-progress-active" style={{ height: `${((activeSectionIndex + 1) / sectionIds.length) * 100}%` }} />
                 {sectionIds.map((id, idx) => (
-                    <button key={id} className={idx === activeSectionIndex ? 'active' : ''} style={{ top: `${(idx / (sectionIds.length - 1)) * 100}%` }} onClick={() => goTo(id)} />
+                    <button key={id} className={idx === activeSectionIndex ? 'active' : ''} style={{ top: `${(idx / Math.max(1, sectionIds.length - 1)) * 100}%` }} onClick={() => goTo(id)} />
                 ))}
             </div>
 
@@ -1299,13 +1682,17 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                                 }
                                 if (delta > 0) {
                                     setLightbox((prev) => {
-                                        const idx = Math.min(photos.length - 1, (prev?.index ?? 0) + 1)
-                                        return { ...prev, index: idx, src: photos[idx].src, title: photos[idx].caption, subtitle: photos[idx].date }
+                                        const index = Math.min(photos.length - 1, (prev?.index ?? 0) + 1)
+                                        const photo = photos[index]
+
+                                        return photo ? buildPhotoLightbox(photo, index) : prev
                                     })
                                 } else {
                                     setLightbox((prev) => {
-                                        const idx = Math.max(0, (prev?.index ?? 0) - 1)
-                                        return { ...prev, index: idx, src: photos[idx].src, title: photos[idx].caption, subtitle: photos[idx].date }
+                                        const index = Math.max(0, (prev?.index ?? 0) - 1)
+                                        const photo = photos[index]
+
+                                        return photo ? buildPhotoLightbox(photo, index) : prev
                                     })
                                 }
                             }}
@@ -1313,7 +1700,7 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                             {lightbox.type === 'video' ? (
                                 <iframe src={lightbox.src} title={lightbox.title} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen />
                             ) : (
-                                <img src={lightbox.src} alt={lightbox.title} />
+                                <img src={lightbox.src} alt={lightbox.alt ?? lightbox.title} />
                             )}
                         </div>
                         <div className="legacy-lightbox-footer">
@@ -1322,12 +1709,16 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                             {lightbox.type === 'image' && (
                                 <div className="legacy-lightbox-arrows">
                                     <button onClick={() => setLightbox((prev) => {
-                                        const idx = Math.max(0, (prev?.index ?? 0) - 1)
-                                        return { ...prev, index: idx, src: photos[idx].src, title: photos[idx].caption, subtitle: photos[idx].date }
+                                        const index = Math.max(0, (prev?.index ?? 0) - 1)
+                                        const photo = photos[index]
+
+                                        return photo ? buildPhotoLightbox(photo, index) : prev
                                     })}>‹</button>
                                     <button onClick={() => setLightbox((prev) => {
-                                        const idx = Math.min(photos.length - 1, (prev?.index ?? 0) + 1)
-                                        return { ...prev, index: idx, src: photos[idx].src, title: photos[idx].caption, subtitle: photos[idx].date }
+                                        const index = Math.min(photos.length - 1, (prev?.index ?? 0) + 1)
+                                        const photo = photos[index]
+
+                                        return photo ? buildPhotoLightbox(photo, index) : prev
                                     })}>›</button>
                                 </div>
                             )}
@@ -1350,6 +1741,51 @@ export default function Home({ locale, locales, currentPath, events, seo, conten
                     </div>
                 </div>
             )}
+
+            <AnimatePresence>
+                {newsletterModal ? (
+                    <motion.div
+                        className="legacy-newsletter-modal"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setNewsletterModal(null)}
+                    >
+                        <motion.div
+                            className="legacy-newsletter-modal-card"
+                            initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+                            transition={{ duration: 0.2, ease: 'easeOut' }}
+                            onClick={(event) => event.stopPropagation()}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="newsletter-modal-title"
+                            aria-describedby="newsletter-modal-body"
+                        >
+                            <button
+                                type="button"
+                                className="legacy-newsletter-modal-close"
+                                onClick={() => setNewsletterModal(null)}
+                                aria-label={newsletterFormContent.modal?.close ?? 'Cerrar'}
+                            >
+                                ×
+                            </button>
+                            <div className="legacy-newsletter-modal-head">
+                                <h3 id="newsletter-modal-title">{newsletterModal.title}</h3>
+                            </div>
+                            <div className="legacy-newsletter-modal-body">
+                                <p id="newsletter-modal-body">{newsletterModal.message}</p>
+                            </div>
+                            <div className="legacy-newsletter-modal-actions">
+                                <button type="button" onClick={() => setNewsletterModal(null)}>
+                                    {newsletterFormContent.modal?.continue ?? 'Entendido'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                ) : null}
+            </AnimatePresence>
 
             <main className="sr-only">
                 {events.length > 0 && events[0].title}

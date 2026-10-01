@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Mail\NewsletterCampaignMail;
 use App\Models\NewsletterCampaign;
 use App\Models\NewsletterLog;
 use App\Models\NewsletterSubscriber;
@@ -24,16 +25,14 @@ class SendNewsletterCampaignJob implements ShouldQueue
 
         $subscribers = NewsletterSubscriber::query()
             ->where('is_active', true)
-            ->get(['id', 'email', 'name']);
+            ->get(['id', 'email', 'name', 'unsubscribe_token']);
 
         $sentCount = 0;
 
         foreach ($subscribers as $subscriber) {
             try {
-                Mail::html($campaign->html_body, function ($message) use ($campaign, $subscriber) {
-                    $message->to($subscriber->email, $subscriber->name ?: null);
-                    $message->subject($campaign->subject);
-                });
+                Mail::to($subscriber->email, $subscriber->name ?: null)
+                    ->send(new NewsletterCampaignMail($campaign, $subscriber, config('app.locale', 'es')));
 
                 NewsletterLog::query()->create([
                     'campaign_id' => $campaign->id,

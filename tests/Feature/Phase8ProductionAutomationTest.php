@@ -105,6 +105,7 @@ class Phase8ProductionAutomationTest extends TestCase
                 'mediaData',
                 'contactData',
                 'events',
+                'visibleSections',
                 'seo',
             ]);
 

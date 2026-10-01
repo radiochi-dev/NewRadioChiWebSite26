@@ -13,6 +13,8 @@ use App\Models\Partner;
 use App\Models\SeoMeta;
 use App\Models\Setting;
 use App\Models\SocialLink;
+use App\Support\NewsletterLegalContent;
+use App\Support\NewsletterLegalConsent;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -438,23 +440,23 @@ class ImportLegacyContentAction
                 ['slug' => $documentType],
                 [
                     'document_type' => $documentType,
-                    'version' => '2025',
+                    'version' => NewsletterLegalConsent::legalDocumentVersion(),
                     'position' => $position + 1,
                     'is_published' => true,
                     'published_at' => now(),
-                    'settings' => ['source' => 'resources/js/legacy/i18n/*/terms-policy-cookies.json'],
+                    'settings' => ['source' => 'app/Support/NewsletterLegalContent.php'],
                 ],
             );
 
             foreach (self::LOCALES as $locale) {
-                $payload = $localized[$locale]['terms-policy-cookies'][$documentType] ?? [];
+                $payload = NewsletterLegalContent::locale($locale)[$documentType] ?? [];
                 $document->translations()->updateOrCreate(
                     ['locale' => $locale],
                     [
                         'title' => $payload['title'] ?? Str::headline($documentType),
                         'summary' => null,
                         'content' => $payload['content'] ?? '',
-                        'cta_label' => $localized[$locale]['terms-policy-cookies'][$documentType.'_button'] ?? null,
+                        'cta_label' => NewsletterLegalContent::locale($locale)[$documentType.'_button'] ?? null,
                     ],
                 );
             }
@@ -471,7 +473,7 @@ class ImportLegacyContentAction
         $this->upsertTranslatedSetting('header', 'menu', 2, collect(self::LOCALES)->mapWithKeys(fn (string $locale) => [$locale => ['items' => $localized[$locale]['header']['menu'] ?? []]])->all());
         $this->upsertTranslatedSetting('intro', 'welcome', 1, collect(self::LOCALES)->mapWithKeys(fn (string $locale) => [$locale => ['label' => $localized[$locale]['introwebsite']['welcome'] ?? null]])->all());
         $this->upsertTranslatedSetting('footer', 'credits', 1, collect(self::LOCALES)->mapWithKeys(fn (string $locale) => [$locale => ['copyright' => $localized[$locale]['footer']['copyright'] ?? null, 'rights' => $localized[$locale]['footer']['rights'] ?? null]])->all());
-        $this->upsertTranslatedSetting('legal', 'buttons', 1, collect(self::LOCALES)->mapWithKeys(fn (string $locale) => [$locale => ['terms_button' => $localized[$locale]['terms-policy-cookies']['terms_button'] ?? null, 'privacy_button' => $localized[$locale]['terms-policy-cookies']['privacy_button'] ?? null, 'cookies_button' => $localized[$locale]['terms-policy-cookies']['cookies_button'] ?? null]])->all());
+        $this->upsertTranslatedSetting('legal', 'buttons', 1, collect(self::LOCALES)->mapWithKeys(fn (string $locale) => [$locale => ['terms_button' => NewsletterLegalContent::locale($locale)['terms_button'] ?? null, 'privacy_button' => NewsletterLegalContent::locale($locale)['privacy_button'] ?? null, 'cookies_button' => NewsletterLegalContent::locale($locale)['cookies_button'] ?? null]])->all());
         $this->upsertSetting('media', 'youtube_channel_url', 'string', ['value' => 'https://www.youtube.com/channel/TUCANALAQUI'], false, true, 1);
         $this->upsertTranslatedSetting('contact', 'marquee_rows', 1, collect(self::LOCALES)->mapWithKeys(fn (string $locale) => [$locale => ['rows' => LegacyImportStaticData::marqueeRows()]])->all());
         $this->upsertSetting('legacy', 'events_links', 'json', $legacyEventLinks, false, false, 1);

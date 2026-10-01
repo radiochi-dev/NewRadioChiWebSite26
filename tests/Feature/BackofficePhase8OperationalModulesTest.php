@@ -137,6 +137,12 @@ class BackofficePhase8OperationalModulesTest extends TestCase
                 'confirmation' => 'ENCOLAR',
             ])
             ->assertForbidden();
+
+        $this->actingAs($readonly)
+            ->post('/backoffice/newsletter-subscribers/actions/unsubscribe', [
+                'record' => (string) $subscriber->id,
+            ])
+            ->assertForbidden();
     }
 
     public function test_editor_can_create_legal_document_manage_translation_and_create_redirect_rule(): void
@@ -227,7 +233,7 @@ class BackofficePhase8OperationalModulesTest extends TestCase
 
         $this->actingAs($editor)
             ->post('/backoffice/newsletter-subscribers/draft', [
-                'email' => 'phase8-subscriber@gmail.com',
+                'email' => 'Phase8-Subscriber@GMAIL.com',
                 'name' => 'Phase 8 Subscriber',
                 'is_active' => true,
             ])
@@ -235,12 +241,17 @@ class BackofficePhase8OperationalModulesTest extends TestCase
 
         $subscriber = NewsletterSubscriber::query()->where('email', 'phase8-subscriber@gmail.com')->firstOrFail();
 
+        $this->assertSame('phase8-subscriber@gmail.com', $subscriber->email);
         $this->assertNotNull($subscriber->subscribed_at);
         $this->assertNull($subscriber->unsubscribed_at);
+        $this->assertNull($subscriber->confirmation_token);
+        $this->assertNotEmpty($subscriber->unsubscribe_token);
+        $this->assertSame(64, strlen((string) $subscriber->unsubscribe_token));
+        $this->assertSame('v1.1', $subscriber->consent_text_version);
 
         $this->actingAs($editor)
             ->post('/backoffice/newsletter-subscribers/draft/'.$subscriber->id, [
-                'email' => 'phase8-subscriber@gmail.com',
+                'email' => 'PHASE8-SUBSCRIBER@GMAIL.COM',
                 'name' => 'Phase 8 Subscriber',
                 'is_active' => false,
             ])
@@ -249,7 +260,136 @@ class BackofficePhase8OperationalModulesTest extends TestCase
         $subscriber->refresh();
 
         $this->assertFalse($subscriber->is_active);
+        $this->assertSame('phase8-subscriber@gmail.com', $subscriber->email);
         $this->assertNotNull($subscriber->unsubscribed_at);
+    }
+
+    public function test_newsletter_subscriber_model_generates_legal_defaults_for_inactive_records(): void
+    {
+        $subscriber = NewsletterSubscriber::query()->create([
+            'email' => 'Legal-Default@Example.com',
+            'name' => 'Legal Default',
+        ]);
+
+        $this->assertSame('legal-default@example.com', $subscriber->email);
+        $this->assertFalse($subscriber->is_active);
+        $this->assertNull($subscriber->subscribed_at);
+        $this->assertNull($subscriber->unsubscribed_at);
+        $this->assertNull($subscriber->confirmation_token);
+        $this->assertNotEmpty($subscriber->unsubscribe_token);
+        $this->assertSame(64, strlen((string) $subscriber->unsubscribe_token));
+        $this->assertSame('v1.1', $subscriber->consent_text_version);
+    }
+
+    public function test_editor_can_operate_manual_unsubscribe_and_reactivate_from_backoffice_without_rgpd_delete(): void
+    {
+        $editor = $this->createUserWithRole('editor');
+        $subscriber = NewsletterSubscriber::query()->create([
+            'email' => 'ops-subscriber@example.com',
+            'name' => 'Ops Subscriber',
+            'is_active' => true,
+            'subscribed_at' => now()->subDay(),
+            'confirmation_token' => str_repeat('z', 64),
+        ]);
+
+        $this->actingAs($editor)
+            ->get('/backoffice/newsletter-subscribers')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleIndex')
+                ->where('table.rows.0.actions.0.label', 'Editar')
+                ->where('table.rows.0.actions.1.label', 'Dar de baja')
+                ->missing('table.rows.0.actions.2'));
+
+        $this->actingAs($editor)
+            ->get('/backoffice/newsletter-subscribers/'.$subscriber->id.'/edit')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.specialActions.0.slug', 'unsubscribe')
+                ->where('form.sections.0.fields.5.key', 'consent_text_version')
+                ->where('form.sections.0.fields.6.key', 'ip_address')
+                ->where('form.sections.0.fields.9.key', 'user_agent')
+                ->where('form.dangerousActions', []));
+
+        $this->actingAs($editor)
+            ->from('/backoffice/newsletter-subscribers/'.$subscriber->id.'/edit')
+            ->post('/backoffice/newsletter-subscribers/actions/unsubscribe', [
+                'record' => (string) $subscriber->id,
+            ])
+            ->assertRedirect('/backoffice/newsletter-subscribers/'.$subscriber->id.'/edit');
+
+        $subscriber->refresh();
+
+        $this->assertFalse($subscriber->is_active);
+        $this->assertNotNull($subscriber->unsubscribed_at);
+        $this->assertNull($subscriber->confirmation_token);
+
+        $this->actingAs($editor)
+            ->get('/backoffice/newsletter-subscribers/'.$subscriber->id.'/edit')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.specialActions.0.slug', 'reactivate')
+                ->where('form.dangerousActions', []));
+
+        $this->actingAs($editor)
+            ->from('/backoffice/newsletter-subscribers/'.$subscriber->id.'/edit')
+            ->post('/backoffice/newsletter-subscribers/actions/reactivate', [
+                'record' => (string) $subscriber->id,
+            ])
+            ->assertRedirect('/backoffice/newsletter-subscribers/'.$subscriber->id.'/edit');
+
+        $subscriber->refresh();
+
+        $this->assertTrue($subscriber->is_active);
+        $this->assertNull($subscriber->unsubscribed_at);
+        $this->assertNull($subscriber->confirmation_token);
+    }
+
+    public function test_super_admin_can_execute_definitive_rgpd_delete_with_cascade_from_backoffice(): void
+    {
+        $superAdmin = $this->createUserWithRole('super_admin');
+        $subscriber = NewsletterSubscriber::query()->create([
+            'email' => 'rgpd-delete@example.com',
+            'name' => 'RGPD Delete',
+            'is_active' => true,
+            'subscribed_at' => now(),
+        ]);
+        $campaign = NewsletterCampaign::query()->create([
+            'name' => 'RGPD Campaign',
+            'subject' => 'RGPD Subject',
+            'html_body' => '<p>RGPD body</p>',
+            'status' => 'sent',
+        ]);
+        $log = NewsletterLog::query()->create([
+            'campaign_id' => $campaign->id,
+            'subscriber_id' => $subscriber->id,
+            'status' => 'sent',
+            'processed_at' => now(),
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->get('/backoffice/newsletter-subscribers/'.$subscriber->id.'/edit')
+            ->assertOk()
+            ->assertInertia(fn (Assert $inertia) => $inertia
+                ->component('Backoffice/Preview/ModuleForm')
+                ->where('form.specialActions.0.slug', 'unsubscribe')
+                ->where('form.dangerousActions.0.slug', 'forget'));
+
+        $this->actingAs($superAdmin)
+            ->post('/backoffice/newsletter-subscribers/actions/forget', [
+                'record' => (string) $subscriber->id,
+                'confirmation' => 'ELIMINAR',
+            ])
+            ->assertRedirect('/backoffice/newsletter-subscribers');
+
+        $this->assertDatabaseMissing('newsletter_subscribers', [
+            'id' => $subscriber->id,
+        ]);
+        $this->assertDatabaseMissing('newsletter_logs', [
+            'id' => $log->id,
+        ]);
     }
 
     public function test_editor_can_queue_campaign_and_open_related_logs_from_campaign_form(): void

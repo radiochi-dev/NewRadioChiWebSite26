@@ -43,10 +43,10 @@ class Phase5LegacyImportTest extends TestCase
         $this->assertSame(3, Event::query()->count());
         $this->assertSame(19, MediaAsset::query()->count());
         $this->assertSame(5, Partner::query()->count());
-        $this->assertSame(8, SocialLink::query()->count());
+        $this->assertSame(5, SocialLink::query()->count());
         $this->assertSame(3, LegalDocument::query()->count());
         $this->assertSame(18, LegalDocument::query()->withCount('translations')->get()->sum('translations_count'));
-        $this->assertSame(11, Setting::query()->count());
+        $this->assertSame(14, Setting::query()->count());
         $this->assertSame(36, Setting::query()->withCount('translations')->get()->sum('translations_count'));
         $this->assertSame(6, SeoMeta::query()->count());
 
@@ -64,6 +64,8 @@ class Phase5LegacyImportTest extends TestCase
 
         $legalDocument = LegalDocument::query()->where('slug', 'privacy')->firstOrFail();
         $this->assertSame('Privacy Policy', $legalDocument->translations()->where('locale', 'en')->firstOrFail()->title);
+        $this->assertStringContainsString('double opt-in', $legalDocument->translations()->where('locale', 'en')->firstOrFail()->content);
+        $this->assertSame('2026.09', $legalDocument->version);
 
         $setting = Setting::query()->where('group', 'header')->where('key', 'menu')->firstOrFail();
         $this->assertSame('Próximos Eventos', $setting->translations()->where('locale', 'es')->firstOrFail()->value['items']['calendarEvents']);
@@ -77,6 +79,11 @@ class Phase5LegacyImportTest extends TestCase
 
         $youtubeSetting = Setting::query()->where('group', 'media')->where('key', 'youtube_channel_url')->firstOrFail();
         $this->assertSame('https://www.youtube.com/channel/TUCANALAQUI', $youtubeSetting->value['value']);
+        $this->assertDatabaseHas('social_links', [
+            'platform' => 'youtube',
+            'location' => 'global',
+            'url' => 'https://www.youtube.com/channel/TUCANALAQUI',
+        ]);
     }
 
     public function test_phase_5_import_remains_idempotent_on_repeated_runs(): void
@@ -90,8 +97,44 @@ class Phase5LegacyImportTest extends TestCase
         $this->assertSame(3, Event::query()->count());
         $this->assertSame(19, MediaAsset::query()->count());
         $this->assertSame(3, LegalDocument::query()->count());
-        $this->assertSame(11, Setting::query()->count());
+        $this->assertSame(14, Setting::query()->count());
         $this->assertSame(6, SeoMeta::query()->count());
+    }
+
+    public function test_newsletter_legal_sync_command_updates_existing_published_docs_and_buttons(): void
+    {
+        $privacy = LegalDocument::query()->create([
+            'slug' => 'privacy',
+            'document_type' => 'privacy',
+            'version' => '2025',
+            'position' => 1,
+            'is_published' => true,
+            'published_at' => now(),
+        ]);
+
+        $privacy->translations()->create([
+            'locale' => 'es',
+            'title' => 'Politica de Privacidad',
+            'content' => '<p>Texto antiguo que niega la newsletter.</p>',
+        ]);
+
+        $this->artisan('legal:sync-newsletter-transparency')
+            ->expectsOutputToContain('Newsletter legal transparency content synchronized successfully.')
+            ->assertExitCode(0);
+
+        $privacy->refresh();
+
+        $this->assertSame('2026.09', $privacy->version);
+        $this->assertStringContainsString('newsletter', $privacy->translations()->where('locale', 'es')->firstOrFail()->content);
+        $this->assertDatabaseHas('settings', [
+            'group' => 'legal',
+            'key' => 'buttons',
+            'is_public' => true,
+        ]);
+        $this->assertSame(
+            'Privacy Policy',
+            Setting::query()->where('group', 'legal')->where('key', 'buttons')->firstOrFail()->translations()->where('locale', 'en')->firstOrFail()->value['privacy_button'],
+        );
     }
 
     public function test_phase_5_locale_parity_covers_the_six_supported_locales(): void

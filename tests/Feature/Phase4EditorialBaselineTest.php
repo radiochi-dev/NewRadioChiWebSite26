@@ -78,6 +78,11 @@ class Phase4EditorialBaselineTest extends TestCase
             'is_active',
             'subscribed_at',
             'unsubscribed_at',
+            'confirmation_token',
+            'unsubscribe_token',
+            'ip_address',
+            'user_agent',
+            'consent_text_version',
         ]));
 
         $this->assertTrue(Schema::hasColumns('newsletter_campaigns', [

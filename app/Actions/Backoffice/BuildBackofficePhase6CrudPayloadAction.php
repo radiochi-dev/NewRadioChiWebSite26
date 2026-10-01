@@ -53,6 +53,10 @@ class BuildBackofficePhase6CrudPayloadAction
             return $this->seoMetasEditorIndex($user, $query);
         }
 
+        if ($slug === 'settings') {
+            return $this->settingsDashboardIndex($user, $query);
+        }
+
         $module = $this->module($slug);
         $filters = $this->filtersFor($slug, $module['filters']);
         $normalized = $this->normalizeIndexQuery($module, $filters, $query);
@@ -208,7 +212,7 @@ class BuildBackofficePhase6CrudPayloadAction
                 'mediaUploadUrl' => $this->hasImageFields($sections) ? BackofficePath::active('media-assets/uploads/images') : null,
                 'relationManagers' => $relationManagers,
                 'specialActions' => $this->specialActions($slug, $recordModel),
-                'dangerousActions' => [],
+                'dangerousActions' => $this->dangerousActions($slug, $recordModel, $user),
                 'validationSummary' => [],
             ],
             'capabilities' => [
@@ -360,6 +364,187 @@ class BuildBackofficePhase6CrudPayloadAction
                 'canEdit' => $user->canManageBackofficeContent(),
                 'canDelete' => false,
                 'canView' => $user->canViewBackofficeContent(),
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @return array<string, mixed>
+     */
+    private function settingsDashboardIndex(User $user, array $query = []): array
+    {
+        $module = $this->module('settings');
+        $activeLocale = $this->settingsDashboardLocale($query);
+        $settings = Setting::query()
+            ->whereIn('group', ['general', 'header', 'footer', 'legal', 'localization', 'media', 'calendar'])
+            ->with('translations')
+            ->get()
+            ->keyBy(fn (Setting $setting): string => $setting->group.'.'.$setting->key);
+
+        $mailer = (string) config('mail.default', 'log');
+        $mailHost = (string) config('mail.mailers.smtp.host', '');
+        $mailPort = (string) config('mail.mailers.smtp.port', '');
+        $mailEncryption = (string) (config('mail.mailers.smtp.encryption') ?? config('mail.mailers.smtp.scheme') ?? 'none');
+        $fromAddress = (string) config('mail.from.address', '');
+        $fromName = (string) config('mail.from.name', '');
+        $queueConnection = (string) config('queue.default', 'sync');
+        $n8nBaseUrl = (string) config('services.n8n.webhook_base_url', '');
+        $n8nTimeout = (string) config('services.n8n.timeout', '15');
+        $n8nApiKeyConfigured = (string) config('services.n8n.api_key', '') !== '';
+        $n8nSecretConfigured = (string) config('services.n8n.shared_secret', '') !== '';
+        $ollamaBaseUrl = (string) config('services.ollama.base_url', '');
+        $ollamaModel = (string) config('services.ollama.model', '');
+
+        return [
+            'mode' => 'index',
+            'module' => Arr::only($module, ['slug', 'title', 'singular', 'group', 'description']),
+            'title' => $module['title'],
+            'description' => 'Panel guiado para la configuracion funcional del sitio: identidad general, media/uploads, footer/legal, correo y conexiones operativas.',
+            'breadcrumbs' => [
+                ['label' => 'Backoffice', 'href' => BackofficePath::active()],
+                ['label' => $module['group'], 'href' => null],
+                ['label' => $module['title'], 'href' => BackofficePath::active($module['slug'])],
+            ],
+            'actions' => [],
+            'summaryCards' => [
+                ['label' => 'Bloques', 'value' => '5', 'tone' => 'cyan'],
+                ['label' => 'Idioma activo', 'value' => mb_strtoupper($activeLocale), 'tone' => 'fuchsia'],
+                ['label' => 'Mailer', 'value' => mb_strtoupper($mailer), 'tone' => 'emerald'],
+                ['label' => 'Integracion N8N', 'value' => $n8nBaseUrl !== '' ? 'CONFIGURADA' : 'VACIA', 'tone' => 'amber'],
+            ],
+            'settingsDashboard' => [
+                'localeActions' => $this->settingsDashboardLocaleActions($activeLocale),
+                'sections' => [
+                    [
+                        'title' => 'General del sitio',
+                        'description' => 'Identidad general del proyecto y ajustes base del sitio inspirados en la organizacion funcional de WordPress.',
+                        'items' => array_values(array_filter([
+                            $this->settingsDashboardItem(
+                                $settings->get('general.site_profile'),
+                                $activeLocale,
+                                'Identidad y preferencias generales',
+                                'Titulo del sitio, descripcion corta, correo administrativo, zona horaria, formatos y permisos de registro.'
+                            ),
+                            $this->settingsDashboardItem(
+                                $settings->get('localization.default_locale'),
+                                $activeLocale,
+                                'Idioma por defecto',
+                                'Define el locale base que toma el sitio cuando no hay seleccion explicita.'
+                            ),
+                            $this->settingsDashboardItem(
+                                $settings->get('localization.active_locales'),
+                                $activeLocale,
+                                'Idiomas activos',
+                                'Controla que idiomas estan disponibles para el sitio publico.'
+                            ),
+                            $this->settingsDashboardItem(
+                                $settings->get('calendar.visibility'),
+                                $activeLocale,
+                                'Visibilidad de Calendar',
+                                'Modo automatico o manual para ocultar la seccion de calendario y su entrada de navegacion cuando no cumpla el criterio editorial.'
+                            ),
+                        ])),
+                        'facts' => [
+                            ['label' => 'URL publica actual', 'value' => (string) config('app.url', 'http://localhost:8080')],
+                            ['label' => 'Locale app actual', 'value' => mb_strtoupper((string) config('app.locale', 'es'))],
+                        ],
+                    ],
+                    [
+                        'title' => 'Header, footer y legal',
+                        'description' => 'Textos y entradas compartidas del sitio publico. Los documentos legales quedan accesibles desde aqui para descargar el sidebar.',
+                        'items' => array_values(array_filter([
+                            $this->settingsDashboardItem(
+                                $settings->get('header.open_menu'),
+                                $activeLocale,
+                                'Label de abrir menu',
+                                'Texto del boton para abrir el menu principal.'
+                            ),
+                            $this->settingsDashboardItem(
+                                $settings->get('header.menu'),
+                                $activeLocale,
+                                'Menu principal',
+                                'Labels del menu publico para el idioma activo.'
+                            ),
+                            $this->settingsDashboardItem(
+                                $settings->get('footer.credits'),
+                                $activeLocale,
+                                'Creditos del footer',
+                                'Copyright y texto secundario del pie publico.'
+                            ),
+                            $this->settingsDashboardItem(
+                                $settings->get('legal.buttons'),
+                                $activeLocale,
+                                'Botones legales',
+                                'Etiquetas de terminos, privacidad y cookies.'
+                            ),
+                            $this->linkItem(
+                                'settings-dashboard-legal-documents',
+                                'Documentos legales',
+                                'Terminos, privacidad y cookies con su contenido completo multilingue.',
+                                BackofficePath::active('legal-documents')
+                            ),
+                        ])),
+                    ],
+                    [
+                        'title' => 'Media y uploads',
+                        'description' => 'Ajustes operativos para la organizacion de subidas y los tamanos base de imagen inspirados en la pantalla de media settings de WordPress.',
+                        'items' => array_values(array_filter([
+                            $this->settingsDashboardItem(
+                                $settings->get('media.upload_defaults'),
+                                $activeLocale,
+                                'Uploads e imagenes',
+                                'Tamanos de miniatura, medio y grande, junto con la organizacion de archivos por ano/mes.'
+                            ),
+                        ])),
+                    ],
+                    [
+                        'title' => 'Correo y newsletter',
+                        'description' => 'Inspirado en Strapi: la configuracion sensible del provider vive en entorno/codigo y aqui se expone su estado operativo junto a los modulos editoriales de newsletter.',
+                        'items' => [
+                            $this->linkItem(
+                                'settings-dashboard-newsletter-campaigns',
+                                'Campanas newsletter',
+                                'Define asunto, contenido y encola el envio masivo desde el modulo operativo oficial.',
+                                BackofficePath::active('newsletter-campaigns')
+                            ),
+                            $this->linkItem(
+                                'settings-dashboard-newsletter-subscribers',
+                                'Suscriptores newsletter',
+                                'Gestion de la base de suscriptores activa para las campanas.',
+                                BackofficePath::active('newsletter-subscribers')
+                            ),
+                        ],
+                        'facts' => [
+                            ['label' => 'Mailer Laravel', 'value' => mb_strtoupper($mailer)],
+                            ['label' => 'Host SMTP', 'value' => $mailHost !== '' ? $mailHost : 'No configurado'],
+                            ['label' => 'Puerto SMTP', 'value' => $mailPort !== '' ? $mailPort : 'No configurado'],
+                            ['label' => 'Cifrado', 'value' => mb_strtoupper($mailEncryption !== '' ? $mailEncryption : 'none')],
+                            ['label' => 'Remitente actual', 'value' => trim($fromName.' <'.$fromAddress.'>')],
+                            ['label' => 'Conexion de cola', 'value' => mb_strtoupper($queueConnection)],
+                            ['label' => 'Cola usada por newsletters', 'value' => 'newsletter'],
+                        ],
+                    ],
+                    [
+                        'title' => 'Integraciones y automatizacion',
+                        'description' => 'Conexiones tecnicas del proyecto. Igual que en Strapi, los secretos no se editan aqui: se auditan y se exponen como estado de configuracion para evitar inconsistencias.',
+                        'items' => [],
+                        'facts' => [
+                            ['label' => 'Webhook base N8N', 'value' => $n8nBaseUrl !== '' ? $n8nBaseUrl : 'No configurado'],
+                            ['label' => 'API key N8N', 'value' => $n8nApiKeyConfigured ? 'Configurada' : 'No configurada'],
+                            ['label' => 'Shared secret N8N', 'value' => $n8nSecretConfigured ? 'Configurado' : 'No configurado'],
+                            ['label' => 'Timeout N8N', 'value' => $n8nTimeout.' s'],
+                            ['label' => 'Base URL Ollama', 'value' => $ollamaBaseUrl !== '' ? $ollamaBaseUrl : 'No configurada'],
+                            ['label' => 'Modelo Ollama', 'value' => $ollamaModel !== '' ? $ollamaModel : 'No configurado'],
+                        ],
+                    ],
+                ],
+            ],
+            'capabilities' => [
+                'canCreate' => false,
+                'canEdit' => $this->canManageModule('settings', $user),
+                'canDelete' => false,
+                'canView' => $this->canViewModule('settings', $user),
             ],
         ];
     }
@@ -527,6 +712,10 @@ class BuildBackofficePhase6CrudPayloadAction
     public function settingTranslationForm(User $user, Setting $setting, ?SettingTranslation $translation, array $oldInput = []): array
     {
         $schema = $this->settingTranslationSchema($setting);
+        $fields = array_values(array_filter(
+            $this->translationFields($schema['fields'], $translation !== null),
+            fn (array $field): bool => $field['key'] !== 'locale'
+        ));
 
         return $this->translationFormPayload(
             user: $user,
@@ -538,7 +727,7 @@ class BuildBackofficePhase6CrudPayloadAction
                 request()->query('from'),
             ),
             defaults: $this->translationDefaults($schema['fields'], $translation, $oldInput, request()->query('locale')),
-            fields: $this->translationFields($schema['fields'], $translation !== null),
+            fields: $fields,
             breadcrumbs: [
                 ['label' => 'Backoffice', 'href' => BackofficePath::active()],
                 ['label' => 'Configuracion del sitio', 'href' => BackofficePath::active('settings')],
@@ -1174,8 +1363,6 @@ class BuildBackofficePhase6CrudPayloadAction
      */
     private function mapRow(string $slug, Model $record, array $columns, User $user): array
     {
-        $canOpen = $this->canOpenRecord($slug, $user);
-
         return [
             'id' => (string) $record->getKey(),
             'cells' => array_map(function (array $column) use ($slug, $record): array {
@@ -1186,16 +1373,7 @@ class BuildBackofficePhase6CrudPayloadAction
                     'align' => $column['align'],
                 ];
             }, $columns),
-            'actions' => [
-                [
-                    'label' => Phase6ModuleCatalog::isReadOnly($slug) ? 'Ver detalle' : 'Editar',
-                    'variant' => 'ghost',
-                    'enabled' => $canOpen,
-                    'href' => $canOpen
-                        ? BackofficePath::active($slug.'/'.$record->getKey().'/edit')
-                        : null,
-                ],
-            ],
+            'actions' => $this->rowActions($slug, $record, $user),
         ];
     }
 
@@ -1273,7 +1451,15 @@ class BuildBackofficePhase6CrudPayloadAction
         }
 
         if ($slug === 'newsletter-subscribers') {
-            $sections = $this->disableFields($sections, ['subscribed_at', 'unsubscribed_at']);
+            $sections = $this->disableFields($sections, [
+                'subscribed_at',
+                'unsubscribed_at',
+                'consent_text_version',
+                'ip_address',
+                'confirmation_token',
+                'unsubscribe_token',
+                'user_agent',
+            ]);
         }
 
         if ($slug === 'users') {
@@ -1317,21 +1503,24 @@ class BuildBackofficePhase6CrudPayloadAction
             $sections[] = $this->legalDocumentContentSection($activeLocale ?? 'es');
         }
 
-        if ($slug === 'settings' && $this->settingSupportsIntegratedLocaleContent($record, $context)) {
-            $sections = array_map(function (array $section): array {
-                if (($section['title'] ?? '') !== 'Setting global') {
-                    return $section;
-                }
+        if ($slug === 'settings' && $record instanceof Setting) {
+            $valueSchema = $this->settingValueSchema($record);
 
-                $section['fields'] = array_values(array_filter(
-                    $section['fields'],
-                    fn (array $field): bool => $field['key'] !== 'value'
-                ));
+            if ($this->settingSupportsIntegratedLocaleContent($record, $context) || $valueSchema !== null) {
+                $sections = array_values(array_filter(array_map(function (array $section) use ($record, $valueSchema, $activeLocale): ?array {
+                    if (($section['title'] ?? '') !== 'Ajuste global del sitio') {
+                        return $section;
+                    }
 
-                return $section;
-            }, $sections);
+                    return null;
+                }, $sections)));
+            }
 
-            $sections[] = $this->settingContentSection($record instanceof Setting ? $record : null, $activeLocale ?? 'es');
+            if ($this->settingSupportsIntegratedLocaleContent($record, $context)) {
+                $sections[] = $this->settingContentSection($record, $activeLocale ?? 'es');
+            } elseif ($valueSchema !== null) {
+                $sections[] = $this->settingValueSection($record, $valueSchema);
+            }
         }
 
         if ($slug === 'music-tracks') {
@@ -1421,6 +1610,10 @@ class BuildBackofficePhase6CrudPayloadAction
             /** @var SettingTranslation|null $translation */
             $translation = $record->translations->firstWhere('locale', $this->activeSettingLocale($record));
             $value = $this->mappedArrayValue($translation?->getAttribute('value') ?? [], (string) $field['valueKey']);
+        }
+
+        if ($slug === 'settings' && $record instanceof Setting && isset($field['settingValueKey'])) {
+            $value = $this->mappedArrayValue($record->value ?? [], (string) $field['settingValueKey']);
         }
 
         if ($slug === 'page-blocks' && $field['key'] === 'page_id' && $record instanceof PageBlock) {
@@ -2508,6 +2701,150 @@ class BuildBackofficePhase6CrudPayloadAction
         ];
     }
 
+    private function settingsDashboardItem(?Setting $setting, string $activeLocale, string $label, string $fallbackMeta): ?array
+    {
+        if (! $setting instanceof Setting) {
+            return null;
+        }
+
+        if ((bool) $setting->is_translatable) {
+            return [
+                'id' => 'settings-dashboard-'.$setting->getKey(),
+                'label' => $label,
+                'meta' => $this->settingsDashboardTranslationMeta($setting, $activeLocale, $fallbackMeta),
+                'href' => $this->settingTranslationHref($setting, $activeLocale, 'settings'),
+            ];
+        }
+
+        return [
+            'id' => 'settings-dashboard-'.$setting->getKey(),
+            'label' => $label,
+            'meta' => $this->settingsDashboardValueMeta($setting, $fallbackMeta),
+            'href' => $this->withEditorQuery(
+                BackofficePath::active('settings/'.$setting->getKey().'/edit'),
+                request()->query('locale'),
+                'settings',
+            ),
+        ];
+    }
+
+    private function settingsDashboardTranslationMeta(Setting $setting, string $locale, string $fallbackMeta): string
+    {
+        /** @var SettingTranslation|null $translation */
+        $translation = $setting->translations->firstWhere('locale', $locale);
+
+        if (! $translation instanceof SettingTranslation) {
+            return 'Sin traduccion '.mb_strtoupper($locale).'. '.$fallbackMeta;
+        }
+
+        return match ($setting->group.'.'.$setting->key) {
+            'header.open_menu', 'intro.welcome' => (string) data_get($translation->value, 'label', $fallbackMeta),
+            'header.menu' => 'Entradas configuradas: '.count(array_filter((array) data_get($translation->value, 'items', []))),
+            'footer.credits' => $this->implodeMetaParts([
+                data_get($translation->value, 'copyright'),
+                data_get($translation->value, 'rights'),
+            ], $fallbackMeta),
+            'legal.buttons' => $this->implodeMetaParts([
+                data_get($translation->value, 'terms_button'),
+                data_get($translation->value, 'privacy_button'),
+                data_get($translation->value, 'cookies_button'),
+            ], $fallbackMeta),
+            'contact.marquee_rows' => 'Filas configuradas: '.count((array) data_get($translation->value, 'rows', [])),
+            default => 'Traduccion '.mb_strtoupper($locale).' disponible. '.$fallbackMeta,
+        };
+    }
+
+    private function settingsDashboardValueMeta(Setting $setting, string $fallbackMeta): string
+    {
+        return match ($setting->group.'.'.$setting->key) {
+            'general.site_profile' => $this->implodeMetaParts([
+                data_get($setting->value, 'site_title'),
+                data_get($setting->value, 'admin_email'),
+                data_get($setting->value, 'timezone'),
+            ], $fallbackMeta),
+            'localization.default_locale' => 'Actual: '.mb_strtoupper((string) data_get($setting->value, 'value', 'es')),
+            'localization.active_locales' => 'Activos: '.implode(', ', array_map(
+                fn (string $locale): string => mb_strtoupper($locale),
+                (array) data_get($setting->value, 'locales', [])
+            )),
+            'media.upload_defaults' => $this->implodeMetaParts([
+                $this->imageSizeMeta('Miniatura', data_get($setting->value, 'thumbnail.width'), data_get($setting->value, 'thumbnail.height')),
+                $this->imageSizeMeta('Medio', data_get($setting->value, 'medium.width'), data_get($setting->value, 'medium.height')),
+                $this->imageSizeMeta('Grande', data_get($setting->value, 'large.width'), data_get($setting->value, 'large.height')),
+            ], $fallbackMeta),
+            'calendar.visibility' => $this->implodeMetaParts([
+                'Modo '.mb_strtoupper((string) data_get($setting->value, 'mode', 'auto')),
+                'Minimo '.max(1, (int) data_get($setting->value, 'minimum_upcoming_events', 5)).' eventos',
+                'Ventana '.max(30, (int) data_get($setting->value, 'lookahead_days', 365)).' dias',
+            ], $fallbackMeta),
+            'media.youtube_channel_url' => (string) data_get($setting->value, 'value', $fallbackMeta),
+            default => $fallbackMeta,
+        };
+    }
+
+    private function settingsDashboardLocale(array $query = []): string
+    {
+        $requested = $query['locale'] ?? request()->query('locale');
+
+        if (is_string($requested) && in_array($requested, BackofficeLocales::values(), true)) {
+            return $this->normalizeLocale($requested);
+        }
+
+        $defaultLocale = data_get(
+            Setting::query()
+                ->where('group', 'localization')
+                ->where('key', 'default_locale')
+                ->value('value'),
+            'value',
+            'es',
+        );
+
+        return $this->normalizeLocale((string) $defaultLocale);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function settingsDashboardLocaleActions(string $activeLocale): array
+    {
+        return collect(BackofficeLocales::values())
+            ->map(fn (string $locale): array => [
+                'label' => mb_strtoupper($locale),
+                'href' => BackofficePath::active('settings').'?locale='.$locale,
+                'variant' => $locale === $activeLocale ? 'primary' : 'secondary',
+                'active' => $locale === $activeLocale,
+                'visible' => true,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<int, mixed>  $parts
+     */
+    private function implodeMetaParts(array $parts, string $fallbackMeta): string
+    {
+        $filtered = array_values(array_filter(array_map(
+            fn (mixed $part): string => trim((string) $part),
+            $parts
+        )));
+
+        if ($filtered === []) {
+            return $fallbackMeta;
+        }
+
+        return Str::limit(implode(' · ', $filtered), 120);
+    }
+
+    private function imageSizeMeta(string $label, mixed $width, mixed $height): string
+    {
+        if (! is_numeric($width) || ! is_numeric($height)) {
+            return '';
+        }
+
+        return $label.' '.(int) $width.'x'.(int) $height;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -3025,6 +3362,68 @@ class BuildBackofficePhase6CrudPayloadAction
         ];
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function settingValueSchema(?Setting $setting = null): ?array
+    {
+        return match ($setting?->group.'.'.$setting?->key) {
+            'general.site_profile' => [
+                'title' => 'General del sitio',
+                'description' => 'Configuracion base del proyecto inspirada en los ajustes generales de WordPress.',
+                'fields' => [
+                    $this->editorField('site_title', 'Titulo del sitio', 'text', false, [], 'Se guarda en `value.site_title`.', ['settingValueKey' => 'site_title']),
+                    $this->editorField('site_tagline', 'Descripcion corta', 'text', false, [], 'Se guarda en `value.site_tagline`.', ['settingValueKey' => 'site_tagline']),
+                    $this->editorField('admin_email', 'Correo de administracion', 'email', false, [], 'Se guarda en `value.admin_email`.', ['settingValueKey' => 'admin_email']),
+                    $this->editorField('timezone', 'Zona horaria', 'text', false, [], 'Se guarda en `value.timezone`.', ['settingValueKey' => 'timezone']),
+                    $this->editorField('date_format', 'Formato de fecha', 'text', false, [], 'Se guarda en `value.date_format`.', ['settingValueKey' => 'date_format']),
+                    $this->editorField('time_format', 'Formato de hora', 'text', false, [], 'Se guarda en `value.time_format`.', ['settingValueKey' => 'time_format']),
+                    $this->editorField('registration_enabled', 'Permitir registro de usuarios', 'toggle', false, [], 'Se guarda en `value.registration_enabled`.', ['settingValueKey' => 'registration_enabled']),
+                ],
+            ],
+            'media.upload_defaults' => [
+                'title' => 'Media y uploads',
+                'description' => 'Organizacion de subidas y tamanos base de imagen para el proyecto.',
+                'fields' => [
+                    $this->editorField('organize_by_date', 'Organizar uploads por ano/mes', 'toggle', false, [], 'Se guarda en `value.organize_by_date`.', ['settingValueKey' => 'organize_by_date']),
+                    $this->editorField('thumbnail_width', 'Miniatura ancho', 'number', false, [], 'Se guarda en `value.thumbnail.width`.', ['settingValueKey' => 'thumbnail.width']),
+                    $this->editorField('thumbnail_height', 'Miniatura alto', 'number', false, [], 'Se guarda en `value.thumbnail.height`.', ['settingValueKey' => 'thumbnail.height']),
+                    $this->editorField('medium_width', 'Medio ancho', 'number', false, [], 'Se guarda en `value.medium.width`.', ['settingValueKey' => 'medium.width']),
+                    $this->editorField('medium_height', 'Medio alto', 'number', false, [], 'Se guarda en `value.medium.height`.', ['settingValueKey' => 'medium.height']),
+                    $this->editorField('large_width', 'Grande ancho', 'number', false, [], 'Se guarda en `value.large.width`.', ['settingValueKey' => 'large.width']),
+                    $this->editorField('large_height', 'Grande alto', 'number', false, [], 'Se guarda en `value.large.height`.', ['settingValueKey' => 'large.height']),
+                ],
+            ],
+            'calendar.visibility' => [
+                'title' => 'Calendar y navegacion',
+                'description' => 'Regla de visibilidad editorial para mostrar u ocultar la seccion Calendar y su entrada del menu publico.',
+                'fields' => [
+                    $this->editorField('mode', 'Modo de visibilidad', 'select', false, [
+                        ['value' => 'auto', 'label' => 'Automatico'],
+                        ['value' => 'manual', 'label' => 'Manual'],
+                    ], 'Se guarda en `value.mode`.', ['settingValueKey' => 'mode']),
+                    $this->editorField('manual_enabled', 'Visible en modo manual', 'toggle', false, [], 'Se guarda en `value.manual_enabled`.', ['settingValueKey' => 'manual_enabled']),
+                    $this->editorField('minimum_upcoming_events', 'Minimo de eventos futuros', 'number', false, [], 'Se guarda en `value.minimum_upcoming_events`.', ['settingValueKey' => 'minimum_upcoming_events']),
+                    $this->editorField('lookahead_days', 'Ventana de dias a revisar', 'number', false, [], 'Se guarda en `value.lookahead_days`.', ['settingValueKey' => 'lookahead_days']),
+                ],
+            ],
+            default => null,
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @return array<string, mixed>
+     */
+    private function settingValueSection(Setting $setting, array $schema): array
+    {
+        return [
+            'title' => (string) $schema['title'],
+            'description' => (string) $schema['description'],
+            'fields' => $schema['fields'],
+        ];
+    }
+
     private function editorialPageLabel(string $slug): string
     {
         return match ($slug) {
@@ -3325,15 +3724,32 @@ class BuildBackofficePhase6CrudPayloadAction
      */
     private function specialActions(string $slug, ?Model $record): array
     {
-        if ($slug !== 'newsletter-campaigns' || ! $record instanceof NewsletterCampaign) {
+        if ($slug === 'newsletter-campaigns' && $record instanceof NewsletterCampaign) {
+            if (! in_array($record->status, ['draft', 'cancelled'], true)) {
+                return [];
+            }
+
+            $action = Phase6ModuleCatalog::specialAction($slug, 'queue-campaign');
+
+            if (! is_array($action)) {
+                return [];
+            }
+
+            return [[
+                ...$action,
+                'endpoint' => BackofficePath::active('newsletter-campaigns/actions/queue-campaign'),
+                'record' => (string) $record->getKey(),
+            ]];
+        }
+
+        if ($slug !== 'newsletter-subscribers' || ! $record instanceof NewsletterSubscriber) {
             return [];
         }
 
-        if (! in_array($record->status, ['draft', 'cancelled'], true)) {
-            return [];
-        }
-
-        $action = Phase6ModuleCatalog::specialAction($slug, 'queue-campaign');
+        $action = Phase6ModuleCatalog::specialAction(
+            $slug,
+            ($record->is_active || $record->unsubscribed_at === null) ? 'unsubscribe' : 'reactivate',
+        );
 
         if (! is_array($action)) {
             return [];
@@ -3341,9 +3757,97 @@ class BuildBackofficePhase6CrudPayloadAction
 
         return [[
             ...$action,
-            'endpoint' => BackofficePath::active('newsletter-campaigns/actions/queue-campaign'),
+            'endpoint' => BackofficePath::active('newsletter-subscribers/actions/'.$action['slug']),
             'record' => (string) $record->getKey(),
         ]];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function dangerousActions(string $slug, ?Model $record, User $user): array
+    {
+        if (
+            $slug !== 'newsletter-subscribers'
+            || ! $record instanceof NewsletterSubscriber
+            || ! $user->isSuperAdmin()
+        ) {
+            return [];
+        }
+
+        $action = Phase6ModuleCatalog::specialAction($slug, 'forget');
+
+        if (! is_array($action)) {
+            return [];
+        }
+
+        return [[
+            ...$action,
+            'endpoint' => BackofficePath::active('newsletter-subscribers/actions/forget'),
+            'record' => (string) $record->getKey(),
+        ]];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function rowActions(string $slug, Model $record, User $user): array
+    {
+        $canOpen = $this->canOpenRecord($slug, $user);
+        $actions = [[
+            'label' => Phase6ModuleCatalog::isReadOnly($slug) ? 'Ver detalle' : 'Editar',
+            'variant' => 'ghost',
+            'enabled' => $canOpen,
+            'href' => $canOpen
+                ? BackofficePath::active($slug.'/'.$record->getKey().'/edit')
+                : null,
+            'method' => 'get',
+        ]];
+
+        if ($slug !== 'newsletter-subscribers' || ! $record instanceof NewsletterSubscriber || ! $this->canManageModule($slug, $user)) {
+            return $actions;
+        }
+
+        $actions[] = $record->is_active || $record->unsubscribed_at === null
+            ? [
+                'label' => 'Dar de baja',
+                'variant' => 'secondary',
+                'enabled' => true,
+                'href' => BackofficePath::active('newsletter-subscribers/actions/unsubscribe'),
+                'method' => 'post',
+                'data' => [
+                    'record' => (string) $record->getKey(),
+                ],
+                'confirmText' => 'Se marcara la baja manual del suscriptor y se conservara el registro para auditoria. Quieres continuar?',
+            ]
+            : [
+                'label' => 'Reactivar',
+                'variant' => 'secondary',
+                'enabled' => true,
+                'href' => BackofficePath::active('newsletter-subscribers/actions/reactivate'),
+                'method' => 'post',
+                'data' => [
+                    'record' => (string) $record->getKey(),
+                ],
+                'confirmText' => 'Se reactivara manualmente el suscriptor y se limpiara su fecha de baja. Quieres continuar?',
+            ];
+
+        if ($user->isSuperAdmin()) {
+            $actions[] = [
+                'label' => 'Borrado RGPD',
+                'variant' => 'ghost',
+                'enabled' => true,
+                'href' => BackofficePath::active('newsletter-subscribers/actions/forget'),
+                'method' => 'post',
+                'data' => [
+                    'record' => (string) $record->getKey(),
+                    'confirmation' => 'ELIMINAR',
+                ],
+                'confirmText' => 'Esta accion elimina definitivamente el suscriptor y sus logs asociados. No se puede deshacer. Quieres continuar?',
+            ];
+        }
+
+        return $actions;
     }
 
     private function canCreateFor(string $slug, User $user): bool

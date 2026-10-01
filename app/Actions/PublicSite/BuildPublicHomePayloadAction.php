@@ -11,6 +11,8 @@ use App\Models\Partner;
 use App\Models\SeoMeta;
 use App\Models\Setting;
 use App\Models\SocialLink;
+use App\Support\NewsletterLegalConsent;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -43,7 +45,7 @@ class BuildPublicHomePayloadAction
         $settings = Setting::query()
             ->where('is_public', true)
             ->where(function ($query) {
-                $query->whereIn('group', ['header', 'intro', 'footer', 'legal', 'media'])
+                $query->whereIn('group', ['header', 'intro', 'footer', 'legal', 'media', 'calendar'])
                     ->orWhere(function ($nestedQuery) {
                         $nestedQuery->where('group', 'contact')
                             ->where('key', 'marquee_rows');
@@ -94,6 +96,10 @@ class BuildPublicHomePayloadAction
             ->sortBy(fn (Event $event) => $event->event_starts_at?->getTimestamp() ?? PHP_INT_MAX)
             ->values();
 
+        $calendarVisibility = $this->calendarVisibility($settings, $pages->get('calendar'), $events);
+        $upcomingEvents = $this->upcomingEvents($events, $calendarVisibility['lookahead_days']);
+        $visibleSectionIds = $this->visibleSectionIds($calendarVisibility['visible']);
+
         $content = [
             'home' => $this->buildHomeContent($pages->get('home'), $locale),
             'about' => $this->buildAboutContent($pages->get('about'), $locale),
@@ -114,16 +120,29 @@ class BuildPublicHomePayloadAction
             'termsPolicyCookies' => $this->buildLegalContent($legalDocuments, $settings, $locale, $analytics),
         ];
 
+        $content['header']['menu'] = $this->filterHeaderMenu(
+            (array) data_get($content, 'header.menu', []),
+            $visibleSectionIds,
+        );
+
         $calendarData = [
-            'events' => $this->buildCalendarEvents($events),
+            'events' => $this->buildCalendarEvents($upcomingEvents),
             'translations' => $this->pageTranslationContent($pages->get('calendar'), $locale),
+            'visible' => $calendarVisibility['visible'],
+            'mode' => $calendarVisibility['mode'],
+            'minimumUpcomingEvents' => $calendarVisibility['minimum_upcoming_events'],
+            'upcomingEventsCount' => $upcomingEvents->count(),
         ];
 
-        $content['media']['youtubeChannelUrl'] = data_get(
-            $this->settingValue($settings, 'media', 'youtube_channel_url', $locale),
-            'value',
-            'https://www.youtube.com/channel/TUCANALAQUI',
-        );
+        $youtubeSocialLink = $socialLinks->firstWhere('platform', 'youtube');
+
+        $content['media']['youtubeChannelUrl'] = $youtubeSocialLink instanceof SocialLink
+            ? (string) $youtubeSocialLink->url
+            : (string) data_get(
+                $this->settingValue($settings, 'media', 'youtube_channel_url', $locale),
+                'value',
+                'https://www.youtube.com/channel/TUCANALAQUI',
+            );
 
         $mediaData = [
             'photos' => $this->buildPhotos($mediaAssets),
@@ -135,6 +154,7 @@ class BuildPublicHomePayloadAction
             'footerSocialLinks' => $this->buildSocialLinks($socialLinks),
             'sponsorLogos' => $this->buildPartners($partners),
             'marqueeRows' => $this->buildContactMarqueeRows($pages->get('contact'), $settings, $locale),
+            'newsletterForm' => $this->buildNewsletterFormContent($locale),
         ];
 
         $seo = $this->buildSeo(
@@ -150,7 +170,8 @@ class BuildPublicHomePayloadAction
             'calendarData' => $calendarData,
             'mediaData' => $mediaData,
             'contactData' => $contactData,
-            'events' => $this->buildCompactEvents($events),
+            'events' => $this->buildCompactEvents($upcomingEvents),
+            'visibleSections' => $visibleSectionIds,
             'seo' => $seo,
         ];
     }
@@ -166,11 +187,20 @@ class BuildPublicHomePayloadAction
 
                 return [
                     'logo' => data_get($block->settings, 'logo'),
+                    'logoAlt' => $this->descriptiveAlt(
+                        subject: data_get($translation, 'title'),
+                        fallback: 'Logo promocional del slide principal de RadioChi'
+                    ),
                     'logoPosition' => data_get($block->settings, 'logoPosition'),
                     'title' => data_get($translation, 'title'),
                     'subtitle' => data_get($translation, 'subtitle'),
                     'description' => data_get($translation, 'description'),
                     'personImage' => data_get($block->settings, 'personImage'),
+                    'personImageAlt' => $this->descriptiveAlt(
+                        subject: data_get($translation, 'title'),
+                        context: 'imagen promocional',
+                        fallback: 'Imagen promocional principal de RadioChi'
+                    ),
                     'elipseImage' => data_get($block->settings, 'elipseImage'),
                     'buttonText' => data_get($translation, 'buttonText'),
                     'link' => data_get($translation, 'link'),
@@ -217,12 +247,18 @@ class BuildPublicHomePayloadAction
                 return [
                     'id' => data_get($track->settings, 'legacy_id', $track->id),
                     'label-img' => $track->label_image_path,
+                    'labelImageAlt' => $this->descriptiveAlt(
+                        subject: $translation?->artist_name ?? $translation?->title ?? $track->slug,
+                        context: 'logo del sello musical',
+                        fallback: 'Logo del sello musical de RadioChi'
+                    ),
                     'title' => $translation?->artist_name ?? $translation?->title ?? $track->slug,
                     'heroTitle' => $translation?->hero_title,
                     'subtitle' => $translation?->subtitle ?? $translation?->title,
                     'description' => $translation?->description,
                     'image' => $track->cover_image_path,
                     'soundcloudUrl' => $track->stream_url,
+                    'soundcloudEmbedUrl' => $this->normalizeSoundCloudEmbedUrl($track->stream_url, $track->external_url),
                     'year' => $track->year ? (string) $track->year : null,
                     'genre' => $track->genre,
                 ];
@@ -231,6 +267,77 @@ class BuildPublicHomePayloadAction
             ->all();
 
         return $content;
+    }
+
+    private function normalizeSoundCloudEmbedUrl(?string $streamUrl, ?string $externalUrl): ?string
+    {
+        foreach ([$streamUrl, $externalUrl] as $candidate) {
+            $normalized = $this->normalizeAbsoluteUrl($candidate);
+
+            if ($normalized === null) {
+                continue;
+            }
+
+            $host = strtolower((string) parse_url($normalized, PHP_URL_HOST));
+            $path = (string) parse_url($normalized, PHP_URL_PATH);
+
+            if ($host === 'w.soundcloud.com' && str_starts_with($path, '/player')) {
+                return $normalized;
+            }
+
+            if ($this->isSupportedSoundCloudResourceHost($host)) {
+                return 'https://w.soundcloud.com/player/?'.http_build_query([
+                    'url' => $normalized,
+                    'auto_play' => 'false',
+                    'hide_related' => 'false',
+                    'show_comments' => 'true',
+                    'show_user' => 'true',
+                    'show_reposts' => 'false',
+                    'show_teaser' => 'true',
+                    'visual' => 'true',
+                ], '', '&', PHP_QUERY_RFC3986);
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeAbsoluteUrl(?string $url): ?string
+    {
+        if (!is_string($url)) {
+            return null;
+        }
+
+        $trimmed = trim($url);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $validated = filter_var($trimmed, FILTER_VALIDATE_URL);
+
+        if (!is_string($validated)) {
+            return null;
+        }
+
+        $scheme = strtolower((string) parse_url($validated, PHP_URL_SCHEME));
+
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return null;
+        }
+
+        return $validated;
+    }
+
+    private function isSupportedSoundCloudResourceHost(string $host): bool
+    {
+        return in_array($host, [
+            'soundcloud.com',
+            'www.soundcloud.com',
+            'm.soundcloud.com',
+            'on.soundcloud.com',
+            'api.soundcloud.com',
+        ], true);
     }
 
     private function buildCalendarEvents(Collection $events): array
@@ -252,6 +359,11 @@ class BuildPublicHomePayloadAction
                     'location' => $location,
                     'country' => $country,
                     'logo' => $event->poster_path,
+                    'logoAlt' => $this->descriptiveAlt(
+                        subject: $event->title,
+                        context: 'cartel del evento'.($location ? ' en '.$location : ''),
+                        fallback: 'Cartel del evento de RadioChi'
+                    ),
                     'linkEvent' => $event->external_url,
                 ];
             })
@@ -279,7 +391,11 @@ class BuildPublicHomePayloadAction
             ->filter(fn (MediaAsset $asset): bool => data_get($asset->metadata, 'kind') === 'photo')
             ->map(fn (MediaAsset $asset): array => [
                 'src' => $asset->path,
-                'alt' => $asset->alt_text,
+                'alt' => $this->descriptiveAlt(
+                    subject: data_get($asset->metadata, 'caption'),
+                    context: data_get($asset->metadata, 'date'),
+                    fallback: $asset->alt_text ?: $asset->filename
+                ),
                 'caption' => data_get($asset->metadata, 'caption'),
                 'date' => data_get($asset->metadata, 'date'),
             ])
@@ -295,6 +411,11 @@ class BuildPublicHomePayloadAction
                 'id' => data_get($asset->metadata, 'youtube_id', $asset->filename),
                 'thumbnail' => data_get($asset->metadata, 'thumbnail'),
                 'title' => data_get($asset->metadata, 'title', $asset->alt_text),
+                'thumbnailAlt' => $this->descriptiveAlt(
+                    subject: data_get($asset->metadata, 'title', $asset->alt_text),
+                    context: 'miniatura del video',
+                    fallback: $asset->filename
+                ),
                 'date' => data_get($asset->metadata, 'date'),
                 'duration' => data_get($asset->metadata, 'duration'),
             ])
@@ -309,9 +430,45 @@ class BuildPublicHomePayloadAction
                 'name' => $partner->name,
                 'url' => $partner->website_url,
                 'imgSrc' => $partner->logo_path,
+                'imgAlt' => $this->descriptiveAlt(
+                    subject: $partner->name,
+                    context: 'logo del colaborador o sponsor',
+                    fallback: $partner->name
+                ),
             ])
             ->values()
             ->all();
+    }
+
+    private function buildNewsletterFormContent(string $locale): array
+    {
+        return [
+            'eyebrow' => __('newsletter.front.eyebrow', locale: $locale),
+            'title' => __('newsletter.front.title', locale: $locale),
+            'description' => __('newsletter.front.description', locale: $locale),
+            'consentVersion' => NewsletterLegalConsent::consentVersion(),
+            'emailLabel' => __('newsletter.front.email_label', locale: $locale),
+            'emailPlaceholder' => __('newsletter.front.email_placeholder', locale: $locale),
+            'privacyLead' => __('newsletter.front.privacy_lead', locale: $locale),
+            'privacyLink' => __('newsletter.front.privacy_link', locale: $locale),
+            'privacyTail' => __('newsletter.front.privacy_tail', locale: $locale),
+            'submitIdle' => __('newsletter.front.submit_idle', locale: $locale),
+            'submitLoading' => __('newsletter.front.submit_loading', locale: $locale),
+            'success' => __('newsletter.subscribe.pending', locale: $locale),
+            'modal' => [
+                'duplicateTitle' => __('newsletter.front.modal.duplicate_title', locale: $locale),
+                'duplicateBody' => __('newsletter.front.modal.duplicate_body', locale: $locale),
+                'close' => __('newsletter.front.modal.close', locale: $locale),
+                'continue' => __('newsletter.front.modal.continue', locale: $locale),
+            ],
+            'messages' => [
+                'emailRequired' => __('newsletter.validation.email_required', locale: $locale),
+                'emailInvalid' => __('newsletter.validation.email_invalid', locale: $locale),
+                'privacyAccepted' => __('newsletter.validation.privacy_accepted', locale: $locale),
+                'duplicateError' => __('newsletter.validation.already_subscribed', locale: $locale),
+                'throttled' => __('newsletter.validation.throttled', locale: $locale),
+            ],
+        ];
     }
 
     private function buildSocialLinks(Collection $socialLinks): array
@@ -342,6 +499,98 @@ class BuildPublicHomePayloadAction
         }
 
         return data_get($this->settingValue($settings, 'contact', 'marquee_rows', $locale), 'rows', []);
+    }
+
+    private function upcomingEvents(Collection $events, int $lookaheadDays): Collection
+    {
+        $today = CarbonImmutable::now()->startOfDay();
+        $lastVisibleDay = $today->addDays(max(1, $lookaheadDays));
+
+        return $events
+            ->filter(function (Event $event) use ($today, $lastVisibleDay): bool {
+                $eventStart = $event->event_starts_at?->toImmutable()?->startOfDay();
+                $eventEnd = $event->event_ends_at?->toImmutable()?->endOfDay();
+                $effectiveDate = $eventEnd ?? $eventStart;
+
+                if (! $effectiveDate instanceof CarbonImmutable) {
+                    return false;
+                }
+
+                return $effectiveDate->greaterThanOrEqualTo($today)
+                    && ($eventStart === null || $eventStart->lessThanOrEqualTo($lastVisibleDay));
+            })
+            ->values();
+    }
+
+    /**
+     * @return array{visible: bool, mode: string, minimum_upcoming_events: int, lookahead_days: int}
+     */
+    private function calendarVisibility(Collection $settings, ?Page $calendarPage, Collection $events): array
+    {
+        $value = $this->settingValue($settings, 'calendar', 'visibility', self::DEFAULT_LOCALE);
+        $mode = in_array(data_get($value, 'mode'), ['auto', 'manual'], true)
+            ? (string) data_get($value, 'mode')
+            : 'auto';
+        $manualEnabled = (bool) data_get($value, 'manual_enabled', true);
+        $minimumUpcomingEvents = max(1, (int) data_get($value, 'minimum_upcoming_events', 5));
+        $lookaheadDays = max(30, (int) data_get($value, 'lookahead_days', 365));
+        $upcomingEvents = $this->upcomingEvents($events, $lookaheadDays);
+        $pagePublished = $calendarPage instanceof Page && (bool) $calendarPage->is_published;
+
+        $visible = $pagePublished && match ($mode) {
+            'manual' => $manualEnabled,
+            default => $upcomingEvents->count() >= $minimumUpcomingEvents,
+        };
+
+        return [
+            'visible' => $visible,
+            'mode' => $mode,
+            'minimum_upcoming_events' => $minimumUpcomingEvents,
+            'lookahead_days' => $lookaheadDays,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function visibleSectionIds(bool $calendarVisible): array
+    {
+        return [
+            'home',
+            'about',
+            'music',
+            ...($calendarVisible ? ['calendar'] : []),
+            'media',
+            'contact',
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $menu
+     * @param  array<int, string>  $visibleSectionIds
+     * @return array<string, mixed>
+     */
+    private function filterHeaderMenu(array $menu, array $visibleSectionIds): array
+    {
+        if (! in_array('calendar', $visibleSectionIds, true)) {
+            unset($menu['calendarEvents']);
+        }
+
+        return $menu;
+    }
+
+    private function descriptiveAlt(?string $subject, ?string $context = null, string $fallback = ''): string
+    {
+        $parts = array_values(array_filter([
+            is_string($subject) ? trim($subject) : '',
+            is_string($context) ? trim($context) : '',
+        ]));
+
+        if ($parts !== []) {
+            return implode(', ', $parts);
+        }
+
+        return trim($fallback);
     }
 
     private function buildLegalContent(Collection $legalDocuments, Collection $settings, string $locale, array $analytics): array
