@@ -21,6 +21,8 @@
 - [x] ~~Eliminar los botones con gradient del backoffice y unificar su patron visual a un solo color de acento con estado normal transparente y hover relleno.~~
 - [x] ~~Marcar visualmente el idioma activo en el menu de locales del backoffice y usar `ES` como fallback por defecto cuando no llegue uno explicitamente seleccionado.~~
 - [x] ~~Corregir el menu de idioma del primer contenedor en los editores page-centric (`pages/*/edit`), marcando el locale activo tambien en las acciones de cabecera del `BackofficeLayout`.~~
+- [x] ~~Blindar el payload publico multidioma para el arranque compilado: al salir del HMR fantasma de `public/hot`, los assets legacy que no esten presentes en el `manifest` de Vite vuelven al path publico original en lugar de romper la home con `500`.~~
+- [x] ~~Cerrar la pasada de arranque/HMR retirando la instrumentacion temporal de depuracion, de modo que el payload multidioma conserve la resolucion estable de assets sin dejar rastros runtime ajenos al comportamiento real.~~
 - [ ] Completar la cobertura tipada de todos los formularios secundarios restantes del CMS onepage.
 - [x] ~~Validar integralmente frontend publico + backoffice editorial con pruebas y navegador.~~
 

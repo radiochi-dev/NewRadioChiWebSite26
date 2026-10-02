@@ -30,6 +30,8 @@ class SecurityHeaders
 
     private function contentSecurityPolicy(Request $request): string
     {
+        $allowLocalViteHmr = $this->shouldAllowLocalViteHmr();
+
         $directives = [
             'default-src' => ["'self'"],
             'img-src' => ["'self'", 'https:', 'data:'],
@@ -44,7 +46,7 @@ class SecurityHeaders
             'form-action' => ["'self'"],
         ];
 
-        if ($this->shouldAllowLocalViteHmr()) {
+        if ($allowLocalViteHmr) {
             $directives['img-src'] = array_merge($directives['img-src'], $this->localViteHttpOrigins());
             $directives['font-src'] = array_merge($directives['font-src'], $this->localViteHttpOrigins());
             $directives['style-src'] = array_merge($directives['style-src'], $this->localViteHttpOrigins());

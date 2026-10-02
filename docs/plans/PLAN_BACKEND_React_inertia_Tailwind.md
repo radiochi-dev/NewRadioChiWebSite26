@@ -24,6 +24,13 @@ Sustituir el backoffice actual basado en `Filament + Livewire + Blade` por un ba
 - [x] ~~Se mantiene el smoke visual real de backoffice y la consola queda limpia de errores propios tras la normalizacion de assets, quedando solo el aviso informativo de React DevTools en entorno local.~~
 - [x] ~~Validacion reciente de esta pasada: `npm run build` OK y tests focales en Docker (`Phase7PublicCmsPayloadTest`, `BackofficeLoginExperienceTest`) OK con 7 tests y 95 assertions.~~
 
+## Incidencia post-plan: arranque local con `ProjectRun.ps1`
+
+- [x] ~~Se audita la causa raiz real del arranque fallido: `ProjectRun.ps1` no saneaba `public/hot`, de modo que Laravel intentaba servir assets desde `127.0.0.1:5173` sin proceso Vite activo.~~
+- [x] ~~`ProjectRun.ps1` se corrige para eliminar el marcador HMR obsoleto antes de validar o servir el frontend, alineando el flujo con el modo compilado Docker-only que usa el proyecto.~~
+- [x] ~~`BuildPublicHomePayloadAction` queda blindado ante assets legacy existentes fuera del `manifest`: si `Vite::asset(...)` no puede resolver el recurso, el payload vuelve al path publico original y la home publica responde `200` con assets compilados desde `public/build`.~~
+- [x] ~~Se limpia la instrumentacion temporal de debugging del arranque/HMR y el arbol vuelve a quedar sin hooks runtime auxiliares ni artefactos `.dbg`, manteniendo el soporte real de `ProjectRun.ps1 dev` y el modo compilado limpio.~~
+
 ## Hotfix inmediato de regresiones publicas
 
 - [x] ~~Restaurado el estilo del titular del hero mediante selectores por clase (`legacy-home-title`, `legacy-home-subtitle`, `legacy-home-description`) para evitar que el contenido visible herede estilos de parrafo por cambio semantico.~~

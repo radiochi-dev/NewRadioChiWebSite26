@@ -14,11 +14,36 @@ services:
     volumes:
       - ./:/var/www/html
       - newradiochiwebsite26_vendor:/var/www/html/vendor
+      - newradiochiwebsite26_node_modules:/var/www/html/node_modules
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - newradiochiwebsite26_net
+
+  vite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: newradiochiwebsite26_vite
+    working_dir: /var/www/html
+    command: >
+      sh -lc "if [ ! -d node_modules ] || [ ! -f node_modules/.package-lock-stamp ] || [ package-lock.json -nt node_modules/.package-lock-stamp ]; then
+        npm ci &&
+        touch node_modules/.package-lock-stamp;
+      fi &&
+      npm run dev -- --host 0.0.0.0 --port 5173 --strictPort"
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - ./:/var/www/html
+      - newradiochiwebsite26_node_modules:/var/www/html/node_modules
+    depends_on:
+      app:
+        condition: service_started
     networks:
       - newradiochiwebsite26_net
 
@@ -167,6 +192,7 @@ volumes:
   newradiochiwebsite26_n8n_postgres_data:
   newradiochiwebsite26_n8n_data:
   newradiochiwebsite26_ollama_data:
+  newradiochiwebsite26_node_modules:
   newradiochiwebsite26_vendor:
 
 networks:

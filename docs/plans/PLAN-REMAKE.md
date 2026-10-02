@@ -8,6 +8,15 @@
 - **Siguiente fase segura activa**: `Activacion controlada GA4`
 - **Avance de la fase actual**: `85%`
 
+### Incidencia post-plan: arranque local con `ProjectRun.ps1`
+
+**Estado:** COMPLETADA
+
+- [x] ~~Detectado el arranque en modo HMR fantasma: `public/hot` quedaba colgado apuntando a `http://127.0.0.1:5173` sin servidor Vite escuchando, provocando `ERR_CONNECTION_REFUSED` y pantalla en blanco aunque Docker estuviera sano.~~
+- [x] ~~`ProjectRun.ps1` queda endurecido para eliminar `public/hot` antes de validar o servir el frontend, forzando el uso de assets compilados en el flujo Docker-only real del proyecto.~~
+- [x] ~~El payload publico deja de romper la home cuando un asset legacy existe pero no entra en el `manifest` de Vite: `BuildPublicHomePayloadAction` vuelve al path publico original como fallback y la carga publica `/es` responde `200` con `app.css` y `app.js` servidos desde `public/build`.~~
+- [x] ~~Se retira toda la instrumentacion temporal de depuracion usada para aislar el arranque/HMR (`ProjectRun.ps1`, `SecurityHeaders`, `BuildPublicHomePayloadAction`, `resources/views/app.blade.php` y artefactos `.dbg`), conservando solo los cambios funcionales estables.~~
+
 ### Pasada de mejora continua cerrada
 
 **Estado:** COMPLETADA

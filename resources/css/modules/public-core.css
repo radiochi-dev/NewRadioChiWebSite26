@@ -1036,7 +1036,9 @@
 
 .legacy-track-cards {
     display: flex;
+    align-items: stretch;
     gap: 10px;
+    height: 100%;
     max-width: none;
     transition: transform 500ms ease-in-out;
 }
@@ -1058,6 +1060,8 @@
 }
 
 .legacy-track-carousel {
+    display: flex;
+    align-items: stretch;
     overflow: hidden;
     height: 100%;
     padding: 0 2.25rem;
@@ -1089,6 +1093,8 @@
 
 .legacy-track-card {
     position: relative;
+    align-self: stretch;
+    display: flex;
     height: 100%;
     text-align: left;
 }
@@ -1097,6 +1103,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex: 1 1 auto;
     width: 100%;
     height: 100%;
     border: 1px solid rgba(255, 255, 255, 0.6);

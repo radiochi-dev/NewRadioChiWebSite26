@@ -14,6 +14,7 @@ use App\Models\SocialLink;
 use App\Support\NewsletterLegalConsent;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\ViteException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\Str;
@@ -323,7 +324,11 @@ class BuildPublicHomePayloadAction
         $resourcePath = $this->managedAssetResourcePath($trimmed);
 
         if ($resourcePath !== null && is_file(base_path($resourcePath))) {
-            return Vite::asset($resourcePath);
+            try {
+                return Vite::asset($resourcePath);
+            } catch (ViteException) {
+                return $trimmed;
+            }
         }
 
         return $trimmed;

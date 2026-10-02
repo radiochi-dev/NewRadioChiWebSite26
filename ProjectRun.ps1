@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('up', 'build', 'rebuild', 'down', 'status', 'logs', 'validate')]
+    [ValidateSet('up', 'dev', 'build', 'rebuild', 'down', 'status', 'logs', 'validate')]
     [string]$Mode = 'up'
 )
 
@@ -9,6 +9,9 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $envFile = Join-Path $projectRoot '.env'
 $envExampleFile = Join-Path $projectRoot '.env.example'
+$publicHotFile = Join-Path $projectRoot 'public\hot'
+$composeCoreServices = @('app', 'nginx', 'postgres', 'redis', 'n8n_postgres', 'n8n', 'n8n_worker', 'ollama')
+$composeDevServices = @($composeCoreServices + @('vite'))
 
 function Write-Step {
     param([string]$Message)
@@ -228,33 +231,64 @@ function Ensure-LaravelDependencies {
 }
 
 function Ensure-FrontendDependencies {
-    $hasNodeModules = $true
-    & docker compose exec -T app sh -lc "test -d /var/www/html/node_modules"
+    $frontendDepsAreFresh = $true
+    & docker compose exec -T app sh -lc "test -d /var/www/html/node_modules && test -f /var/www/html/node_modules/.package-lock-stamp && test ! /var/www/html/package-lock.json -nt /var/www/html/node_modules/.package-lock-stamp"
 
     if ($LASTEXITCODE -ne 0) {
-        $hasNodeModules = $false
+        $frontendDepsAreFresh = $false
     }
 
-    if (-not $hasNodeModules) {
+    if (-not $frontendDepsAreFresh) {
         Write-Step "Instalando dependencias frontend dentro del contenedor app"
-        Invoke-DockerCompose -Arguments @('exec', '-T', 'app', 'npm', 'ci')
+        Invoke-DockerCompose -Arguments @('exec', '-T', 'app', 'sh', '-lc', 'npm ci && touch /var/www/html/node_modules/.package-lock-stamp')
     }
 }
 
 function Ensure-FrontendBuild {
     param([bool]$ForceBuild = $false)
 
-    $hasManifest = $true
-    & docker compose exec -T app sh -lc "test -f /var/www/html/public/build/manifest.json"
+    $buildIsFresh = $true
+    & docker compose exec -T app sh -lc "test -f /var/www/html/public/build/manifest.json && test ! /var/www/html/package-lock.json -nt /var/www/html/public/build/manifest.json && test ! /var/www/html/package.json -nt /var/www/html/public/build/manifest.json && test ! /var/www/html/vite.config.js -nt /var/www/html/public/build/manifest.json && test -z `$(find /var/www/html/resources -type f -newer /var/www/html/public/build/manifest.json -print -quit)"
 
     if ($LASTEXITCODE -ne 0) {
-        $hasManifest = $false
+        $buildIsFresh = $false
     }
 
-    if ($ForceBuild -or -not $hasManifest) {
+    if ($ForceBuild -or -not $buildIsFresh) {
         Write-Step "Generando assets frontend dentro del contenedor app"
         Invoke-DockerCompose -Arguments @('exec', '-T', 'app', 'npm', 'run', 'build')
     }
+}
+
+function Clear-StaleViteHotFile {
+    if (-not (Test-Path $publicHotFile)) {
+        return
+    }
+
+    $hotTarget = ''
+
+    try {
+        $hotTarget = ((Get-Content -Path $publicHotFile -TotalCount 1 -ErrorAction Stop) | Select-Object -First 1).Trim()
+    }
+    catch {
+        $hotTarget = ''
+    }
+
+    Write-Step "Eliminando marcador HMR obsoleto de Vite"
+
+    if ([string]::IsNullOrWhiteSpace($hotTarget)) {
+        Write-Host "Se elimina public/hot para forzar el uso de assets compilados." -ForegroundColor Yellow
+    }
+    else {
+        Write-Host "Se elimina public/hot apuntando a $hotTarget para forzar el uso de assets compilados." -ForegroundColor Yellow
+    }
+
+    Remove-Item -Path $publicHotFile -Force
+}
+
+function Stop-ViteDevService {
+    & docker compose stop vite *> $null
+    $global:LASTEXITCODE = 0
 }
 
 function Ensure-LaravelAppKeyAndMigrations {
@@ -295,6 +329,28 @@ function Assert-HttpStatus {
     }
 }
 
+function Wait-ForHttpStatus {
+    param(
+        [string]$Url,
+        [int[]]$AllowedStatusCodes,
+        [int]$TimeoutSeconds = 120
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+
+    while ((Get-Date) -lt $deadline) {
+        try {
+            Assert-HttpStatus -Url $Url -AllowedStatusCodes $AllowedStatusCodes
+            return
+        }
+        catch {
+            Start-Sleep -Seconds 2
+        }
+    }
+
+    throw "La URL '$Url' no devolvio ninguno de los estados esperados ($($AllowedStatusCodes -join ', ')) dentro del tiempo esperado."
+}
+
 function Invoke-ValidationChecklist {
     Write-Step "Validando docker-compose"
     Invoke-DockerCompose -Arguments @('config')
@@ -306,7 +362,7 @@ function Invoke-ValidationChecklist {
     Assert-HttpStatus -Url 'http://127.0.0.1:8080' -AllowedStatusCodes @(200)
 
     Write-Step "Validando HTTP admin"
-    Assert-HttpStatus -Url 'http://127.0.0.1:8080/admin/pages' -AllowedStatusCodes @(200, 401, 403)
+    Assert-HttpStatus -Url 'http://127.0.0.1:8080/backoffice/login' -AllowedStatusCodes @(200)
 
     Write-Step "Ejecutando tests Laravel"
     Invoke-DockerCompose -Arguments @('exec', '-T', 'app', 'php', 'artisan', 'test')
@@ -319,11 +375,28 @@ Write-Step "Preparando variables locales del proyecto"
 $envLines = Ensure-ProjectEnv
 $validateOnly = $false
 $forceFrontendBuild = $false
+$useViteDevServer = $false
+
+Send-DebugEvent -HypothesisId 'A' -Message 'ProjectRun started.' -Data @{
+    mode = $Mode
+    hotFilePresent = (Test-Path $publicHotFile)
+    manifestPresent = (Test-Path (Join-Path $projectRoot 'public\build\manifest.json'))
+}
 
 switch ($Mode) {
     'validate' {
         $validateOnly = $true
-        Invoke-DockerCompose -Arguments @('up', '-d')
+        Invoke-DockerCompose -Arguments (@('up', '-d') + $composeCoreServices)
+    }
+    'dev' {
+        $useViteDevServer = $true
+
+        if (Test-Path $publicHotFile) {
+            Remove-Item -Path $publicHotFile -Force
+        }
+
+        Write-Step "Levantando el stack con Vite HMR"
+        Invoke-DockerCompose -Arguments (@('up', '-d') + $composeDevServices)
     }
     'down' {
         Write-Step "Deteniendo el stack"
@@ -343,17 +416,17 @@ switch ($Mode) {
     'rebuild' {
         Write-Step "Reconstruyendo el stack sin borrar volumenes"
         Invoke-DockerCompose -Arguments @('down', '--remove-orphans')
-        Invoke-DockerCompose -Arguments @('up', '-d', '--build')
+        Invoke-DockerCompose -Arguments (@('up', '-d', '--build') + $composeCoreServices)
         $forceFrontendBuild = $true
     }
     'build' {
         Write-Step "Levantando el stack con build"
-        Invoke-DockerCompose -Arguments @('up', '-d', '--build')
+        Invoke-DockerCompose -Arguments (@('up', '-d', '--build') + $composeCoreServices)
         $forceFrontendBuild = $true
     }
     default {
         Write-Step "Levantando el stack"
-        Invoke-DockerCompose -Arguments @('up', '-d')
+        Invoke-DockerCompose -Arguments (@('up', '-d') + $composeCoreServices)
     }
 }
 
@@ -378,9 +451,14 @@ Wait-ForContainerState -ContainerName 'newradiochiwebsite26_n8n_worker' -Desired
 Write-Step "Esperando a Ollama"
 Wait-ForContainerState -ContainerName 'newradiochiwebsite26_ollama' -DesiredState 'running'
 
-if ($validateOnly) {
-    Invoke-ValidationChecklist
-    exit 0
+if ($useViteDevServer) {
+    Write-Step "Esperando a Vite dev server"
+    Wait-ForContainerState -ContainerName 'newradiochiwebsite26_vite' -DesiredState 'running'
+    Wait-ForHttpStatus -Url 'http://127.0.0.1:5173/@vite/client' -AllowedStatusCodes @(200)
+}
+else {
+    Stop-ViteDevService
+    Clear-StaleViteHotFile
 }
 
 Ensure-LaravelDependencies
@@ -389,10 +467,34 @@ Ensure-LaravelAppKeyAndMigrations -EnvLines $envLines
 
 Write-Step "Creando acceso readonly desde n8n a la base principal del proyecto"
 Ensure-ReadonlyRoleForN8N -EnvLines $envLines
-Ensure-FrontendBuild -ForceBuild $forceFrontendBuild
+
+if ($useViteDevServer) {
+    Send-DebugEvent -HypothesisId 'B' -Message 'ProjectRun confirmed Vite HMR mode.' -Data @{
+        mode = $Mode
+        hotFilePresent = (Test-Path $publicHotFile)
+    }
+}
+else {
+    Ensure-FrontendBuild -ForceBuild $forceFrontendBuild
+}
+
+if ($validateOnly) {
+    Invoke-ValidationChecklist
+    exit 0
+}
+
+Send-DebugEvent -HypothesisId 'A' -Message 'ProjectRun completed frontend preparation.' -Data @{
+    mode = $Mode
+    hotFilePresent = (Test-Path $publicHotFile)
+    manifestPresent = (Test-Path (Join-Path $projectRoot 'public\build\manifest.json'))
+    forceFrontendBuild = $forceFrontendBuild
+}
 
 Write-Host "`nProyecto levantado." -ForegroundColor Green
 Write-Host "Web:    http://127.0.0.1:8080"
+if ($useViteDevServer) {
+    Write-Host "Vite:   http://127.0.0.1:5173 (HMR activo)"
+}
 Write-Host "n8n:    http://127.0.0.1:5678"
 Write-Host "Ollama: http://127.0.0.1:11434"
 Write-Host ""
